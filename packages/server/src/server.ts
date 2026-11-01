@@ -212,7 +212,9 @@ export async function startServer(opts: ServerOpts) {
     }
     try {
       const body = await readFile(file);
-      res.writeHead(200, { "content-type": MIME[path.extname(file)] ?? "application/octet-stream" });
+      // index.html names the current build's hashed assets: always revalidate it; the hashed assets never change.
+      const cache = file.endsWith(".html") ? "no-cache" : file.includes(`${path.sep}assets${path.sep}`) ? "public, max-age=31536000, immutable" : "no-cache";
+      res.writeHead(200, { "content-type": MIME[path.extname(file)] ?? "application/octet-stream", "cache-control": cache });
       res.end(body);
     } catch {
       json(res, 404, { error: "not found" });

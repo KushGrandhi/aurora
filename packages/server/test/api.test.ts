@@ -298,3 +298,14 @@ test("connected screens hear about a rebuilt screen", async () => {
   await until(() => l.events.some((e) => e.t === "hello" && (e as { build: string }).build !== first), 5000);
   l.ws.close();
 });
+
+test("the screen's index.html is never served from cache", async () => {
+  const { mkdir, writeFile } = await import("node:fs/promises");
+  const staticDir = path.join(dir, "static");
+  await mkdir(path.join(staticDir, "assets"), { recursive: true });
+  await writeFile(path.join(staticDir, "index.html"), "<!doctype html>");
+  await writeFile(path.join(staticDir, "assets", "a-123.js"), "1");
+  srv = await startServer({ port: 0, provider: createFakeProvider(doc), openBrowser: () => {}, viewsDir: path.join(dir, "views"), waitMs: 20, staticDir, secretFile: path.join(dir, "secret") });
+  expect((await fetch(srv.url + "/")).headers.get("cache-control")).toBe("no-cache");
+  expect((await fetch(srv.url + "/assets/a-123.js")).headers.get("cache-control")).toContain("immutable");
+});
