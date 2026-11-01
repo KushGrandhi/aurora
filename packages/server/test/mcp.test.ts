@@ -27,10 +27,10 @@ async function connect(reply: Parameters<typeof fakeFetch>[0]) {
 
 const view = { v: 2, id: "demo", title: "Demo", sections: [{ id: "main", layout: "grid", items: [{ id: "a", c: { type: "text", md: "hi" } }] }] };
 
-test("lists the six tools", async () => {
+test("lists the eight tools", async () => {
   const { client } = await connect(() => ({ body: {} }));
   const { tools } = await client.listTools();
-  expect(tools.map((t) => t.name).sort()).toEqual(["compose", "patch", "profile", "render", "status", "version"]);
+  expect(tools.map((t) => t.name).sort()).toEqual(["compose", "events", "patch", "profile", "render", "status", "variants", "version"]);
   for (const t of tools) expect(t.description!.length).toBeGreaterThan(20);
 });
 

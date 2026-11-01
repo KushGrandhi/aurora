@@ -1,11 +1,13 @@
 import { validateView } from "@genui/engine";
 import {
   allIds, applyOps, fromPlan1, getComponent, IdSchema, paramDefault, paramValueVars, paramVars, SpecSchema, sqlVars, validateParamValue, ViewSchema,
-  type Param, type PatchOp, type Problem, type QueryResult, type ScreenMessage, type Spec, type View, type ViewEvent,
+  type GenuiEvent, type Param, type PatchOp, type Problem, type QueryResult, type ScreenMessage, type Spec, type View, type ViewEvent,
 } from "@genui/spec";
 import { randomUUID } from "node:crypto";
 import type { DataRuntime } from "./dataRuntime.ts";
+import { EventLog } from "./events.ts";
 import type { MediaRegistry } from "./media.ts";
+import { buildVariants } from "./variants.ts";
 import type { VersionSource, ViewStore } from "./viewStore.ts";
 
 export type IntakeResult = { viewId: string; version: number; url: string; rebased?: boolean; problems: Problem[] };
@@ -27,6 +29,7 @@ type Runtime = {
   paramDefs: Record<string, Param>;
   options: Record<string, string[]>; // resolved select options
   media: Record<string, string>; // src → URL the screen loads
+  variants?: { baseVersion: number; items: { label: string; view: View }[] }; // pending alternatives (not versions)
   problems: Problem[]; // static + data problems of the current version
   extra: Problem[]; // caller-level notes (e.g. composer errors), cleared on the next render
   report?: Report;
@@ -54,6 +57,7 @@ const OPTIONS_CAP = 200;
  */
 export class Intake {
   private rt = new Map<string, Runtime>();
+  private log = new EventLog();
   private opened = 0;
   private deps: IntakeDeps;
 
@@ -141,6 +145,12 @@ export class Intake {
       case "param":
         await this.setParam(msg.viewId, msg.name, msg.value);
         return;
+      case "event":
+        if (this.deps.store.current(msg.viewId)) this.log.add(msg.viewId, { itemId: msg.itemId, name: msg.name, payload: msg.payload });
+        return;
+      case "pickVariant":
+        await this.pickVariant(msg.viewId, msg.index);
+        return;
     }
   }
 
@@ -163,10 +173,50 @@ export class Intake {
     this.deps.emit({ t: "activity", viewId, text });
   }
 
-  status(viewId: string): { version: number; problems: Problem[]; unverified: string[]; params: Record<string, unknown> } {
+  status(viewId: string): { version: number; problems: Problem[]; unverified: string[]; params: Record<string, unknown>; events: { count: number; lastSeq: number } } {
     const cur = this.deps.store.current(viewId);
     if (!cur) throw new IntakeError(`no view "${viewId}"`, 404);
-    return { version: cur.version, problems: this.problems(viewId), unverified: this.unverified(viewId), params: { ...this.runtime(viewId).params } };
+    return { version: cur.version, problems: this.problems(viewId), unverified: this.unverified(viewId), params: { ...this.runtime(viewId).params }, events: this.log.stats(viewId) };
+  }
+
+  /** What the person did on screen since `after`. */
+  events(viewId: string, after = 0): GenuiEvent[] {
+    return this.log.since(viewId, after);
+  }
+
+  /** Like events, but waits up to `ms` for the first one (the caller blocks until the person acts). */
+  waitEvents(viewId: string, after: number, ms: number): Promise<GenuiEvent[]> {
+    if (!this.deps.store.current(viewId)) throw new IntakeError(`no view "${viewId}"`, 404);
+    return this.log.wait(viewId, after, ms);
+  }
+
+  /** Shows 2–3 alternatives side by side; none becomes a version until the person picks one. */
+  async variants(viewId: string, alts: { label: string; ops: PatchOp[] }[], baseVersion?: number): Promise<IntakeResult & { variants: { label: string; problems: Problem[] }[] }> {
+    const out = await this.serial(viewId, async () => {
+      const cur = this.deps.store.current(viewId);
+      if (!cur) throw new IntakeError(`no view "${viewId}"; render it first`, 404);
+      const built = buildVariants(cur.view, alts, (v) => this.validateOnly(v));
+      if ("problem" in built) throw new IntakeError(built.problem);
+      const r = this.runtime(viewId);
+      r.variants = { baseVersion: cur.version, items: built.variants.map(({ label, view }) => ({ label, view })) };
+      this.deps.emit({ t: "variants", viewId, baseVersion: cur.version, variants: r.variants.items });
+      return { version: cur.version, variants: built.variants.map(({ label, problems }) => ({ label, problems })), rebased: baseVersion !== undefined && baseVersion < cur.version };
+    });
+    this.ensureScreen(viewId);
+    return { viewId, version: out.version, url: this.url(viewId), problems: [], variants: out.variants, ...(out.rebased ? { rebased: true } : {}) };
+  }
+
+  /** The person chose a variant: it becomes the current version and the caller can read the choice from events. */
+  async pickVariant(viewId: string, index: number): Promise<IntakeResult> {
+    const v = await this.serial(viewId, async () => {
+      const r = this.runtime(viewId);
+      const item = r.variants?.items[index];
+      if (!item) throw new IntakeError(r.variants ? `no variant ${index}` : `view "${viewId}" has no variants pending`, 404);
+      const version = await this.commit(item.view, "screen", { note: `picked "${item.label}"` });
+      this.log.add(viewId, { name: "genui:variant-picked", payload: { index, label: item.label, version } });
+      return version;
+    });
+    return this.finish(viewId, v, false);
   }
 
   /** Sets a filter value: validates it, re-runs only the queries that read its vars and broadcasts their results. */
@@ -200,6 +250,7 @@ export class Intake {
     if (!cur) return [];
     const r = this.runtime(viewId);
     const out: ViewEvent[] = [{ t: "media", viewId, urls: { ...r.media } }, this.paramsEvent(viewId), { t: "view", viewId, version: cur.version, view: cur.view, source: cur.source }];
+    if (r.variants) out.push({ t: "variants", viewId, baseVersion: r.variants.baseVersion, variants: r.variants.items });
     for (const [queryId, q] of r.results) if (q.result) out.push({ t: "result", viewId, queryId, result: q.result });
     out.push({ t: "problems", viewId, version: cur.version, problems: this.problems(viewId) });
     return out;
@@ -222,6 +273,10 @@ export class Intake {
     const { checked, fresh } = await this.evaluate(view);
 
     const entry = await store.render(checked.view, source, how.note);
+    if (r.variants) {
+      r.variants = undefined; // the base moved on: pending alternatives no longer apply
+      emit({ t: "variants", viewId: view.id, baseVersion: entry.version, variants: [] });
+    }
     emit({ t: "media", viewId: view.id, urls: { ...r.media } });
     emit(this.paramsEvent(view.id));
     if (how.ops && how.baseVersion !== undefined) {
@@ -329,6 +384,18 @@ export class Intake {
       }
       r.options[name] = [...values];
     }
+  }
+
+  /** Problems a view would have against the current results, without changing anything. */
+  private validateOnly(view: View): Problem[] {
+    const r = this.runtime(view.id);
+    const queryRows = new Map<string, number>();
+    const querySql = new Map<string, string>();
+    for (const [id, q] of r.results) {
+      querySql.set(id, q.sql);
+      if (q.result) queryRows.set(id, q.result.rows.length);
+    }
+    return validateView(view, { queryRows, querySql }).problems;
   }
 
   /** Validates against the current results and collects media URLs. Sets the view's current problems. */

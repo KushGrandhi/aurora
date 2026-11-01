@@ -239,3 +239,48 @@ test("a screen is told the build it should be running", async () => {
   expect((b.events[0] as { build: string }).build).not.toBe(first);
   b.ws.close();
 });
+
+test("lib is served cross-origin to sandboxed frames", async () => {
+  const { mkdir, writeFile } = await import("node:fs/promises");
+  const staticDir = path.join(dir, "static");
+  await mkdir(path.join(staticDir, "lib"), { recursive: true });
+  await writeFile(path.join(staticDir, "index.html"), "<!doctype html>");
+  await writeFile(path.join(staticDir, "lib", "x.js"), "export const x = 1;");
+  srv = await startServer({ port: 0, provider: createFakeProvider(doc), openBrowser: () => {}, viewsDir: path.join(dir, "views"), waitMs: 20, staticDir, secretFile: path.join(dir, "secret") });
+  const lib = await fetch(srv.url + "/lib/x.js", { headers: { origin: "null" } });
+  expect(lib.status).toBe(200);
+  expect(lib.headers.get("access-control-allow-origin")).toBe("*");
+  expect(lib.headers.get("content-type")).toBe("text/javascript");
+  expect((await fetch(srv.url + "/lib/../index.html", { headers: { origin: "null" } })).status).not.toBe(200);
+  expect((await send(srv.url, "/api/views", { view: view() }, { origin: "null" })).status).toBe(403);
+  expect((await fetch(srv.url + "/api/views", { headers: { origin: "null" } })).status).toBe(403);
+});
+
+test("events long-poll returns the screen's click", async () => {
+  srv = await start();
+  expect((await send(srv.url, "/api/views", { view: view() })).status).toBe(200);
+  const l = listen(srv.url);
+  await l.open;
+  const poll = fetch(srv.url + "/api/views/demo/events?after=0&wait=3000").then((r) => r.json());
+  setTimeout(() => l.ws.send(JSON.stringify({ t: "event", viewId: "demo", itemId: "k", name: "chose", payload: { plan: "pro" } })), 50);
+  const got = await poll;
+  expect(got.events).toMatchObject([{ itemId: "k", name: "chose", payload: { plan: "pro" } }]);
+  l.ws.close();
+});
+
+test("variants over HTTP and pick from the screen", async () => {
+  srv = await start();
+  await send(srv.url, "/api/views", { view: view() });
+  const r = await send(srv.url, "/api/views/demo/variants", { variants: [
+    { label: "Wide", ops: [{ op: "update", id: "k", item: { span: 12 } }] },
+    { label: "Narrow", ops: [{ op: "update", id: "k", item: { span: 3 } }] },
+  ] });
+  expect(r.status).toBe(200);
+  expect((await r.json()).variants.map((v: { label: string }) => v.label)).toEqual(["Wide", "Narrow"]);
+  const l = listen(srv.url);
+  await l.open;
+  l.ws.send(JSON.stringify({ t: "pickVariant", viewId: "demo", index: 1 }));
+  await until(() => l.events.some((e) => e.t === "variants" && e.variants.length === 0));
+  expect((await (await fetch(srv.url + "/api/views/demo")).json()).view.sections[0].items[0].span).toBe(3);
+  l.ws.close();
+});

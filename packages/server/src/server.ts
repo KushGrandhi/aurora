@@ -30,7 +30,7 @@ export type ServerOpts = {
 
 const REPLAY_VIEWS = 20;
 const MIME: Record<string, string> = {
-  ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".wasm": "application/wasm",
+  ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".wasm": "application/wasm", ".woff": "font/woff",
   ".svg": "image/svg+xml", ".json": "application/json", ".png": "image/png", ".woff2": "font/woff2",
 };
 
@@ -68,6 +68,8 @@ function isLocalOrigin(origin: string | undefined): boolean {
   }
 }
 const allowed = (req: IncomingMessage) => isLocalHost(req.headers.host) && isLocalOrigin(req.headers.origin);
+// Sandboxed design frames have an opaque origin and send `Origin: null`: they may load libraries and media, nothing else.
+const sandboxRead = (req: IncomingMessage) => req.method === "GET" && req.headers.origin === "null" && isLocalHost(req.headers.host) && /^\/(lib|media)\//.test(req.url ?? "");
 
 async function readBody(req: IncomingMessage): Promise<unknown> {
   let s = "";
@@ -84,12 +86,15 @@ const PatchBody = z.object({ ops: z.array(PatchOpSchema), baseVersion: z.number(
 const PickBody = z.object({ version: z.number().int().min(1) });
 const RevertBody = z.object({ itemId: z.string(), version: z.number().int().min(1) });
 const ParamBody = z.object({ name: z.string(), value: z.unknown() });
+const VariantsBody = z.object({ variants: z.array(z.object({ label: z.string(), ops: z.array(PatchOpSchema) })), baseVersion: z.number().int().optional() });
 const ScreenMessageSchema = z.discriminatedUnion("t", [
   z.object({ t: z.literal("rendered"), viewId: z.string(), version: z.number(), ok: z.array(z.string()), failed: z.array(z.object({ itemId: z.string(), message: z.string() })) }),
   z.object({ t: z.literal("pick"), viewId: z.string(), version: z.number() }),
   z.object({ t: z.literal("sync"), viewId: z.string() }),
   z.object({ t: z.literal("revertItem"), viewId: z.string(), itemId: z.string(), version: z.number() }),
   z.object({ t: z.literal("param"), viewId: z.string(), name: z.string(), value: z.unknown() }),
+  z.object({ t: z.literal("event"), viewId: z.string(), itemId: z.string(), name: z.string(), payload: z.unknown() }),
+  z.object({ t: z.literal("pickVariant"), viewId: z.string(), index: z.number().int().min(0) }),
 ]);
 
 class HttpError extends Error {
@@ -162,6 +167,31 @@ export async function startServer(opts: ServerOpts) {
     }
   }
 
+  /** Libraries, fonts and the runtime for sandboxed design frames (cross-origin: frames have an opaque origin). */
+  async function serveLib(raw: string, res: ServerResponse) {
+    const libDir = path.join(opts.staticDir ?? "", "lib");
+    let rel: string;
+    try {
+      rel = decodeURIComponent(raw.split("?")[0].slice("/lib/".length));
+    } catch {
+      return json(res, 404, { error: "not found" });
+    }
+    const file = path.resolve(libDir, rel);
+    if (!opts.staticDir || !file.startsWith(libDir + path.sep)) return json(res, 404, { error: "not found" });
+    try {
+      const body = await readFile(file);
+      res.writeHead(200, {
+        "content-type": MIME[path.extname(file)] ?? "application/octet-stream",
+        "access-control-allow-origin": "*",
+        "x-content-type-options": "nosniff",
+        "cache-control": "public, max-age=3600",
+      });
+      res.end(body);
+    } catch {
+      json(res, 404, { error: "not found" });
+    }
+  }
+
   async function serveStatic(req: IncomingMessage, res: ServerResponse) {
     if (!opts.staticDir) return json(res, 404, { error: "renderer not built" });
     const urlPath = decodeURIComponent(new URL(req.url ?? "/", base).pathname);
@@ -225,7 +255,7 @@ export async function startServer(opts: ServerOpts) {
       if (!e) throw new HttpError(404, `view "${vm[1]}" has no version ${vm[2]}`);
       return [200, e];
     }
-    const m = p.match(/^\/api\/views\/([A-Za-z_]\w*)(?:\/(patch|status|history|pick|revert|params))?$/);
+    const m = p.match(/^\/api\/views\/([A-Za-z_]\w*)(?:\/(patch|status|history|pick|revert|params|events|variants))?$/);
     if (m) {
       const [, id, action] = m;
       if (!action && method === "GET") {
@@ -245,6 +275,15 @@ export async function startServer(opts: ServerOpts) {
         const b = parse(PatchBody, body);
         return [200, await intake.patch(id, b.ops, "caller", b.baseVersion)];
       }
+      if (action === "events" && method === "GET") {
+        const after = Number(url.searchParams.get("after") ?? 0) || 0;
+        const wait = Math.min(Number(url.searchParams.get("wait") ?? 0) || 0, 60_000);
+        return [200, { events: await intake.waitEvents(id, after, wait) }];
+      }
+      if (action === "variants" && method === "POST") {
+        const b = parse(VariantsBody, body);
+        return [200, await intake.variants(id, b.variants, b.baseVersion)];
+      }
       if (action === "params" && method === "POST") {
         const b = parse(ParamBody, body);
         const r = await intake.setParam(id, b.name, b.value);
@@ -260,7 +299,7 @@ export async function startServer(opts: ServerOpts) {
   }
 
   const server = createServer(async (req, res) => {
-    if (!allowed(req)) return json(res, 403, { error: "forbidden origin" });
+    if (!allowed(req) && !sandboxRead(req)) return json(res, 403, { error: "forbidden origin" });
     const raw = req.url ?? "/";
     if (raw.startsWith("/media/")) {
       // Matched on the raw path: only /media/<32 hex> can ever resolve, and a 404 says nothing about why.
@@ -268,6 +307,7 @@ export async function startServer(opts: ServerOpts) {
       if (req.method === "GET" && token && (await media.serve(token, req, res))) return;
       return json(res, 404, { error: "not found" });
     }
+    if (raw.startsWith("/lib/")) return serveLib(raw, res);
     const url = new URL(raw, base);
     if (!url.pathname.startsWith("/api/")) return serveStatic(req, res);
     try {

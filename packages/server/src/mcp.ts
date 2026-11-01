@@ -44,7 +44,7 @@ export function createGenuiMcpServer(opts: { baseUrl: string; fetch?: typeof fet
     inputSchema: { view: ViewSchema },
   }, ({ view }) => call("POST", "/api/views", { view }));
   server.registerTool("patch", {
-    description: "Change a view in place by id: an ordered list of ops (set, addSection, removeSection, moveSection, add, update, replace, remove, move, addQuery, addDataset), applied all-or-nothing. Pass baseVersion (the version you last saw); if the person picked another version on screen the result says rebased: true.",
+    description: "Change a view in place by id: an ordered list of ops (set, addSection, removeSection, moveSection, add, update, replace, remove, move, addQuery, addDataset, addParam, removeParam, editFile, deleteFile), applied all-or-nothing. For designs, editFile with edits [{find, replace}] changes a few lines without resending files. Pass baseVersion (the version you last saw); if the person picked another version on screen the result says rebased: true.",
     inputSchema: { viewId: z.string(), ops: z.array(PatchOpSchema), baseVersion: z.number().int().optional() },
   }, ({ viewId, ops, baseVersion }) => call("POST", `/api/views/${id(viewId)}/patch`, { ops, ...(baseVersion !== undefined ? { baseVersion } : {}) }));
   server.registerTool("status", {
@@ -63,6 +63,14 @@ export function createGenuiMcpServer(opts: { baseUrl: string; fetch?: typeof fet
     if (action === "pick") return call("POST", `/api/views/${id(viewId)}/pick`, { version });
     return call("POST", `/api/views/${id(viewId)}/revert`, { itemId, version });
   });
+  server.registerTool("variants", {
+    description: "Offer 2 or 3 alternatives side by side on the screen (e.g. three hero designs). Each is a label plus patch ops applied to the current view; none becomes a version until the person picks one. Then call events (with waitMs) to learn which they chose: a \"genui:variant-picked\" event.",
+    inputSchema: { viewId: z.string(), variants: z.array(z.object({ label: z.string(), ops: z.array(PatchOpSchema) })), baseVersion: z.number().int().optional() },
+  }, ({ viewId, variants, baseVersion }) => call("POST", `/api/views/${id(viewId)}/variants`, { variants, ...(baseVersion !== undefined ? { baseVersion } : {}) }));
+  server.registerTool("events", {
+    description: "What the person did on screen: clicks your design sent with genui.send(name, payload), and variant picks. Pass after (the last seq you saw) and waitMs (up to 60000) to wait until they act.",
+    inputSchema: { viewId: z.string(), after: z.number().int().optional(), waitMs: z.number().int().min(0).max(60_000).optional() },
+  }, ({ viewId, after, waitMs }) => call("GET", `/api/views/${id(viewId)}/events?after=${after ?? 0}&wait=${waitMs ?? 0}`));
   server.registerTool("compose", {
     description: "Fallback for callers that want genui's built-in composer: give data and an intent; genui's own model designs the view. Prefer composing the view yourself with render/patch.",
     inputSchema: { data: DataSchema, intent: z.string().optional() },
