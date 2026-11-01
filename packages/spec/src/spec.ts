@@ -1,35 +1,11 @@
 import { z } from "zod";
+import { IdSchema as Id, QuerySchema } from "./base.ts";
+import { KpiSchema } from "./components/kpi.ts";
+import { ChartSchema } from "./components/chart.ts";
+import { TableSchema } from "./components/table.ts";
+import { TextMdSchema, TextDocSchema } from "./components/text.ts";
 
-export const FORMATS = ["number", "integer", "percent", "currency", "date", "compact", "delta", "bytes", "kilobytes", "megabytes", "gigabytes"] as const;
-export const FormatSchema = z.enum(FORMATS);
-export type Format = z.infer<typeof FormatSchema>;
-
-const Id = z.string().regex(/^[A-Za-z_]\w*$/);
-
-export const QuerySchema = z.object({ sql: z.string().min(1) });
-export type Query = z.infer<typeof QuerySchema>;
-
-export const KpiSchema = z.object({
-  type: z.literal("kpi"),
-  query: Id,
-  field: z.string(),
-  label: z.string(),
-  format: FormatSchema.optional(),
-  delta: z.object({ query: Id, field: z.string() }).optional(),
-});
-export const ChartSchema = z.object({
-  type: z.literal("chart"),
-  query: Id,
-  vegaLite: z.record(z.string(), z.unknown()),
-});
-export const TableSchema = z.object({
-  type: z.literal("table"),
-  query: Id,
-  title: z.string().optional(),
-  columns: z.array(z.string()).optional(),
-});
-export const TextMdSchema = z.object({ type: z.literal("text"), md: z.string() });
-export const TextDocSchema = z.object({ type: z.literal("text"), doc: z.object({ query: Id, field: z.string() }) });
+export { FORMATS, FormatSchema, QuerySchema, type Format, type Query } from "./base.ts";
 
 export const ComponentSchema = z.union([KpiSchema, ChartSchema, TableSchema, TextMdSchema, TextDocSchema]);
 export type Component = z.infer<typeof ComponentSchema>;
