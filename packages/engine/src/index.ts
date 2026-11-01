@@ -7,3 +7,7 @@ export { createFakeProvider } from "./llm/fake.ts";
 export type { LlmProvider } from "./llm/types.ts";
 export type { DataInput } from "./ingest.ts";
 export { validateView, type ViewValidateCtx, type ViewValidation } from "./validateView.ts";
+export { openDb, type Db } from "./db.ts";
+export { ingest, lockDb } from "./ingest.ts";
+export { profileDatasets, type Profile } from "./profile.ts";
+export { runQuery, explainQuery, guardSql, referencesData } from "./sql.ts";
