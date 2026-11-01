@@ -165,3 +165,15 @@ test("views survive a server restart", async () => {
   const p = await (await send(srv.url, "/api/views/demo/patch", { ops: [{ op: "set", title: "X" }] })).json();
   expect(p.version).toBe(2);
 });
+
+test("watch endpoint registers a folder and streams its files", async () => {
+  srv = await start();
+  const proj = path.join(dir, "proj");
+  const r = await (await send(srv.url, "/api/watch", { dir: proj })).json();
+  expect(r.watching).toEqual([proj]);
+  expect((await send(srv.url, "/api/watch", { dir: "relative" })).status).toBe(400);
+  const { writeFile } = await import("node:fs/promises");
+  await writeFile(path.join(proj, ".genui", "views", "w.ndjson"), JSON.stringify({ ...view(), id: "w" }) + "\n");
+  await until(() => false, 600).catch(() => {});
+  expect((await fetch(srv.url + "/api/views/w")).status).toBe(200);
+});

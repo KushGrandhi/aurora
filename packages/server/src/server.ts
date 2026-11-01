@@ -12,6 +12,7 @@ import { createComposeAdapter } from "./composeAdapter.ts";
 import { DataRuntime } from "./dataRuntime.ts";
 import { Intake, IntakeError } from "./intake.ts";
 import { defaultViewsDir, ViewStore } from "./viewStore.ts";
+import { ViewFileWatcher } from "./watcher.ts";
 
 export type ServerOpts = {
   port: number;
@@ -120,6 +121,8 @@ export async function startServer(opts: ServerOpts) {
     store, data, emit: broadcast, baseUrl: () => base, screens: () => clients.size, openScreen: open, waitMs: opts.waitMs,
   });
 
+  const watcher = new ViewFileWatcher(intake);
+
   /** Plan 1 entry: the built-in composer streams into a v2 view through the same intake. */
   function startCompose(input: DataInput | Record<string, DataInput>, intent: string | undefined): string {
     const viewId = `r_${randomUUID().slice(0, 8)}`;
@@ -185,6 +188,12 @@ export async function startServer(opts: ServerOpts) {
       const d = (body as { data?: unknown })?.data;
       if (!validData(d)) throw new HttpError(400, "body.data must be a path, {path}, {inline:[...]}, or a map of those");
       return [200, await data.profile(d)];
+    }
+    if (p === "/api/watch" && method === "POST") {
+      const d = (body as { dir?: unknown })?.dir;
+      if (typeof d !== "string" || !path.isAbsolute(d)) throw new HttpError(400, "body.dir must be an absolute path");
+      watcher.watch(d);
+      return [200, { watching: watcher.dirs() }];
     }
     if (p === "/api/render" && method === "POST") {
       const b = body as { data?: unknown; intent?: unknown };
@@ -272,6 +281,7 @@ export async function startServer(opts: ServerOpts) {
     intake,
     store,
     async close() {
+      watcher.close();
       for (const c of clients) c.terminate();
       wss.close();
       await new Promise<void>((r) => server.close(() => r()));
