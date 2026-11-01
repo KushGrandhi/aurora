@@ -1,6 +1,7 @@
 import type { CompiledProject } from "./compile.ts";
 import { auroraBootstrap } from "./bootstrap.ts";
 import { IMPORT_MAP } from "./libs.ts";
+import { TOKEN_CSS, TOKEN_THEME } from "./tokens.ts";
 
 export type SrcdocOpts = { origin: string; framework: "react" | "html"; mode: "light" | "dark"; data: Record<string, unknown[]>; assets: Record<string, string> };
 
@@ -41,7 +42,8 @@ export function buildSrcdoc(p: CompiledProject, o: SrcdocOpts): string {
     `<script id="aurora-bootstrap">(${String(auroraBootstrap).replace(/<\/script/gi, "<\\/script")})()</script>`,
     `<script src="${o.origin}/lib/tailwind.js"></script>`,
     // Tailwind's `dark:` follows aurora's theme (a class on <html>), not the OS setting.
-    '<style type="text/tailwindcss">@custom-variant dark (&:where(.dark, .dark *));</style>',
+    `<style id="aurora-tokens">${TOKEN_CSS}</style>`,
+    `<style type="text/tailwindcss">@custom-variant dark (&:where(.dark, .dark *));\n${TOKEN_THEME}</style>`,
     "<style>html,body{margin:0}body{font-family:'Inter Variable',Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}</style>",
     ...p.css.map((c) => `<style>${c.replace(/<\/style/gi, "<\\/style")}</style>`),
     `<script type="module" src="${o.origin}/lib/runtime.js"></script>`,

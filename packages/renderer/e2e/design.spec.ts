@@ -30,6 +30,19 @@ test("react design renders with tailwind, motion and lucide", async ({ page, req
   expect((await status(request, "ds1")).problems).toEqual([]);
 });
 
+test("a card without a height fits its content, growing and shrinking with it", async ({ page, request }) => {
+  await show(page, request, "dsfit", react({
+    "App.tsx": "import { useState } from 'react';\nexport default function App() { const [tall, setTall] = useState(false); return <div className='p-4'><button id='t' onClick={() => setTall(!tall)}>toggle</button><div style={{ height: tall ? 900 : 120 }} /></div>; }",
+  }));
+  const stage = page.locator('[data-item="d"] .design-stage');
+  await expect(frame(page).locator("#t")).toBeVisible();
+  await expect.poll(async () => (await stage.boundingBox())!.height).toBeLessThan(260);
+  await frame(page).locator("#t").click();
+  await expect.poll(async () => (await stage.boundingBox())!.height).toBeGreaterThan(900);
+  await frame(page).locator("#t").click();
+  await expect.poll(async () => (await stage.boundingBox())!.height).toBeLessThan(260);
+});
+
 test("html custom renders", async ({ page, request }) => {
   await show(page, request, "ds2", { type: "custom", html: "<h2 class='text-2xl font-bold'>Plain HTML</h2><script>document.querySelector('h2').dataset.ran = 'yes'</script>" });
   await expect(frame(page).locator("h2")).toHaveAttribute("data-ran", "yes");

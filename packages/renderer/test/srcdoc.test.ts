@@ -17,6 +17,19 @@ test("srcdoc carries the sandbox CSP and import map", () => {
   expect(html).toContain("class=\"dark\"");
 });
 
+test("designs get aurora's design tokens as CSS variables and Tailwind colors, light and dark", () => {
+  const html = buildSrcdoc(project, opts);
+  const css = html.match(/<style id="aurora-tokens">([\s\S]*?)<\/style>/)![1];
+  for (const v of ["--page", "--surface", "--raised", "--ink", "--ink-2", "--muted", "--hair", "--line", "--accent", "--good", "--bad", "--warn", "--s1", "--s8", "--ease", "--shadow"]) expect(css).toContain(`${v}:`);
+  expect(css).toMatch(/\.dark\s*\{[^}]*--ink:\s*#f0efec/);
+  const tw = html.match(/<style type="text\/tailwindcss">([\s\S]*?)<\/style>/)![1];
+  expect(tw).toContain("@theme inline");
+  for (const c of ["page", "surface", "raised", "ink", "ink-2", "muted", "hair", "line", "accent", "good", "bad", "warn", "s1", "s8"]) expect(tw).toContain(`--color-${c}: var(--${c})`);
+  // Tokens come before the author's CSS so a design can still override them.
+  const withCss = buildSrcdoc({ ...project, css: [":root{--accent:hotpink}"] }, opts);
+  expect(withCss.indexOf('id="aurora-tokens"')).toBeLessThan(withCss.indexOf("--accent:hotpink"));
+});
+
 test("file content cannot end the project script", () => {
   const html = buildSrcdoc(project, opts);
   const json = html.match(/<script type="application\/json" id="aurora-project">([\s\S]*?)<\/script>/)![1];

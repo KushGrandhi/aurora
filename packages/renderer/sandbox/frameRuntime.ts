@@ -23,13 +23,19 @@ function watchHeight() {
   let last = 0;
   const send = () => {
     queued = false;
-    const px = Math.ceil(Math.max(document.documentElement.scrollHeight, document.body?.scrollHeight ?? 0));
+    // The body's content, not the document: <html> is never shorter than the frame, so measuring it would let a card
+    // grow but never shrink back. `bottom + scrollY` also counts a first child's top margin collapsing through <body>.
+    const body = document.body;
+    if (!body) return;
+    const px = Math.ceil(Math.max(body.scrollHeight, body.getBoundingClientRect().bottom + scrollY));
     if (Math.abs(px - last) > 1) post({ type: "height", px: (last = px) });
   };
-  new ResizeObserver(() => {
+  const ro = new ResizeObserver(() => {
     if (!queued) setTimeout(send, 16); // not requestAnimationFrame: browsers pause it in off-screen frames
     queued = true;
-  }).observe(document.documentElement);
+  });
+  ro.observe(document.documentElement);
+  if (document.body) ro.observe(document.body);
   send();
 }
 
