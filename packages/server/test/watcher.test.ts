@@ -18,7 +18,7 @@ beforeEach(async () => {
   const intake = new Intake({ store, data, emit: () => {}, baseUrl: () => "http://x", screens: () => 1, openScreen: () => {}, waitMs: 10 });
   watcher = new ViewFileWatcher(intake, { pollMs: 25 });
 });
-afterEach(async () => { watcher.close(); await data.closeAll(); await rm(dir, { recursive: true, force: true }); });
+afterEach(async () => { watcher.close(); await data.closeAll(); await rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); });
 
 const until = async (fn: () => boolean | Promise<boolean>, ms = 3000) => {
   const t = Date.now();
