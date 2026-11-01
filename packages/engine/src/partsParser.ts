@@ -1,10 +1,18 @@
+function parseOr<T>(raw: string, fallback: T): T {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
 export type Meta = { title?: string; summary?: string };
 
 /**
  * Incremental parser for the streamed LLM document `{ title, summary?, parts: [...] }`.
  * Calls onPart as soon as each element of the top-level `parts` array closes.
  */
-export function createPartsParser(h: { onMeta(m: Meta): void; onPart(raw: unknown): void }) {
+export function createPartsParser(h: { onMeta(m: Meta): void; onPart(raw: unknown): void; onBadPart?(raw: string): void }) {
   let buf = "";
   let pos = 0;
   let depth = 0;
@@ -22,10 +30,12 @@ export function createPartsParser(h: { onMeta(m: Meta): void; onPart(raw: unknow
   function onStringClosed(end: number) {
     const raw = buf.slice(stringStart, end + 1);
     if (depth === 1 && expectKey) {
-      key = JSON.parse(raw);
+      key = parseOr(raw, raw.slice(1, -1));
       expectKey = false;
     } else if (depth === 1 && (key === "title" || key === "summary")) {
-      meta[key] = JSON.parse(raw);
+      const value = parseOr<string | undefined>(raw, undefined);
+      if (value === undefined) return;
+      meta[key] = value;
       if (partsStarted) metaDeferred = true;
       else h.onMeta({ ...meta });
     }
@@ -59,7 +69,16 @@ export function createPartsParser(h: { onMeta(m: Meta): void; onPart(raw: unknow
         case "]":
           depth--;
           if (depth === 2 && key === "parts" && elementStart >= 0 && ch === "}") {
-            h.onPart(JSON.parse(buf.slice(elementStart, pos + 1)));
+            const text = buf.slice(elementStart, pos + 1);
+            let value: unknown;
+            try {
+              value = JSON.parse(text);
+            } catch {
+              h.onBadPart?.(text);
+              elementStart = -1;
+              break;
+            }
+            h.onPart(value);
             elementStart = -1;
           }
           if (depth === 0) closed = true;

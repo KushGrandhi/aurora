@@ -9,6 +9,7 @@ export type RenderState = {
   errors: string[];
   done: boolean;
   composed: boolean; // a non-default item has arrived
+  order: Record<string, number>; // item id → stream position
   startedAt: number;
   timings?: Record<string, number>;
   cached?: boolean;
@@ -17,7 +18,7 @@ export type RenderState = {
 const isDefault = (i: Item) => i.id.startsWith("d_");
 
 function blank(id: string): RenderState {
-  return { id, items: [], results: {}, errors: [], done: false, composed: false, startedAt: Date.now() };
+  return { id, items: [], results: {}, errors: [], done: false, composed: false, order: {}, startedAt: Date.now() };
 }
 
 export function reduce(state: Record<string, RenderState>, e: RenderEvent): Record<string, RenderState> {
@@ -35,9 +36,14 @@ export function reduce(state: Record<string, RenderState>, e: RenderEvent): Reco
       break;
     case "item": {
       const base = !prev.composed && !isDefault(e.item) ? prev.items.filter((i) => !isDefault(i)) : prev.items;
+      const order = e.order === undefined ? prev.order : { ...prev.order, [e.item.id]: e.order };
       const at = base.findIndex((i) => i.id === e.item.id);
-      const items = at >= 0 ? base.map((i, k) => (k === at ? e.item : i)) : [...base, e.item];
-      next = { ...prev, items, composed: prev.composed || !isDefault(e.item) };
+      let items = at >= 0 ? base.map((i, k) => (k === at ? e.item : i)) : [...base, e.item];
+      if (e.order !== undefined) {
+        const pos = (i: Item) => order[i.id] ?? Infinity;
+        items = items.map((i, k) => ({ i, k })).sort((a, b) => pos(a.i) - pos(b.i) || a.k - b.k).map((x) => x.i);
+      }
+      next = { ...prev, items, order, composed: prev.composed || !isDefault(e.item) };
       break;
     }
     case "result":

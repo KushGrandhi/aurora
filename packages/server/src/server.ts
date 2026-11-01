@@ -35,6 +35,27 @@ function validData(v: unknown): v is DataInput | Record<string, DataInput> {
   return !!v && typeof v === "object" && Object.keys(v).length > 0 && Object.values(v).every(isInput);
 }
 
+// Only local pages may drive the server: blocks websites (CSRF / cross-site WebSocket) and DNS rebinding.
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+function isLocalHost(host: string | undefined): boolean {
+  if (!host) return false;
+  try {
+    return LOCAL_HOSTS.has(new URL(`http://${host}`).hostname);
+  } catch {
+    return false;
+  }
+}
+function isLocalOrigin(origin: string | undefined): boolean {
+  if (origin === undefined) return true; // non-browser clients (CLI, curl) send no Origin
+  try {
+    const u = new URL(origin);
+    return (u.protocol === "http:" || u.protocol === "https:") && LOCAL_HOSTS.has(u.hostname);
+  } catch {
+    return false;
+  }
+}
+const allowed = (req: IncomingMessage) => isLocalHost(req.headers.host) && isLocalOrigin(req.headers.origin);
+
 async function readBody(req: IncomingMessage): Promise<unknown> {
   let s = "";
   for await (const c of req) s += c;
@@ -85,9 +106,13 @@ export async function startServer(opts: ServerOpts) {
   }
 
   const server = createServer(async (req, res) => {
+    if (!allowed(req)) return json(res, 403, { error: "forbidden origin" });
     const url = new URL(req.url ?? "/", base);
     if (url.pathname === "/api/health") return json(res, 200, { ok: true, provider: opts.provider.name });
     if (url.pathname === "/api/render" && req.method === "POST") {
+      if (!String(req.headers["content-type"] ?? "").startsWith("application/json")) {
+        return json(res, 415, { error: "content-type must be application/json" });
+      }
       let body: { data?: unknown; intent?: unknown };
       try {
         body = (await readBody(req)) as typeof body;
@@ -108,7 +133,7 @@ export async function startServer(opts: ServerOpts) {
     return serveStatic(req, res);
   });
 
-  const wss = new WebSocketServer({ server, path: "/ws" });
+  const wss = new WebSocketServer({ server, path: "/ws", verifyClient: ({ req }: { req: IncomingMessage }) => allowed(req) });
   wss.on("connection", (ws) => {
     clients.add(ws);
     ws.on("close", () => clients.delete(ws));

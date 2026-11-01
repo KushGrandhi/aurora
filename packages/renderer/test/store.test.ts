@@ -58,3 +58,12 @@ test("reduce is pure", () => {
   reduce(before, { t: "item", renderId: "r", item: kpi("k2") });
   expect(JSON.stringify(before)).toBe(snapshot);
 });
+
+test("items are placed by stream order, not arrival order", () => {
+  const s = apply([
+    { t: "item", renderId: "r", item: kpi("c"), order: 2 },
+    { t: "item", renderId: "r", item: kpi("a"), order: 0 },
+    { t: "item", renderId: "r", item: kpi("b"), order: 1 },
+  ]);
+  expect(s.r.items.map((i) => i.id)).toEqual(["a", "b", "c"]);
+});

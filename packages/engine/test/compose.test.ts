@@ -25,8 +25,12 @@ async function run(opts: Partial<Parameters<typeof compose>[0]> & { doc?: object
   return { events, ms: performance.now() - t0, provider };
 }
 const ts = (events: RenderEvent[]) => events.map((e) => e.t);
+// Items may arrive out of order (parts are handled concurrently); `order` is their position in the model's stream.
 const composedItems = (events: RenderEvent[]) =>
-  events.flatMap((e) => (e.t === "item" && !e.item.id.startsWith("d_") ? [e.item] : []));
+  events
+    .flatMap((e) => (e.t === "item" && !e.item.id.startsWith("d_") ? [e] : []))
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    .map((e) => e.item);
 
 test("emits default view before composed items", async () => {
   const { events } = await run({});

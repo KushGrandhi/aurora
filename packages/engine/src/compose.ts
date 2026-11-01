@@ -7,7 +7,7 @@ import type { LlmProvider } from "./llm/types.ts";
 import { createPartsParser } from "./partsParser.ts";
 import { profileDatasets, type Profile } from "./profile.ts";
 import { buildPrompt, buildRepairPrompt } from "./prompt.ts";
-import { explainQuery, runQuery } from "./sql.ts";
+import { explainQuery, referencesData, runQuery } from "./sql.ts";
 import { checkProse, validatePart, type ValidateCtx } from "./validate.ts";
 
 export type ComposeOpts = {
@@ -54,9 +54,10 @@ export async function compose(opts: ComposeOpts): Promise<void> {
 
   emit({ t: "start", title: undefined });
   let profile: Profile;
+  let names: string[];
   try {
     db = await openDb();
-    const names = await ingest(db, opts.input);
+    names = await ingest(db, opts.input);
     mark("ingest");
     profile = await profileDatasets(db, names);
     mark("profile");
@@ -83,8 +84,7 @@ export async function compose(opts: ComposeOpts): Promise<void> {
     emit({ t: "default", spec: def });
     defaultDone = Promise.all(Object.entries(def.queries).map(([id, q]) => execute(id, q.sql))).then(() => mark("default"));
 
-    await streamComposed(profile);
-    await defaultDone;
+    await streamComposed(profile, defaultDone);
   } catch (e) {
     emit({ t: "error", message: (e as Error).message });
     await defaultDone;
@@ -103,27 +103,42 @@ export async function compose(opts: ComposeOpts): Promise<void> {
     }
   }
 
-  async function streamComposed(profile: Profile): Promise<void> {
+  async function streamComposed(profile: Profile, defaultDone: Promise<unknown>): Promise<void> {
     const ctx: ValidateCtx = { knownQueries: new Set(), intent: opts.intent ?? "", queryLimits: new Map() };
     const failed = new Set<string>();
-    const held: Item[] = [];
+    const held: { raw: unknown; waitingOn: string; order: number }[] = []; // items whose queries have not arrived yet
     const accepted: Part[] = [];
     let title = "";
     let summary: string | undefined;
-    let work: Promise<void> = Promise.resolve();
-
-    const emitItem = (item: Item) => {
-      emit({ t: "item", item });
-      mark("firstComponent");
-      accepted.push({ kind: "item", item });
+    // Parts are handled concurrently so a slow repair never blocks later parts; DuckDB work stays ordered via serial().
+    const inflight = new Set<Promise<void>>();
+    const track = (p: Promise<void>) => {
+      inflight.add(p);
+      p.finally(() => inflight.delete(p));
     };
 
+    const acceptedItems: { item: Item; order: number }[] = [];
+    let seq = 0;
+    const emitItem = (item: Item, order: number) => {
+      emit({ t: "item", item, order });
+      mark("firstComponent");
+      acceptedItems.push({ item, order });
+    };
+
+    // Re-validate held items in full once their dependencies settle; never emit them unchecked.
     const releaseHeld = () => {
       for (let i = 0; i < held.length; ) {
-        const deps = itemQueries(held[i]);
-        if (deps.some((d) => failed.has(d))) held.splice(i, 1);
-        else if (deps.every((d) => ctx.knownQueries.has(d))) emitItem(held.splice(i, 1)[0]);
-        else i++;
+        const h = held[i];
+        if (failed.has(h.waitingOn)) {
+          held.splice(i, 1);
+          continue;
+        }
+        if (!ctx.knownQueries.has(h.waitingOn)) {
+          i++;
+          continue;
+        }
+        held.splice(i, 1);
+        track(handle(h.raw, h.order));
       }
     };
 
@@ -141,7 +156,9 @@ export async function compose(opts: ComposeOpts): Promise<void> {
     };
 
     const handleQuery = async (part: Extract<Part, { kind: "query" }>, repaired = false): Promise<void> => {
-      const ex = await serial(() => explainQuery(db!, part.sql));
+      const ex = referencesData(part.sql, names)
+        ? await serial(() => explainQuery(db!, part.sql))
+        : { ok: false as const, message: `query must read from a dataset table (${names.join(", ")}), not constants` };
       if (ex.ok) return acceptQuery(part.id, part.sql);
       if (!repaired) {
         const fixed = validatePart(await repair(part, ex.message), ctx);
@@ -152,21 +169,21 @@ export async function compose(opts: ComposeOpts): Promise<void> {
       releaseHeld();
     };
 
-    const handle = async (raw: unknown, repaired = false): Promise<void> => {
+    const handle = async (raw: unknown, order: number, repaired = false): Promise<void> => {
       const r = validatePart(raw, ctx);
       if (r.ok) {
         if (r.part.kind === "query") return handleQuery(r.part);
-        return emitItem(r.part.item);
+        return emitItem(r.part.item, order);
       }
       if (r.reason.startsWith("pending:")) {
-        const item = (raw as { item: Item }).item;
-        if (itemQueries(item).some((d) => failed.has(d))) return;
-        held.push(item);
+        const waitingOn = r.reason.slice("pending:".length);
+        if (failed.has(waitingOn)) return;
+        held.push({ raw, waitingOn, order });
         return;
       }
       if (!repaired) {
         const fixed = await repair(raw, r.reason);
-        if (fixed !== undefined) return handle(fixed, true);
+        if (fixed !== undefined) return handle(fixed, order, true);
       }
       console.warn(`[genui] dropped part: ${r.reason}`);
     };
@@ -180,7 +197,16 @@ export async function compose(opts: ComposeOpts): Promise<void> {
         if (m.summary !== undefined) summary = m.summary;
       },
       onPart(raw) {
-        work = work.then(() => handle(raw));
+        track(handle(raw, seq++));
+      },
+      onBadPart(text) {
+        const order = seq++;
+        track(
+          (async () => {
+            const fixed = await repair(text, "malformed JSON");
+            if (fixed !== undefined) await handle(fixed, order, true);
+          })(),
+        );
       },
     });
 
@@ -190,7 +216,7 @@ export async function compose(opts: ComposeOpts): Promise<void> {
       for await (const chunk of provider.stream({ system, user, schema: llmDocJsonSchema(), signal })) parser.push(chunk);
       complete = parser.end().complete;
     } finally {
-      await work;
+      while (inflight.size) await Promise.all([...inflight]);
     }
 
     if (summary !== undefined) {
@@ -199,16 +225,15 @@ export async function compose(opts: ComposeOpts): Promise<void> {
     }
     emit({ t: "meta", title: title || defaultSpec(profile).title, summary });
 
-    const items = accepted.filter((p) => p.kind === "item");
-    if (complete && items.length) {
+    if (complete && acceptedItems.length) {
       const spec: Spec = { v: 1, title: title || "Overview", queries: {}, layout: { type: "grid", cols: 12, items: [] } };
       if (summary) spec.summary = summary;
-      for (const p of accepted) {
-        if (p.kind === "query") spec.queries[p.id] = { sql: p.sql };
-        else spec.layout.items.push(p.item);
-      }
+      for (const p of accepted) if (p.kind === "query") spec.queries[p.id] = { sql: p.sql };
+      spec.layout.items = acceptedItems.sort((a, b) => a.order - b.order).map((x) => x.item);
       cache.set(cacheKey, spec);
     }
+    if (!complete) emit({ t: "error", message: "model output truncated; showing the parts that arrived" });
+    await defaultDone;
     emit({ t: "done", timings: { ...timings, total: mark("total") }, cached: false });
   }
 }

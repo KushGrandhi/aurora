@@ -78,7 +78,7 @@ test("opens browser when no client connected", async () => {
 test("bad body returns 400", async () => {
   srv = await startServer({ port: 0, provider: createFakeProvider(doc), openBrowser: () => {} });
   expect((await post(srv.url, { intent: "x" })).status).toBe(400);
-  expect((await fetch(srv.url + "/api/render", { method: "POST", body: "{nope" })).status).toBe(400);
+  expect((await fetch(srv.url + "/api/render", { method: "POST", headers: { "content-type": "application/json" }, body: "{nope" })).status).toBe(400);
 });
 
 test("health endpoint", async () => {
@@ -90,4 +90,41 @@ test("loadConfig defaults and env overrides", () => {
   const c = loadConfig({ HOME: "/nonexistent" });
   expect(c).toEqual({ port: 4317, provider: "ollama", model: "qwen3:8b", ollamaUrl: "http://127.0.0.1:11434" });
   expect(loadConfig({ HOME: "/nonexistent", GENUI_MODEL: "x", GENUI_PORT: "9" })).toMatchObject({ model: "x", port: 9 });
+});
+
+// C2: cross-site protection
+test("rejects render without JSON content-type", async () => {
+  srv = await startServer({ port: 0, provider: createFakeProvider(doc), openBrowser: () => {} });
+  const r = await fetch(srv.url + "/api/render", { method: "POST", headers: { "content-type": "text/plain" }, body: JSON.stringify({ data: fx("sales.csv") }) });
+  expect(r.status).toBe(415);
+});
+
+test("rejects foreign Origin and Host", async () => {
+  srv = await startServer({ port: 0, provider: createFakeProvider(doc), openBrowser: () => {} });
+  const body = JSON.stringify({ data: fx("sales.csv") });
+  const h = { "content-type": "application/json" };
+  expect((await fetch(srv.url + "/api/render", { method: "POST", headers: { ...h, origin: "https://evil.example" }, body })).status).toBe(403);
+  const { request } = await import("node:http");
+  const status = await new Promise<number>((resolve) => {
+    const port = new URL(srv!.url).port;
+    const req = request({ host: "127.0.0.1", port, path: "/api/health", headers: { host: "evil.example" } }, (res) => resolve(res.statusCode!));
+    req.end();
+  });
+  expect(status).toBe(403);
+});
+
+test("rejects websocket from foreign origin", async () => {
+  srv = await startServer({ port: 0, provider: createFakeProvider(doc), openBrowser: () => {} });
+  const ws = new WebSocket(srv.url.replace("http", "ws") + "/ws", { origin: "https://evil.example" });
+  const outcome = await new Promise<string>((r) => { ws.on("open", () => r("open")); ws.on("error", () => r("rejected")); });
+  expect(outcome).toBe("rejected");
+});
+
+test("allows same-origin websocket and render", async () => {
+  srv = await startServer({ port: 0, provider: createFakeProvider(doc), openBrowser: () => {} });
+  const ws = new WebSocket(srv.url.replace("http", "ws") + "/ws", { origin: srv.url });
+  expect(await new Promise<string>((r) => { ws.on("open", () => r("open")); ws.on("error", () => r("rejected")); })).toBe("open");
+  ws.close();
+  const r = await fetch(srv.url + "/api/render", { method: "POST", headers: { "content-type": "application/json", origin: srv.url }, body: JSON.stringify({ data: fx("sales.csv") }) });
+  expect(r.status).toBe(202);
 });

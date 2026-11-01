@@ -1,6 +1,6 @@
 import type { QueryResult } from "@genui/spec";
 import type { Db } from "./db.ts";
-import { toJsonValue } from "./serialize.ts";
+import { readRows } from "./serialize.ts";
 
 export const quoteIdent = (name: string) => `"${name.replace(/"/g, '""')}"`;
 
@@ -10,6 +10,8 @@ const FORBIDDEN_FN = /\b(read_\w+|glob|parquet_scan|parquet_metadata|parquet_sch
 /** Remove string literals, quoted identifiers and comments so keyword scans only see SQL structure. */
 function stripLiterals(sql: string): string {
   return sql
+    .replace(/\$(\w*)\$[\s\S]*?\$\1\$/g, "''")
+    .replace(/[Ee]'(?:[^'\\]|\\.|'')*'/g, "''")
     .replace(/'(?:[^']|'')*'/g, "''")
     .replace(/"(?:[^"]|"")*"/g, '""')
     .replace(/--[^\n]*/g, " ")
@@ -50,16 +52,14 @@ export async function runQuery(
   const inner = guarded(sql);
   const t0 = performance.now();
   const reader = await db.conn.runAndReadAll(
-    `SELECT * FROM (${inner}) AS _q LIMIT ${limit + 1}`,
+    `SELECT * FROM (${inner}\n) AS _q LIMIT ${limit + 1}`,
     usedParams(inner, params) as never,
   );
   const names = reader.columnNames();
   const types = reader.columnTypes().map(String);
-  const raw = reader.getRowObjectsJS();
+  const raw = readRows(reader);
   const truncated = raw.length > limit;
-  const rows = (truncated ? raw.slice(0, limit) : raw).map((r) =>
-    Object.fromEntries(names.map((n, i) => [n, toJsonValue(r[n], types[i])])),
-  );
+  const rows = truncated ? raw.slice(0, limit) : raw;
   return {
     columns: names.map((name, i) => ({ name, type: types[i] })),
     rows,
@@ -72,9 +72,16 @@ export async function explainQuery(db: Db, sql: string): Promise<{ ok: true } | 
   const g = guardSql(sql);
   if (!g.ok) return { ok: false, message: g.reason };
   try {
-    await db.conn.run(`EXPLAIN ${g.sql}`);
+    // Wrapped like runQuery, so a smuggled second statement is a parse error instead of being executed.
+    await db.conn.run(`EXPLAIN SELECT * FROM (${g.sql}\n) AS _q`);
     return { ok: true };
   } catch (e) {
     return { ok: false, message: (e as Error).message };
   }
+}
+
+/** True when the query reads from at least one dataset table, so its values come from data rather than constants. */
+export function referencesData(sql: string, tables: string[]): boolean {
+  const bare = stripLiterals(sql.replace(/"((?:[^"]|"")*)"/g, (_m, n: string) => n.replace(/""/g, '"').replace(/\s/g, "_")));
+  return tables.some((t) => new RegExp(`\\b(FROM|JOIN)\\s+${t.replace(/\W/g, "\\$&")}\\b`, "i").test(bare));
 }

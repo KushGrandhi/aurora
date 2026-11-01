@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import type { Db } from "./db.ts";
-import { toJsonValue } from "./serialize.ts";
+import { readRows } from "./serialize.ts";
 import { quoteIdent } from "./sql.ts";
 
 export type ColumnProfile = {
@@ -29,10 +29,7 @@ export const isNumericType = (t: string) => NUMERIC.test(t);
 export const isTemporalType = (t: string) => /^(DATE|TIMESTAMP)/.test(t);
 
 async function rows(db: Db, sql: string): Promise<Record<string, unknown>[]> {
-  const r = await db.conn.runAndReadAll(sql);
-  const names = r.columnNames();
-  const types = r.columnTypes().map(String);
-  return r.getRowObjectsJS().map((o) => Object.fromEntries(names.map((n, i) => [n, toJsonValue(o[n], types[i])])));
+  return readRows(await db.conn.runAndReadAll(sql));
 }
 
 const truncate = (v: unknown) => (typeof v === "string" && v.length > 40 ? v.slice(0, 40) + "…" : v);
