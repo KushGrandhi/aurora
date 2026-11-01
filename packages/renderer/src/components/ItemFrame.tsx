@@ -38,15 +38,19 @@ export function ItemFrame({ item, version, changedAt = 0, ctx, problem, showTitl
   const reason = problem?.message ?? (R ? undefined : `no renderer for "${item.c.type}" on this screen`);
   // A self-reporting component whose content didn't change for this version won't redraw or report again:
   // remember its last word (and the content it was about) and repeat it for each new version.
+  // Engines report from callbacks that can outlive the render they started in (a layout finishing after the next
+  // version arrived): route every report through the latest ctx so it counts for the version on screen.
   const cJson = useMemo(() => JSON.stringify(item.c), [item.c]);
   const last = useRef<{ c: string; ok: boolean; message?: string }>();
+  const latest = useRef({ ctx, cJson });
+  latest.current = { ctx, cJson };
   const selfCtx = useMemo<RenderCtx>(() => ({
     ...ctx,
     report: (ok, message) => {
-      last.current = { c: cJson, ok, message };
-      ctx.report(ok, message);
+      last.current = { c: latest.current.cJson, ok, message };
+      latest.current.ctx.report(ok, message);
     },
-  }), [ctx, cJson]);
+  }), [ctx]);
 
   // Report once per version: shown fallbacks count as rendered (the caller already has the problem); self-reporting
   // components report when their engine finishes.

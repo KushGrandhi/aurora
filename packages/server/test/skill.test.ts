@@ -20,3 +20,11 @@ test("skill documents both delivery paradigms", () => {
   expect(md).toContain('"ops"');
   for (const op of ["set", "addSection", "removeSection", "moveSection", "add", "update", "replace", "remove", "move", "addQuery", "addDataset"]) expect(md).toContain(`\`${op}\``);
 });
+
+test("skill mentions params and every component", () => {
+  const md = generateSkill();
+  expect(md).toContain("## Pick the right component");
+  for (const s of ["addParam", "removeParam", "$name_min", "$name_max", "$name_from", "$name_to", "($region IS NULL OR region = $region)"]) expect(md).toContain(s);
+  expect(md).toMatch(/displayed, never generated/i);
+  for (const def of allComponents()) expect(md).toContain(`\`${def.type}\``);
+});

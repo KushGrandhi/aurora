@@ -7,6 +7,7 @@ import { MotionRoot, SPRING } from "./motion.tsx";
 import { VersionStrip } from "./components/VersionStrip.tsx";
 import { FilterBar } from "./components/FilterBar.tsx";
 import { themeFor, type RenderCtx } from "./registry.tsx";
+import { mergeReport, type Pending } from "./reports.ts";
 import { emptyState, reduce, type State } from "./store.ts";
 import type { Mode } from "./theme.ts";
 import { connect, type Conn } from "./ws.ts";
@@ -38,20 +39,14 @@ function useMode(): [Mode, () => void] {
 
 /** Collects per-item render reports and sends one `rendered` message per view version (debounced). */
 function useReports(send: (m: ScreenMessage) => void) {
-  const pending = useRef(new Map<string, { version: number; ok: Set<string>; failed: Map<string, string>; timer?: number }>());
+  const pending = useRef(new Map<string, Pending & { timer?: number }>());
   return useCallback((viewId: string, version: number, itemId: string, ok: boolean, message?: string) => {
-    let p = pending.current.get(viewId);
-    if (!p || p.version !== version) {
-      if (p?.timer) clearTimeout(p.timer);
-      p = { version, ok: new Set(), failed: new Map() };
-      pending.current.set(viewId, p);
-    }
-    if (ok && !p.failed.has(itemId)) p.ok.add(itemId);
-    else if (!ok) {
-      p.ok.delete(itemId);
-      p.failed.set(itemId, message ?? "failed");
-    }
-    const q = p;
+    const prev = pending.current.get(viewId);
+    const merged = mergeReport(prev, version, itemId, ok, message);
+    if (!merged) return; // late report for an older version
+    if (prev && merged !== prev && prev.timer) clearTimeout(prev.timer);
+    const q: Pending & { timer?: number } = merged;
+    pending.current.set(viewId, q);
     if (q.timer) clearTimeout(q.timer);
     q.timer = window.setTimeout(() => {
       send({ t: "rendered", viewId, version: q.version, ok: [...q.ok], failed: [...q.failed].map(([itemId, message]) => ({ itemId, message })) });

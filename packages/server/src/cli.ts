@@ -16,6 +16,7 @@ const USAGE = `usage:
   genui mcp                   MCP server over stdio (starts the shared server if needed; watches ./.genui/views)
   genui watch <dir>           stream views from <dir>/.genui/views/*.ndjson
   genui skill [--out <path>]  write SKILL.md (default ~/.claude/skills/genui/SKILL.md)
+  genui gallery               show every component on the screen
   genui render <path | name=path>... [--intent "what you want to see"]`;
 
 async function serve() {
@@ -78,6 +79,15 @@ async function watchDir(dir: string | undefined) {
   console.log(`watching: ${body.watching.join(", ")}`);
 }
 
+async function gallery() {
+  const res = await fetch(`http://localhost:${loadConfig().port}/api/gallery`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }).catch(() => {
+    throw new Error("genui server is not running; start it with `genui serve`");
+  });
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.error);
+  console.log(body.url);
+}
+
 async function writeSkill(argv: string[]) {
   const i = argv.indexOf("--out");
   const out = i >= 0 && argv[i + 1] ? path.resolve(argv[i + 1]) : path.join(homedir(), ".claude", "skills", "genui", "SKILL.md");
@@ -93,6 +103,7 @@ try {
   else if (cmd === "mcp") await runMcp({ baseUrl: `http://localhost:${loadConfig().port}`, cwd: process.cwd() });
   else if (cmd === "watch") await watchDir(rest[0]);
   else if (cmd === "skill") await writeSkill(rest);
+  else if (cmd === "gallery") await gallery();
   else console.log(USAGE);
 } catch (e) {
   console.error((e as Error).message);

@@ -10,6 +10,7 @@ import { z } from "zod";
 import { compose, SpecCache, type DataInput, type LlmProvider } from "@genui/engine";
 import { PatchOpSchema, type ScreenMessage, type ViewEvent } from "@genui/spec";
 import { createComposeAdapter } from "./composeAdapter.ts";
+import { galleryView } from "./gallery.ts";
 import { DataRuntime } from "./dataRuntime.ts";
 import { Intake, IntakeError } from "./intake.ts";
 import { MediaRegistry } from "./media.ts";
@@ -190,6 +191,7 @@ export async function startServer(opts: ServerOpts) {
       if (!view || typeof view !== "object") throw new HttpError(400, "body.view must be a view document");
       return [200, await intake.render(view as never, "caller")];
     }
+    if (p === "/api/gallery" && method === "POST") return [200, await intake.render(galleryView(), "caller")];
     if (p === "/api/profile" && method === "POST") {
       const d = (body as { data?: unknown })?.data;
       if (!validData(d)) throw new HttpError(400, "body.data must be a path, {path}, {inline:[...]}, or a map of those");
