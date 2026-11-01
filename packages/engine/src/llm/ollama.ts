@@ -1,15 +1,5 @@
+import { portableSchema } from "./schema.ts";
 import type { LlmProvider, LlmRequest } from "./types.ts";
-
-// Ollama's JSON-schema→grammar converter rejects `pattern` (fails with "failed to load model vocabulary required
-// for format"). Constraints dropped here are still enforced by Zod when each part is validated.
-const UNSUPPORTED = new Set(["pattern", "$schema"]);
-function ollamaSchema(o: unknown): unknown {
-  if (Array.isArray(o)) return o.map(ollamaSchema);
-  if (o && typeof o === "object") {
-    return Object.fromEntries(Object.entries(o).filter(([k]) => !UNSUPPORTED.has(k)).map(([k, v]) => [k, ollamaSchema(v)]));
-  }
-  return o;
-}
 
 export function createOllamaProvider(opts: { url: string; model: string; fetch?: typeof fetch }): LlmProvider {
   const doFetch = opts.fetch ?? fetch;
@@ -28,7 +18,7 @@ export function createOllamaProvider(opts: { url: string; model: string; fetch?:
             stream: true,
             think: false,
             keep_alive: "30m",
-            format: ollamaSchema(req.schema),
+            format: portableSchema(req.schema),
             options: { temperature: 0.2, num_ctx: 8192 },
             messages: [
               { role: "system", content: req.system },

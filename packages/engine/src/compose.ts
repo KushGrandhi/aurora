@@ -98,7 +98,7 @@ export async function compose(opts: ComposeOpts): Promise<void> {
   async function repair(part: unknown, reason: string): Promise<unknown> {
     const { system, user } = buildRepairPrompt(part, reason, profile);
     try {
-      return JSON.parse(await collectText(provider.stream({ system, user, schema: partJsonSchema(), signal })));
+      return JSON.parse(await collectText(provider.stream({ system, user, schema: partJsonSchema(), signal, task: "repair" })));
     } catch {
       return undefined;
     }
@@ -216,7 +216,7 @@ export async function compose(opts: ComposeOpts): Promise<void> {
     const { system, user } = buildPrompt(profile, opts.intent);
     let complete = false;
     try {
-      for await (const chunk of provider.stream({ system, user, schema: llmDocJsonSchema(), signal })) parser.push(chunk);
+      for await (const chunk of provider.stream({ system, user, schema: llmDocJsonSchema(), signal, task: "compose" })) parser.push(chunk);
       complete = parser.end().complete;
     } finally {
       while (inflight.size) await Promise.all([...inflight]);

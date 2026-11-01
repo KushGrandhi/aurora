@@ -31,8 +31,22 @@ HTTP: `POST /api/render {"data": "<path>" | {"name": "<path>", ...} | {"inline":
 | `port` | `GENUI_PORT` | `4317` |
 | `model` | `GENUI_MODEL` | `qwen3:8b` |
 | `ollamaUrl` | `GENUI_OLLAMA_URL` | `http://127.0.0.1:11434` |
+| `provider` | `GENUI_PROVIDER` | `ollama` (or `openai` for any OpenAI-compatible server, e.g. the LLM routing server) |
+| `baseUrl` | `GENUI_BASE_URL` | — (required for `openai`, e.g. `http://localhost:8000/v1`) |
+| `apiKey` | `GENUI_API_KEY` | — |
+| `models` | | per-task model names, e.g. `{"compose": "auto", "repair": "fast"}` |
+| `jsonMode` | | `schema` (default), `object`, or `none` if the backend lacks JSON-schema output |
 | | `GENUI_FAKE_PROVIDER=1` | canned composition, no model |
 | | `GENUI_NO_OPEN=1` | never open a browser |
+
+### Using the LLM routing server
+
+```json
+// ~/.genui/config.json
+{ "provider": "openai", "baseUrl": "http://localhost:8000/v1", "model": "auto", "models": { "repair": "fast" } }
+```
+
+Every call is tagged as a `compose` or a `repair`, so the router can send repairs to a small fast model and full compositions to a bigger one.
 
 ## Test
 

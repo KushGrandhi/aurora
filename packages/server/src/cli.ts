@@ -1,8 +1,8 @@
 #!/usr/bin/env -S npx tsx
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createFakeProvider, createOllamaProvider, type DataInput } from "@genui/engine";
-import { loadConfig } from "./config.ts";
+import { createFakeProvider, type DataInput } from "@genui/engine";
+import { loadConfig, providerFromConfig } from "./config.ts";
 import { fakeSalesDoc } from "./fakeDoc.ts";
 import { startServer } from "./server.ts";
 
@@ -15,7 +15,7 @@ async function serve() {
   const cfg = loadConfig();
   const provider = process.env.GENUI_FAKE_PROVIDER === "1"
     ? createFakeProvider(fakeSalesDoc, { chunkSize: 24, delayMs: 5 })
-    : createOllamaProvider({ url: cfg.ollamaUrl, model: cfg.model });
+    : providerFromConfig(cfg);
   const openBrowser = process.env.GENUI_NO_OPEN === "1" ? () => {} : undefined;
   const srv = await startServer({ port: cfg.port, provider, staticDir: STATIC_DIR, openBrowser });
   console.log(`genui screen: ${srv.url}  (provider ${provider.name})`);

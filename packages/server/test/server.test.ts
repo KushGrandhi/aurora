@@ -128,3 +128,16 @@ test("allows same-origin websocket and render", async () => {
   const r = await fetch(srv.url + "/api/render", { method: "POST", headers: { "content-type": "application/json", origin: srv.url }, body: JSON.stringify({ data: fx("sales.csv") }) });
   expect(r.status).toBe(202);
 });
+
+test("config selects an OpenAI-compatible router", async () => {
+  const { providerFromConfig } = await import("../src/config.ts");
+  const c = loadConfig({ HOME: "/nonexistent", GENUI_PROVIDER: "openai", GENUI_BASE_URL: "http://localhost:8000/v1", GENUI_MODEL: "auto", GENUI_API_KEY: "k" });
+  expect(c).toMatchObject({ provider: "openai", baseUrl: "http://localhost:8000/v1", model: "auto", apiKey: "k" });
+  expect(providerFromConfig(c).name).toBe("auto");
+  expect(providerFromConfig(loadConfig({ HOME: "/nonexistent" })).name).toBe("ollama:qwen3:8b");
+});
+
+test("openai provider requires a base URL", async () => {
+  const { providerFromConfig } = await import("../src/config.ts");
+  expect(() => providerFromConfig(loadConfig({ HOME: "/nonexistent", GENUI_PROVIDER: "openai" }))).toThrow(/baseUrl/);
+});
