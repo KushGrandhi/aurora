@@ -48,6 +48,7 @@ const entries: Record<string, Entry> = {
   cards: { load: () => import("./components/Cards.tsx") },
   timeline: { load: () => import("./components/Timeline.tsx") },
   media: { load: () => import("./components/Media.tsx") },
+  code: { load: () => import("./components/Code.tsx"), selfReport: true },
 };
 
 const cache = new Map<string, Renderer>();

@@ -291,3 +291,26 @@ figcaption { font-size: 12px; color: var(--ink2); margin-top: 6px; }
 .lightbox img, .lightbox video { max-width: 100%; max-height: 80vh; border-radius: 10px; display: block; margin: 0 auto; }
 .lightbox figcaption { color: #e9e8e4; text-align: center; font-size: 13px; }
 .lb-count { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); color: #bdbcb6; font-size: 12px; }
+
+/* Code */
+.code { border: 1px solid var(--hair); border-radius: 12px; overflow: hidden; background: var(--raised); }
+.code-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--hair); font-size: 12px; }
+.code-name { font-family: ui-monospace, "SF Mono", Menlo, monospace; color: var(--ink2); }
+.code .copy { all: unset; display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--ink2); cursor: pointer; padding: 3px 8px; border-radius: 6px; }
+.code .copy:hover { background: var(--skeleton-a); color: var(--ink); }
+.code .copy:focus-visible { outline: 2px solid var(--accent); }
+.code-body { overflow: auto; position: relative; }
+.code.collapsed .code-body { overflow: hidden; -webkit-mask-image: linear-gradient(to bottom, #000 80%, transparent); mask-image: linear-gradient(to bottom, #000 80%, transparent); }
+.code-body pre { margin: 0; padding: 10px 0; background: transparent !important; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; line-height: 1.6; counter-reset: line; }
+.code-body code { display: block; min-width: max-content; }
+.code-body .line { display: inline-block; width: 100%; padding: 0 14px 0 0; }
+.code-body .line::before { counter-increment: line; content: counter(line); display: inline-block; width: 3.2em; padding-right: 1em; text-align: right; color: var(--muted); opacity: 0.7; user-select: none; }
+.code.diff .code-body .line::before { content: ""; width: 1em; }
+.code-body .line.hl { background: color-mix(in srgb, var(--accent) 12%, transparent); box-shadow: inset 2px 0 var(--accent); }
+.code-body .line.add { background: color-mix(in srgb, var(--good) 13%, transparent); }
+.code-body .line.del { background: color-mix(in srgb, var(--bad) 12%, transparent); }
+.code-body .line.hunk { color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.code-body .line.meta { opacity: 0.7; }
+.code .expand { all: unset; display: block; width: 100%; text-align: center; padding: 8px; font-size: 12px; font-weight: 550; color: var(--accent); cursor: pointer; border-top: 1px solid var(--hair); }
+.code .expand:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+:root[data-theme="dark"] .code-body .shiki, :root[data-theme="dark"] .code-body .shiki span { color-scheme: dark; }

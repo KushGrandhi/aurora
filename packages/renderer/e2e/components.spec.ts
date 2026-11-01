@@ -55,3 +55,25 @@ test("missing media is a warning, not a crash", async ({ page, request }) => {
   expect(s.problems.filter((p: { severity: string }) => p.severity === "error")).toEqual([]);
   expect(s.problems.some((p: { severity: string; itemId: string }) => p.severity === "warning" && p.itemId === "md")).toBe(true);
 });
+
+test("code highlights and copies", async ({ page, request, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/#cmp_code");
+  await expect(page.locator(".conn.up")).toBeVisible();
+  const code = Array.from({ length: 50 }, (_, i) => `const v${i} = ${i};`).join("\n");
+  await request.post("/api/views", { data: { view: { v: 2, id: "cmp_code", title: "Code", sections: [{ id: "s", layout: "grid", items: [
+    { id: "cd", span: 12, c: { type: "code", lang: "ts", filename: "src/values.ts", highlight: [2], code } },
+    { id: "df", span: 12, c: { type: "code", diff: true, code: "diff --git a/x b/x\n--- a/x\n+++ b/x\n@@ -1,2 +1,2 @@\n-old line\n+new line\n same" } },
+  ] }] } } });
+  const cd = page.locator('[data-item="cd"]');
+  await expect(cd.locator(".shiki span").first()).toBeVisible();
+  await expect(cd.locator(".code-head")).toContainText("src/values.ts");
+  await expect(cd.locator(".line.hl")).toHaveCount(1);
+  await expect(cd.locator("button.expand")).toHaveText("Show all 50 lines");
+  await cd.locator("button.copy").click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(code);
+  const df = page.locator('[data-item="df"]');
+  await expect(df.locator(".line.add")).toHaveCount(1);
+  await expect(df.locator(".line.del")).toHaveCount(1);
+  await expect.poll(async () => (await (await request.get("/api/views/cmp_code/status")).json()).unverified).toEqual([]);
+});
