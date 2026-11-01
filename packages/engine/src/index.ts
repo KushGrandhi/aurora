@@ -6,3 +6,4 @@ export { createClaudeCliProvider, type ClaudeCliOpts } from "./llm/claudeCli.ts"
 export { createFakeProvider } from "./llm/fake.ts";
 export type { LlmProvider } from "./llm/types.ts";
 export type { DataInput } from "./ingest.ts";
+export { validateView, type ViewValidateCtx, type ViewValidation } from "./validateView.ts";

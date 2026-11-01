@@ -1,4 +1,4 @@
-import { inferFormat, isSizeFormat, itemQueries, parsePlaceholders, PartSchema, PLACEHOLDER_RE, type Format, type Part } from "@genui/spec";
+import { inferFormat, isSizeFormat, itemQueries, parsePlaceholders, PartSchema, PLACEHOLDER_RE, type Format, type Item, type Part } from "@genui/spec";
 
 export type ValidateCtx = {
   knownQueries: Set<string>;
@@ -20,7 +20,7 @@ function inferFromData(field: string, sql: string | undefined): Format | undefin
 }
 
 /** The model may suggest a format, but the data decides units, and money needs a money signal. */
-function fixFormat(field: string, format: Format | undefined, sql: string | undefined): Format | undefined {
+export function fixFormat(field: string, format: Format | undefined, sql: string | undefined): Format | undefined {
   const inferred = inferFromData(field, sql);
   if (isSizeFormat(inferred)) return inferred;
   if (format === "currency" && inferred !== "currency") return inferred ?? "number";
@@ -104,10 +104,17 @@ function proseOf(part: Part): string[] {
 export function validatePart(raw: unknown, ctx: ValidateCtx): ValidateResult {
   const parsed = PartSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, reason: `invalid part: ${parsed.error.issues[0]?.message ?? "schema"}` };
-  let part = parsed.data;
+  const part = parsed.data;
   const id = part.kind === "query" ? part.id : part.item.id;
   if (id.startsWith(RESERVED_PREFIX)) return { ok: false, reason: `id '${id}' uses the reserved prefix ${RESERVED_PREFIX}` };
   if (part.kind === "query") return { ok: true, part };
+  const r = validateItem(part.item, ctx);
+  return r.ok ? { ok: true, part: { kind: "item", item: r.item } } : r;
+}
+
+/** Plan 1 data rules for one schema-valid item: query refs, digit rule, single-row headlines, chart sanitizing, unit fixes. */
+export function validateItem(item: Item, ctx: ValidateCtx): { ok: true; item: Item } | { ok: false; reason: string } {
+  let part: Extract<Part, { kind: "item" }> = { kind: "item", item };
   if (part.item.c.type === "chart") {
     part = { ...part, item: { ...part.item, c: { ...part.item.c, vegaLite: sanitizeVegaLite(part.item.c.vegaLite) } } };
   }
@@ -144,5 +151,5 @@ export function validatePart(raw: unknown, ctx: ValidateCtx): ValidateResult {
   } else if (c.type === "text" && "md" in c) {
     part = { ...part, item: { ...part.item, c: { ...c, md: normalizeProse(c.md, ctx) } } };
   }
-  return { ok: true, part };
+  return { ok: true, item: part.item };
 }
