@@ -5,17 +5,24 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import type { AddressInfo } from "node:net";
 import path from "node:path";
 import { WebSocketServer, type WebSocket } from "ws";
+import { z } from "zod";
 import { compose, SpecCache, type DataInput, type LlmProvider } from "@genui/engine";
-import type { RenderEvent } from "@genui/spec";
+import { PatchOpSchema, type ScreenMessage, type ViewEvent } from "@genui/spec";
+import { createComposeAdapter } from "./composeAdapter.ts";
+import { DataRuntime } from "./dataRuntime.ts";
+import { Intake, IntakeError } from "./intake.ts";
+import { defaultViewsDir, ViewStore } from "./viewStore.ts";
 
 export type ServerOpts = {
   port: number;
   provider: LlmProvider;
   staticDir?: string;
   openBrowser?: (url: string) => void;
+  viewsDir?: string; // default ~/.genui/views
+  waitMs?: number; // how long render/patch wait for a screen report (default 1500)
 };
 
-const KEEP_RENDERS = 20;
+const REPLAY_VIEWS = 20;
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css",
   ".svg": "image/svg+xml", ".json": "application/json", ".png": "image/png", ".woff2": "font/woff2",
@@ -67,24 +74,74 @@ function json(res: ServerResponse, status: number, body: unknown) {
   res.end(JSON.stringify(body));
 }
 
+const PatchBody = z.object({ ops: z.array(PatchOpSchema), baseVersion: z.number().int().optional() });
+const PickBody = z.object({ version: z.number().int().min(1) });
+const RevertBody = z.object({ itemId: z.string(), version: z.number().int().min(1) });
+const ScreenMessageSchema = z.discriminatedUnion("t", [
+  z.object({ t: z.literal("rendered"), viewId: z.string(), version: z.number(), ok: z.array(z.string()), failed: z.array(z.object({ itemId: z.string(), message: z.string() })) }),
+  z.object({ t: z.literal("pick"), viewId: z.string(), version: z.number() }),
+  z.object({ t: z.literal("sync"), viewId: z.string() }),
+  z.object({ t: z.literal("revertItem"), viewId: z.string(), itemId: z.string(), version: z.number() }),
+]);
+
+class HttpError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
+function parse<T>(schema: z.ZodType<T>, body: unknown): T {
+  const r = schema.safeParse(body);
+  if (r.success) return r.data;
+  const i = r.error.issues[0];
+  throw new HttpError(400, `${i?.path.map(String).join(".") || "body"}: ${i?.message ?? "invalid"}`);
+}
+
 export async function startServer(opts: ServerOpts) {
   const cache = new SpecCache();
   const open = opts.openBrowser ?? defaultOpen;
-  const events = new Map<string, RenderEvent[]>(); // insertion order = render order
   const clients = new Set<WebSocket>();
   let base = "";
+  const viewsDir = opts.viewsDir ?? defaultViewsDir();
+  const store = new ViewStore(viewsDir);
+  await store.load();
+  await store.prune();
+  const data = new DataRuntime({ inlineDir: viewsDir });
 
-  const broadcast = (e: RenderEvent) => {
-    let list = events.get(e.renderId);
-    if (!list) {
-      list = [];
-      events.set(e.renderId, list);
-      while (events.size > KEEP_RENDERS) events.delete(events.keys().next().value!);
-    }
-    list.push(e);
-    const msg = JSON.stringify(e);
-    for (const c of clients) if (c.readyState === c.OPEN) c.send(msg);
+  const send = (ws: WebSocket, e: ViewEvent) => {
+    if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(e));
   };
+  const broadcast = (e: ViewEvent) => {
+    for (const c of clients) send(c, e);
+  };
+  const intake = new Intake({
+    store, data, emit: broadcast, baseUrl: () => base, screens: () => clients.size, openScreen: open, waitMs: opts.waitMs,
+  });
+
+  /** Plan 1 entry: the built-in composer streams into a v2 view through the same intake. */
+  function startCompose(input: DataInput | Record<string, DataInput>, intent: string | undefined): string {
+    const viewId = `r_${randomUUID().slice(0, 8)}`;
+    const adapt = createComposeAdapter(viewId, input);
+    intake.ensureScreen(viewId);
+    let chain: Promise<unknown> = Promise.resolve();
+    const run = (fn: () => Promise<unknown> | void) => {
+      chain = chain.then(fn).catch((e) => intake.note(viewId, { severity: "error", message: `composer: ${(e as Error).message}` }));
+    };
+    void compose({
+      renderId: viewId, input, intent, provider: opts.provider, cache,
+      emit: (e) => {
+        const a = adapt(e);
+        if (!a) return;
+        if (a.kind === "render") run(() => intake.render(a.view, "compose", { wait: false }));
+        else if (a.kind === "patch") run(() => intake.patch(viewId, a.ops, "compose", undefined, { wait: false }));
+        else if (a.kind === "activity") run(() => intake.activity(viewId, a.text));
+        else run(() => intake.note(viewId, a.problem));
+      },
+    }).catch((e) => run(() => intake.note(viewId, { severity: "error", message: `composer: ${String(e)}` })));
+    return viewId;
+  }
 
   async function serveStatic(req: IncomingMessage, res: ServerResponse) {
     if (!opts.staticDir) return json(res, 404, { error: "renderer not built" });
@@ -105,39 +162,106 @@ export async function startServer(opts: ServerOpts) {
     }
   }
 
+  async function api(req: IncomingMessage, url: URL): Promise<[number, unknown]> {
+    const method = req.method ?? "GET";
+    let body: unknown;
+    if (method === "POST") {
+      if (!String(req.headers["content-type"] ?? "").startsWith("application/json")) throw new HttpError(415, "content-type must be application/json");
+      try {
+        body = await readBody(req);
+      } catch {
+        throw new HttpError(400, "invalid JSON body");
+      }
+    }
+    const p = url.pathname;
+    if (p === "/api/health") return [200, { ok: true, provider: opts.provider.name }];
+    if (p === "/api/views" && method === "GET") return [200, store.list()];
+    if (p === "/api/views" && method === "POST") {
+      const view = (body as { view?: unknown })?.view;
+      if (!view || typeof view !== "object") throw new HttpError(400, "body.view must be a view document");
+      return [200, await intake.render(view as never, "caller")];
+    }
+    if (p === "/api/profile" && method === "POST") {
+      const d = (body as { data?: unknown })?.data;
+      if (!validData(d)) throw new HttpError(400, "body.data must be a path, {path}, {inline:[...]}, or a map of those");
+      return [200, await data.profile(d)];
+    }
+    if (p === "/api/render" && method === "POST") {
+      const b = body as { data?: unknown; intent?: unknown };
+      if (!validData(b?.data)) throw new HttpError(400, "body.data must be a path, {path}, {inline:[...]}, or a map of those");
+      if (b.intent !== undefined && typeof b.intent !== "string") throw new HttpError(400, "intent must be a string");
+      const viewId = startCompose(b.data, b.intent);
+      return [202, { renderId: viewId, url: intake.url(viewId) }];
+    }
+    const m = p.match(/^\/api\/views\/([A-Za-z_]\w*)(?:\/(patch|status|history|pick|revert))?$/);
+    if (m) {
+      const [, id, action] = m;
+      if (!action && method === "GET") {
+        const cur = store.current(id);
+        if (!cur) throw new HttpError(404, `no view "${id}"`);
+        return [200, cur];
+      }
+      if (action === "status" && method === "GET") {
+        if (store.current(id)) await intake.refresh(id);
+        return [200, intake.status(id)];
+      }
+      if (action === "history" && method === "GET") {
+        if (!store.current(id)) throw new HttpError(404, `no view "${id}"`);
+        return [200, store.history(id)];
+      }
+      if (action === "patch" && method === "POST") {
+        const b = parse(PatchBody, body);
+        return [200, await intake.patch(id, b.ops, "caller", b.baseVersion)];
+      }
+      if (action === "pick" && method === "POST") return [200, await intake.pick(id, parse(PickBody, body).version)];
+      if (action === "revert" && method === "POST") {
+        const b = parse(RevertBody, body);
+        return [200, await intake.revertItem(id, b.itemId, b.version)];
+      }
+    }
+    throw new HttpError(404, "not found");
+  }
+
   const server = createServer(async (req, res) => {
     if (!allowed(req)) return json(res, 403, { error: "forbidden origin" });
     const url = new URL(req.url ?? "/", base);
-    if (url.pathname === "/api/health") return json(res, 200, { ok: true, provider: opts.provider.name });
-    if (url.pathname === "/api/render" && req.method === "POST") {
-      if (!String(req.headers["content-type"] ?? "").startsWith("application/json")) {
-        return json(res, 415, { error: "content-type must be application/json" });
-      }
-      let body: { data?: unknown; intent?: unknown };
-      try {
-        body = (await readBody(req)) as typeof body;
-      } catch {
-        return json(res, 400, { error: "invalid JSON body" });
-      }
-      if (!validData(body?.data)) return json(res, 400, { error: "body.data must be a path, {path}, {inline:[...]}, or a map of those" });
-      if (body.intent !== undefined && typeof body.intent !== "string") return json(res, 400, { error: "intent must be a string" });
-      const renderId = randomUUID().slice(0, 8);
-      const renderUrl = `${base}/#${renderId}`;
-      if (clients.size === 0) open(renderUrl);
-      void compose({ renderId, input: body.data, intent: body.intent, provider: opts.provider, cache, emit: broadcast }).catch((e) =>
-        broadcast({ t: "error", renderId, message: String(e) }),
-      );
-      return json(res, 202, { renderId, url: renderUrl });
+    if (!url.pathname.startsWith("/api/")) return serveStatic(req, res);
+    try {
+      const [status, out] = await api(req, url);
+      json(res, status, out);
+    } catch (e) {
+      const status = e instanceof HttpError || e instanceof IntakeError ? e.status : 500;
+      json(res, status, { error: (e as Error).message });
     }
-    if (url.pathname.startsWith("/api/")) return json(res, 404, { error: "not found" });
-    return serveStatic(req, res);
   });
 
   const wss = new WebSocketServer({ server, path: "/ws", verifyClient: ({ req }: { req: IncomingMessage }) => allowed(req) });
   wss.on("connection", (ws) => {
     clients.add(ws);
     ws.on("close", () => clients.delete(ws));
-    for (const list of events.values()) for (const e of list) ws.send(JSON.stringify(e));
+    ws.on("message", (raw) => {
+      let msg: ScreenMessage;
+      try {
+        const r = ScreenMessageSchema.safeParse(JSON.parse(String(raw)));
+        if (!r.success) return;
+        msg = r.data;
+      } catch {
+        return;
+      }
+      if (msg.t === "sync") {
+        void intake.refresh(msg.viewId).catch(() => {}).then(() => { for (const e of intake.snapshot(msg.viewId)) send(ws, e); });
+        return;
+      }
+      intake.screenMessage(msg).catch(() => {}); // e.g. a pick of a version that doesn't exist: nothing to do
+    });
+    const list = store.list();
+    send(ws, { t: "list", views: list });
+    void (async () => {
+      for (const v of list.slice(0, REPLAY_VIEWS)) {
+        await intake.refresh(v.id).catch(() => {});
+        for (const e of intake.snapshot(v.id)) send(ws, e);
+      }
+    })();
   });
 
   await new Promise<void>((r) => server.listen(opts.port, "127.0.0.1", r));
@@ -145,11 +269,13 @@ export async function startServer(opts: ServerOpts) {
 
   return {
     url: base,
-    history: (): RenderEvent[] => [...events.values()].flat(),
+    intake,
+    store,
     async close() {
       for (const c of clients) c.terminate();
       wss.close();
       await new Promise<void>((r) => server.close(() => r()));
+      await data.closeAll();
     },
   };
 }

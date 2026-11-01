@@ -24,6 +24,7 @@ type Runtime = {
   extra: Problem[]; // caller-level notes (e.g. composer errors), cleared on the next render
   report?: Report;
   waiters: { version: number; resolve: () => void }[];
+  loaded?: boolean; // data loaded and validated since the server started
   queue: Promise<unknown>;
 };
 
@@ -43,6 +44,7 @@ export type IntakeDeps = {
  */
 export class Intake {
   private rt = new Map<string, Runtime>();
+  private opened = 0;
   private deps: IntakeDeps;
 
   constructor(deps: IntakeDeps) {
@@ -53,7 +55,7 @@ export class Intake {
     return `${this.deps.baseUrl()}/#${viewId}`;
   }
 
-  async render(input: View | Spec, source: VersionSource, opts: { id?: string } = {}): Promise<IntakeResult> {
+  async render(input: View | Spec, source: VersionSource, opts: { id?: string; wait?: boolean } = {}): Promise<IntakeResult> {
     let view: View;
     if ((input as { v?: unknown }).v === 1) {
       const p = SpecSchema.safeParse(input);
@@ -67,10 +69,10 @@ export class Intake {
     const r = this.runtime(view.id);
     r.extra = [];
     const version = await this.serial(view.id, () => this.commit(view, source, {}));
-    return this.finish(view.id, version);
+    return this.finish(view.id, version, opts.wait);
   }
 
-  async patch(viewId: string, ops: PatchOp[], source: VersionSource, baseVersion?: number): Promise<IntakeResult> {
+  async patch(viewId: string, ops: PatchOp[], source: VersionSource, baseVersion?: number, opts: { wait?: boolean } = {}): Promise<IntakeResult> {
     const out = await this.serial(viewId, async () => {
       const cur = this.deps.store.current(viewId);
       if (!cur) throw new IntakeError(`no view "${viewId}"; render it first`, 404);
@@ -81,7 +83,7 @@ export class Intake {
       return { version, rebased };
     });
     if ("rejected" in out) return { viewId, version: out.version, url: this.url(viewId), problems: [out.rejected!] };
-    const result = await this.finish(viewId, out.version);
+    const result = await this.finish(viewId, out.version, opts.wait);
     return { ...result, rebased: out.rebased };
   }
 
@@ -130,6 +132,13 @@ export class Intake {
     if (cur) this.deps.emit({ t: "problems", viewId, version: cur.version, problems: this.problems(viewId) });
   }
 
+  /** Opens a screen when none is connected (once per 10 s: a new screen takes a moment to connect). */
+  ensureScreen(viewId: string): void {
+    if (this.deps.screens() > 0 || Date.now() - this.opened < 10_000) return;
+    this.opened = Date.now();
+    this.deps.openScreen(this.url(viewId));
+  }
+
   activity(viewId: string, text: string): void {
     this.deps.emit({ t: "activity", viewId, text });
   }
@@ -151,9 +160,44 @@ export class Intake {
     return out;
   }
 
+  /** After a restart a stored view has no results yet: load its data and re-check it, without a new version. */
+  async refresh(viewId: string): Promise<void> {
+    const r = this.runtime(viewId);
+    if (r.loaded) return;
+    await this.serial(viewId, async () => {
+      const cur = this.deps.store.current(viewId);
+      if (cur && !r.loaded) await this.evaluate(cur.view);
+    });
+  }
+
   /** Runs inside the view's queue. Returns the new version. */
   private async commit(view: View, source: VersionSource, how: { ops?: PatchOp[]; changed?: string[]; baseVersion?: number; note?: string }): Promise<number> {
-    const { store, data, emit } = this.deps;
+    const { store, emit } = this.deps;
+    const r = this.runtime(view.id);
+    const { checked, fresh } = await this.evaluate(view);
+
+    const entry = await store.render(checked.view, source, how.note);
+    if (how.ops && how.baseVersion !== undefined) {
+      // Send the caller's ops plus the normalized form of every touched item, so the screen ends on exactly the stored view.
+      const touched = new Set(how.changed);
+      const fixes: PatchOp[] = checked.view.sections.flatMap((s) => s.items.filter((i) => touched.has(i.id)).map((i) => ({ op: "replace", id: i.id, item: i }) as PatchOp));
+      if (checked.view.summary !== undefined && checked.view.summary !== view.summary) fixes.push({ op: "set", summary: checked.view.summary });
+      emit({ t: "patch", viewId: view.id, version: entry.version, baseVersion: how.baseVersion, ops: [...how.ops, ...fixes], changed: how.changed ?? [], source });
+    } else {
+      emit({ t: "view", viewId: view.id, version: entry.version, view: entry.view, source });
+    }
+    for (const id of fresh) {
+      const q = r.results.get(id)!;
+      if (q.result) emit({ t: "result", viewId: view.id, queryId: id, result: q.result });
+    }
+    emit({ t: "problems", viewId: view.id, version: entry.version, problems: this.problems(view.id) });
+    emit({ t: "list", views: store.list() });
+    return entry.version;
+  }
+
+  /** Loads data, runs new or changed queries and validates. Sets the view's current problems. */
+  private async evaluate(view: View): Promise<{ checked: ReturnType<typeof validateView>; fresh: string[] }> {
+    const { data } = this.deps;
     const r = this.runtime(view.id);
     const dataProblems = (await data.ensure(view)).problems;
     if (dataProblems.length) r.results.clear();
@@ -185,31 +229,16 @@ export class Intake {
       }
     r.problems = problems;
 
-    const entry = await store.render(checked.view, source, how.note);
-    if (how.ops && how.baseVersion !== undefined) {
-      // Send the caller's ops plus the normalized form of every touched item, so the screen ends on exactly the stored view.
-      const touched = new Set(how.changed);
-      const fixes: PatchOp[] = checked.view.sections.flatMap((s) => s.items.filter((i) => touched.has(i.id)).map((i) => ({ op: "replace", id: i.id, item: i }) as PatchOp));
-      if (checked.view.summary !== undefined && checked.view.summary !== view.summary) fixes.push({ op: "set", summary: checked.view.summary });
-      emit({ t: "patch", viewId: view.id, version: entry.version, baseVersion: how.baseVersion, ops: [...how.ops, ...fixes], changed: how.changed ?? [], source });
-    } else {
-      emit({ t: "view", viewId: view.id, version: entry.version, view: entry.view, source });
-    }
-    for (const id of fresh) {
-      const q = r.results.get(id)!;
-      if (q.result) emit({ t: "result", viewId: view.id, queryId: id, result: q.result });
-    }
-    emit({ t: "problems", viewId: view.id, version: entry.version, problems: this.problems(view.id) });
-    emit({ t: "list", views: store.list() });
-    return entry.version;
+    r.loaded = true;
+    return { checked, fresh };
   }
 
   /** Opens a screen if none is connected, waits briefly for its report, then answers with every known problem. */
-  private async finish(viewId: string, version: number): Promise<IntakeResult> {
+  private async finish(viewId: string, version: number, wait = true): Promise<IntakeResult> {
     const url = this.url(viewId);
-    if (this.deps.screens() === 0) this.deps.openScreen(url);
+    this.ensureScreen(viewId);
     const r = this.runtime(viewId);
-    if (!r.report || r.report.version < version) {
+    if (wait && (!r.report || r.report.version < version)) {
       await new Promise<void>((resolve) => {
         const w = { version, resolve };
         r.waiters.push(w);
