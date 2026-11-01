@@ -209,3 +209,14 @@ test("media and params over HTTP", async () => {
   await until(() => l.events.some((e) => e.t === "params" && e.values.region === "West"));
   l.ws.close();
 });
+
+test("static .mjs files are served as javascript (module workers need it)", async () => {
+  const { mkdir, writeFile } = await import("node:fs/promises");
+  const staticDir = path.join(dir, "static");
+  await mkdir(path.join(staticDir, "assets"), { recursive: true });
+  await writeFile(path.join(staticDir, "index.html"), "<!doctype html>");
+  await writeFile(path.join(staticDir, "assets", "worker.mjs"), "export {}");
+  srv = await startServer({ port: 0, provider: createFakeProvider(doc), openBrowser: () => {}, viewsDir: path.join(dir, "views"), waitMs: 20, staticDir, secretFile: path.join(dir, "secret") });
+  const r = await fetch(srv.url + "/assets/worker.mjs");
+  expect(r.headers.get("content-type")).toBe("text/javascript");
+});

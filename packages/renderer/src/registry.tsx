@@ -52,6 +52,7 @@ const entries: Record<string, Entry> = {
   diagram: { load: () => import("./components/Diagram.tsx"), selfReport: true },
   architecture: { load: () => import("./components/Architecture.tsx"), selfReport: true },
   graph: { load: () => import("./components/Graph.tsx"), selfReport: true },
+  map: { load: () => import("./components/MapView.tsx"), selfReport: true },
 };
 
 const cache = new Map<string, Renderer>();
