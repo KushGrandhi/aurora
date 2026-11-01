@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { readFile, stat } from "node:fs/promises";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
+import { homedir } from "node:os";
 import path from "node:path";
 import { WebSocketServer, type WebSocket } from "ws";
 import { z } from "zod";
@@ -11,6 +12,7 @@ import { PatchOpSchema, type ScreenMessage, type ViewEvent } from "@genui/spec";
 import { createComposeAdapter } from "./composeAdapter.ts";
 import { DataRuntime } from "./dataRuntime.ts";
 import { Intake, IntakeError } from "./intake.ts";
+import { MediaRegistry } from "./media.ts";
 import { defaultViewsDir, ViewStore } from "./viewStore.ts";
 import { ViewFileWatcher } from "./watcher.ts";
 
@@ -21,6 +23,7 @@ export type ServerOpts = {
   openBrowser?: (url: string) => void;
   viewsDir?: string; // default ~/.genui/views
   waitMs?: number; // how long render/patch wait for a screen report (default 1500)
+  secretFile?: string; // media token secret, default ~/.genui/secret
 };
 
 const REPLAY_VIEWS = 20;
@@ -78,11 +81,13 @@ function json(res: ServerResponse, status: number, body: unknown) {
 const PatchBody = z.object({ ops: z.array(PatchOpSchema), baseVersion: z.number().int().optional() });
 const PickBody = z.object({ version: z.number().int().min(1) });
 const RevertBody = z.object({ itemId: z.string(), version: z.number().int().min(1) });
+const ParamBody = z.object({ name: z.string(), value: z.unknown() });
 const ScreenMessageSchema = z.discriminatedUnion("t", [
   z.object({ t: z.literal("rendered"), viewId: z.string(), version: z.number(), ok: z.array(z.string()), failed: z.array(z.object({ itemId: z.string(), message: z.string() })) }),
   z.object({ t: z.literal("pick"), viewId: z.string(), version: z.number() }),
   z.object({ t: z.literal("sync"), viewId: z.string() }),
   z.object({ t: z.literal("revertItem"), viewId: z.string(), itemId: z.string(), version: z.number() }),
+  z.object({ t: z.literal("param"), viewId: z.string(), name: z.string(), value: z.unknown() }),
 ]);
 
 class HttpError extends Error {
@@ -110,6 +115,7 @@ export async function startServer(opts: ServerOpts) {
   await store.load();
   await store.prune();
   const data = new DataRuntime({ inlineDir: viewsDir });
+  const media = new MediaRegistry({ secretFile: opts.secretFile ?? path.join(homedir(), ".genui", "secret") });
 
   const send = (ws: WebSocket, e: ViewEvent) => {
     if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(e));
@@ -118,7 +124,7 @@ export async function startServer(opts: ServerOpts) {
     for (const c of clients) send(c, e);
   };
   const intake = new Intake({
-    store, data, emit: broadcast, baseUrl: () => base, screens: () => clients.size, openScreen: open, waitMs: opts.waitMs,
+    store, data, emit: broadcast, baseUrl: () => base, screens: () => clients.size, openScreen: open, waitMs: opts.waitMs, media,
   });
 
   const watcher = new ViewFileWatcher(intake);
@@ -208,7 +214,7 @@ export async function startServer(opts: ServerOpts) {
       if (!e) throw new HttpError(404, `view "${vm[1]}" has no version ${vm[2]}`);
       return [200, e];
     }
-    const m = p.match(/^\/api\/views\/([A-Za-z_]\w*)(?:\/(patch|status|history|pick|revert))?$/);
+    const m = p.match(/^\/api\/views\/([A-Za-z_]\w*)(?:\/(patch|status|history|pick|revert|params))?$/);
     if (m) {
       const [, id, action] = m;
       if (!action && method === "GET") {
@@ -228,6 +234,11 @@ export async function startServer(opts: ServerOpts) {
         const b = parse(PatchBody, body);
         return [200, await intake.patch(id, b.ops, "caller", b.baseVersion)];
       }
+      if (action === "params" && method === "POST") {
+        const b = parse(ParamBody, body);
+        const r = await intake.setParam(id, b.name, b.value);
+        return "problem" in r ? [400, { error: r.problem.message, problem: r.problem }] : [200, r];
+      }
       if (action === "pick" && method === "POST") return [200, await intake.pick(id, parse(PickBody, body).version)];
       if (action === "revert" && method === "POST") {
         const b = parse(RevertBody, body);
@@ -239,7 +250,14 @@ export async function startServer(opts: ServerOpts) {
 
   const server = createServer(async (req, res) => {
     if (!allowed(req)) return json(res, 403, { error: "forbidden origin" });
-    const url = new URL(req.url ?? "/", base);
+    const raw = req.url ?? "/";
+    if (raw.startsWith("/media/")) {
+      // Matched on the raw path: only /media/<32 hex> can ever resolve, and a 404 says nothing about why.
+      const token = /^\/media\/([0-9a-f]{32})(?:\?.*)?$/.exec(raw)?.[1];
+      if (req.method === "GET" && token && (await media.serve(token, req, res))) return;
+      return json(res, 404, { error: "not found" });
+    }
+    const url = new URL(raw, base);
     if (!url.pathname.startsWith("/api/")) return serveStatic(req, res);
     try {
       const [status, out] = await api(req, url);

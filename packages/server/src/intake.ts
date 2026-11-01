@@ -1,10 +1,11 @@
 import { validateView } from "@genui/engine";
 import {
-  allIds, applyOps, fromPlan1, getComponent, IdSchema, SpecSchema, ViewSchema,
-  type PatchOp, type Problem, type QueryResult, type ScreenMessage, type Spec, type View, type ViewEvent,
+  allIds, applyOps, fromPlan1, getComponent, IdSchema, paramDefault, paramValueVars, paramVars, SpecSchema, sqlVars, validateParamValue, ViewSchema,
+  type Param, type PatchOp, type Problem, type QueryResult, type ScreenMessage, type Spec, type View, type ViewEvent,
 } from "@genui/spec";
 import { randomUUID } from "node:crypto";
 import type { DataRuntime } from "./dataRuntime.ts";
+import type { MediaRegistry } from "./media.ts";
 import type { VersionSource, ViewStore } from "./viewStore.ts";
 
 export type IntakeResult = { viewId: string; version: number; url: string; rebased?: boolean; problems: Problem[] };
@@ -19,7 +20,12 @@ export class IntakeError extends Error {
 
 type Report = { version: number; ok: Set<string>; failed: { itemId: string; message: string }[] };
 type Runtime = {
-  results: Map<string, { sql: string; result?: QueryResult; problem?: Problem }>;
+  results: Map<string, { sql: string; key: string; result?: QueryResult; problem?: Problem }>; // key = sql + the var values it ran with
+  dataProblems: Problem[];
+  params: Record<string, unknown>; // current value by param name; runtime only, never versioned
+  paramDefs: Record<string, Param>;
+  options: Record<string, string[]>; // resolved select options
+  media: Record<string, string>; // src → URL the screen loads
   problems: Problem[]; // static + data problems of the current version
   extra: Problem[]; // caller-level notes (e.g. composer errors), cleared on the next render
   report?: Report;
@@ -36,7 +42,10 @@ export type IntakeDeps = {
   screens(): number;
   openScreen(url: string): void;
   waitMs?: number;
+  media?: MediaRegistry;
 };
+
+const OPTIONS_CAP = 200;
 
 /**
  * The one door every caller goes through (HTTP, MCP, file streaming, the Plan 1 composer, the screen): apply →
@@ -128,6 +137,9 @@ export class Intake {
       case "sync":
         for (const e of this.snapshot(msg.viewId)) this.deps.emit(e);
         return;
+      case "param":
+        await this.setParam(msg.viewId, msg.name, msg.value);
+        return;
     }
   }
 
@@ -150,10 +162,35 @@ export class Intake {
     this.deps.emit({ t: "activity", viewId, text });
   }
 
-  status(viewId: string): { version: number; problems: Problem[]; unverified: string[] } {
+  status(viewId: string): { version: number; problems: Problem[]; unverified: string[]; params: Record<string, unknown> } {
     const cur = this.deps.store.current(viewId);
     if (!cur) throw new IntakeError(`no view "${viewId}"`, 404);
-    return { version: cur.version, problems: this.problems(viewId), unverified: this.unverified(viewId) };
+    return { version: cur.version, problems: this.problems(viewId), unverified: this.unverified(viewId), params: { ...this.runtime(viewId).params } };
+  }
+
+  /** Sets a filter value: validates it, re-runs only the queries that read its vars and broadcasts their results. */
+  async setParam(viewId: string, name: string, value: unknown): Promise<{ ok: true } | { problem: Problem }> {
+    return this.serial(viewId, async () => {
+      const cur = this.deps.store.current(viewId);
+      if (!cur) throw new IntakeError(`no view "${viewId}"`, 404);
+      const r = this.runtime(viewId);
+      if (!r.loaded) await this.evaluate(cur.view);
+      const def = cur.view.params?.[name];
+      if (!def) return { problem: { severity: "error", message: `no param "${name}" in view "${viewId}"`, hint: "add it with addParam" } };
+      const v = validateParamValue(name, def, value, r.options[name]);
+      if (!v.ok) return { problem: { severity: "error", message: `param "${name}": ${v.message}` } };
+      r.params[name] = value;
+      const fresh = await this.runQueries(cur.view, this.dependents(cur.view, paramVars(name, def)), false);
+      this.resolveOptions(cur.view);
+      this.check(cur.view);
+      for (const id of fresh) {
+        const q = r.results.get(id)!;
+        if (q.result) this.deps.emit({ t: "result", viewId, queryId: id, result: q.result });
+      }
+      this.deps.emit(this.paramsEvent(viewId));
+      this.deps.emit({ t: "problems", viewId, version: cur.version, problems: this.problems(viewId) });
+      return { ok: true as const };
+    });
   }
 
   /** Everything a screen needs to show the current version from scratch. */
@@ -161,7 +198,7 @@ export class Intake {
     const cur = this.deps.store.current(viewId);
     if (!cur) return [];
     const r = this.runtime(viewId);
-    const out: ViewEvent[] = [{ t: "view", viewId, version: cur.version, view: cur.view, source: cur.source }];
+    const out: ViewEvent[] = [{ t: "media", viewId, urls: { ...r.media } }, this.paramsEvent(viewId), { t: "view", viewId, version: cur.version, view: cur.view, source: cur.source }];
     for (const [queryId, q] of r.results) if (q.result) out.push({ t: "result", viewId, queryId, result: q.result });
     out.push({ t: "problems", viewId, version: cur.version, problems: this.problems(viewId) });
     return out;
@@ -184,6 +221,8 @@ export class Intake {
     const { checked, fresh } = await this.evaluate(view);
 
     const entry = await store.render(checked.view, source, how.note);
+    emit({ t: "media", viewId: view.id, urls: { ...r.media } });
+    emit(this.paramsEvent(view.id));
     if (how.ops && how.baseVersion !== undefined) {
       // Send the caller's ops plus the normalized form of every touched item, so the screen ends on exactly the stored view.
       const touched = new Set(how.changed);
@@ -202,25 +241,94 @@ export class Intake {
     return entry.version;
   }
 
-  /** Loads data, runs new or changed queries and validates. Sets the view's current problems. */
+  /** Loads data, settles param values, runs new or changed queries and validates. Sets the view's current problems. */
   private async evaluate(view: View): Promise<{ checked: ReturnType<typeof validateView>; fresh: string[] }> {
     const { data } = this.deps;
     const r = this.runtime(view.id);
     const loaded = await data.ensure(view);
-    const dataProblems = loaded.problems;
+    r.dataProblems = loaded.problems;
     if (view.datasets) view = { ...view, datasets: loaded.datasets }; // inline rows live in a file beside the view, not in every version
-    if (dataProblems.length) r.results.clear();
+    if (loaded.problems.length) r.results.clear();
+
+    // Values survive a new version while the param keeps its type and the value still fits.
+    const defs = view.params ?? {};
+    const params: Record<string, unknown> = {};
+    for (const [name, p] of Object.entries(defs)) {
+      const prev = r.paramDefs[name];
+      const keep = prev?.type === p.type && name in r.params && (p.type === "select" || validateParamValue(name, p, r.params[name]).ok);
+      params[name] = keep ? r.params[name] : paramDefault(p);
+    }
+    r.params = params;
+    r.paramDefs = defs;
 
     const queries = view.queries ?? {};
     for (const id of r.results.keys()) if (!(id in queries)) r.results.delete(id);
+    const fresh = await this.runQueries(view, undefined, loaded.problems.length > 0);
+
+    // A select whose value is no longer an option goes back to its default.
+    this.resolveOptions(view);
+    const reset: string[] = [];
+    for (const [name, p] of Object.entries(defs)) {
+      if (p.type !== "select" || validateParamValue(name, p, r.params[name], r.options[name]).ok) continue;
+      r.params[name] = p.default != null && r.options[name]?.includes(p.default) ? p.default : null;
+      reset.push(...paramVars(name, p));
+    }
+    if (reset.length) for (const id of await this.runQueries(view, this.dependents(view, reset), false)) if (!fresh.includes(id)) fresh.push(id);
+
+    const checked = this.check(view);
+    r.loaded = true;
+    return { checked, fresh };
+  }
+
+  /** Runs the queries (all, or `ids`) whose SQL or var values changed since their last run. Returns the ids that ran. */
+  private async runQueries(view: View, ids: string[] | undefined, force: boolean): Promise<string[]> {
+    const r = this.runtime(view.id);
+    const vars = this.vars(view.id);
     const fresh: string[] = [];
-    for (const [id, q] of Object.entries(queries)) {
-      if (r.results.get(id)?.sql === q.sql && !dataProblems.length) continue;
-      const out = await data.run(view.id, id, q.sql);
-      r.results.set(id, "problem" in out ? { sql: q.sql, problem: out.problem } : { sql: q.sql, result: out });
+    for (const [id, q] of Object.entries(view.queries ?? {})) {
+      if (ids && !ids.includes(id)) continue;
+      const key = q.sql + "\0" + JSON.stringify(sqlVars(q.sql).map((n) => vars[n] ?? null));
+      if (!force && r.results.get(id)?.key === key) continue;
+      const out = await this.deps.data.run(view.id, id, q.sql, vars);
+      r.results.set(id, "problem" in out ? { sql: q.sql, key, problem: out.problem } : { sql: q.sql, key, result: out });
       fresh.push(id);
     }
+    return fresh;
+  }
 
+  private vars(viewId: string): Record<string, unknown> {
+    const r = this.runtime(viewId);
+    return Object.assign({}, ...Object.entries(r.paramDefs).map(([name, p]) => paramValueVars(name, p, r.params[name])));
+  }
+
+  private dependents(view: View, vars: string[]): string[] {
+    const set = new Set(vars);
+    return Object.entries(view.queries ?? {}).filter(([, q]) => sqlVars(q.sql).some((n) => set.has(n))).map(([id]) => id);
+  }
+
+  private resolveOptions(view: View): void {
+    const r = this.runtime(view.id);
+    r.options = {};
+    for (const [name, p] of Object.entries(view.params ?? {})) {
+      if (p.type !== "select") continue;
+      if (Array.isArray(p.options)) {
+        r.options[name] = p.options;
+        continue;
+      }
+      const { query, field } = p.options;
+      const values = new Set<string>();
+      for (const row of r.results.get(query)?.result?.rows ?? []) {
+        const v = row[field];
+        if (v !== null && v !== undefined) values.add(String(v));
+        if (values.size >= OPTIONS_CAP) break;
+      }
+      r.options[name] = [...values];
+    }
+  }
+
+  /** Validates against the current results and collects media URLs. Sets the view's current problems. */
+  private check(view: View): ReturnType<typeof validateView> {
+    const r = this.runtime(view.id);
     const queryRows = new Map<string, number>();
     const querySql = new Map<string, string>();
     for (const [id, q] of r.results) {
@@ -228,18 +336,29 @@ export class Intake {
       if (q.result) queryRows.set(id, q.result.rows.length);
     }
     const checked = validateView(view, { queryRows, querySql });
-    const problems = [...dataProblems, ...checked.problems];
-    for (const [id, q] of r.results) if (q.problem) problems.push(q.problem);
+    const problems = [...r.dataProblems, ...checked.problems];
+    for (const [, q] of r.results) if (q.problem) problems.push(q.problem);
+    const media: Record<string, string> = {};
     for (const s of checked.view.sections)
       for (const item of s.items) {
         if (checked.invalid.has(item.id)) continue;
-        const failed = (getComponent(item.c.type)?.dataBound?.(item.c) ?? []).find((q) => r.results.get(q)?.problem);
+        const def = getComponent(item.c.type);
+        const failed = (def?.dataBound?.(item.c) ?? []).find((q) => r.results.get(q)?.problem);
         if (failed) problems.push({ itemId: item.id, severity: "error", message: `query "${failed}" failed; see its problem`, hint: "fix the query with addQuery" });
+        for (const src of def?.media?.(item.c) ?? []) {
+          const url = /^https?:\/\//i.test(src) ? src : this.deps.media?.register(src) ?? null;
+          if (url) media[src] = url;
+          else problems.push({ itemId: item.id, severity: "warning", message: `media file not found or not a supported image/video: ${src}`, hint: "use an absolute path to an existing png, jpg, gif, webp, avif, svg, mp4, webm, mov, m4v or ogg file, or an http(s) URL" });
+        }
       }
     r.problems = problems;
+    r.media = media;
+    return checked;
+  }
 
-    r.loaded = true;
-    return { checked, fresh };
+  private paramsEvent(viewId: string): ViewEvent {
+    const r = this.runtime(viewId);
+    return { t: "params", viewId, values: { ...r.params }, options: { ...r.options } };
   }
 
   /** Opens a screen if none is connected, waits briefly for its report, then answers with every known problem. */
@@ -282,7 +401,7 @@ export class Intake {
   private runtime(viewId: string): Runtime {
     let r = this.rt.get(viewId);
     if (!r) {
-      r = { results: new Map(), problems: [], extra: [], waiters: [], queue: Promise.resolve() };
+      r = { results: new Map(), dataProblems: [], params: {}, paramDefs: {}, options: {}, media: {}, problems: [], extra: [], waiters: [], queue: Promise.resolve() };
       this.rt.set(viewId, r);
     }
     return r;

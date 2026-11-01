@@ -180,3 +180,32 @@ test("watch endpoint registers a folder and streams its files", async () => {
   await until(() => false, 600).catch(() => {});
   expect((await fetch(srv.url + "/api/views/w")).status).toBe(200);
 });
+
+test("media and params over HTTP", async () => {
+  const { writeFile } = await import("node:fs/promises");
+  const png = path.join(dir, "shot.png");
+  await writeFile(png, Buffer.from("89504e470d0a1a0a", "hex"));
+  srv = await startServer({ port: 0, provider: createFakeProvider(doc), openBrowser: () => {}, viewsDir: path.join(dir, "views"), waitMs: 20, secretFile: path.join(dir, "secret") });
+  const v: View = { ...view(), params: { region: { type: "select", label: "Region", options: ["East", "West"] } },
+    queries: { total: { sql: "SELECT sum(revenue) AS v FROM data WHERE ($region IS NULL OR region = $region)" } },
+    sections: [{ id: "main", layout: "grid", items: [{ id: "k", span: 4, c: { type: "kpi", query: "total", field: "v", label: "Revenue" } }, { id: "m", c: { type: "media", items: [{ src: png }] } }] }] };
+  const l = listen(srv.url);
+  await l.open;
+  expect((await send(srv.url, "/api/views", { view: v })).status).toBe(200);
+  await until(() => l.events.some((e) => e.t === "media"));
+  const media = l.events.find((e) => e.t === "media") as Extract<ViewEvent, { t: "media" }>;
+  const img = await fetch(srv.url + media.urls[png]);
+  expect(img.status).toBe(200);
+  expect(img.headers.get("content-type")).toBe("image/png");
+  expect((await fetch(srv.url + "/media/" + "0".repeat(32))).status).toBe(404);
+
+  const ok = await send(srv.url, "/api/views/demo/params", { name: "region", value: "East" });
+  expect(ok.status).toBe(200);
+  const bad = await send(srv.url, "/api/views/demo/params", { name: "region", value: "Mars" });
+  expect(bad.status).toBe(400);
+  expect((await (await fetch(srv.url + "/api/views/demo/status")).json()).params).toEqual({ region: "East" });
+
+  l.ws.send(JSON.stringify({ t: "param", viewId: "demo", name: "region", value: "West" }));
+  await until(() => l.events.some((e) => e.t === "params" && e.values.region === "West"));
+  l.ws.close();
+});

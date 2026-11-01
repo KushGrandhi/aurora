@@ -41,7 +41,7 @@ export class DataRuntime {
     return { ...(await this.load(view.id, datasets)), datasets };
   }
 
-  async run(viewId: string, queryId: string, sql: string): Promise<QueryResult | { problem: Problem }> {
+  async run(viewId: string, queryId: string, sql: string, params: Record<string, unknown> = {}): Promise<QueryResult | { problem: Problem }> {
     if (!this.open.has(viewId)) {
       const datasets = this.known.get(viewId);
       if (!datasets) return { problem: { severity: "error", message: `query "${queryId}": the view has no datasets` } };
@@ -52,10 +52,10 @@ export class DataRuntime {
     const fail = (message: string) => ({ problem: { severity: "error" as const, message: `query "${queryId}": ${message}` } });
     if (!referencesData(sql, o.tables)) return fail(`must read from a dataset table (${o.tables.join(", ") || "none loaded"})`);
     const job = o.queue.then(async () => {
-      const ex = await explainQuery(o.db, sql);
+      const ex = await explainQuery(o.db, sql, params);
       if (!ex.ok) return fail(ex.message);
       try {
-        return await runQuery(o.db, sql);
+        return await runQuery(o.db, sql, params);
       } catch (e) {
         return fail((e as Error).message);
       }

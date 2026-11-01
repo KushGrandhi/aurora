@@ -16,7 +16,8 @@ export function paramVars(name: string, param: Param): string[] {
   return [name];
 }
 
-function varsFor(name: string, param: Param, value: unknown): Record<string, unknown> {
+/** The SQL var values one param value provides. */
+export function paramValueVars(name: string, param: Param, value: unknown): Record<string, unknown> {
   const names = paramVars(name, param);
   if (names.length === 1) return { [names[0]]: value };
   const [a, b] = value as [unknown, unknown];
@@ -35,7 +36,7 @@ export function paramDefault(param: Param): unknown {
 
 /** Values for every SQL var the params provide. */
 export function paramDefaults(params: Record<string, Param>): Record<string, unknown> {
-  return Object.assign({}, ...Object.entries(params).map(([name, p]) => varsFor(name, p, paramDefault(p))));
+  return Object.assign({}, ...Object.entries(params).map(([name, p]) => paramValueVars(name, p, paramDefault(p))));
 }
 
 const isDate = (v: unknown) => typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v) && !isNaN(Date.parse(v));
@@ -66,7 +67,7 @@ export function validateParamValue(name: string, param: Param, value: unknown, o
       if (typeof value !== "string" || value.length > 200) return fail(`${param.label} takes text of at most 200 characters`);
       break;
   }
-  return { ok: true, vars: varsFor(name, param, value) };
+  return { ok: true, vars: paramValueVars(name, param, value) };
 }
 
 /** Remove string literals, quoted identifiers and comments so scans only see SQL structure. */

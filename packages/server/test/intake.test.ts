@@ -153,11 +153,11 @@ test("failed query marks its items", async () => {
   expect(r.problems.some((p) => p.itemId === "k" && p.severity === "error")).toBe(true);
 });
 
-test("snapshot replays view, results and problems", async () => {
+test("snapshot replays media, params, view, results and problems", async () => {
   const { intake } = setup();
   await intake.render(salesView(), "caller");
   const snap = intake.snapshot("sales");
-  expect(snap.map((e) => e.t)).toEqual(["view", "result", "problems"]);
+  expect(snap.map((e) => e.t)).toEqual(["media", "params", "view", "result", "problems"]);
 });
 
 test("render rejects duplicate ids", async () => {
