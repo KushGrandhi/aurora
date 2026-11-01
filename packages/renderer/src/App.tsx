@@ -44,9 +44,9 @@ function useMode(): [Mode, () => void] {
 /** Collects per-item render reports and sends one `rendered` message per view version (debounced). */
 function useReports(send: (m: ScreenMessage) => void) {
   const pending = useRef(new Map<string, Pending & { timer?: number }>());
-  return useCallback((viewId: string, version: number, itemId: string, ok: boolean, message?: string) => {
+  return useCallback((viewId: string, version: number, itemId: string, ok: boolean, message?: string, retract?: boolean) => {
     const prev = pending.current.get(viewId);
-    const merged = mergeReport(prev, version, itemId, ok, message);
+    const merged = mergeReport(prev, version, itemId, ok, message, retract);
     if (!merged) return; // late report for an older version
     if (prev && merged !== prev && prev.timer) clearTimeout(prev.timer);
     const q: Pending & { timer?: number } = merged;
@@ -124,7 +124,7 @@ export function App() {
     media: (src) => media?.[src],
     send: (name, payload) => { if (currentId && !showing) send({ t: "event", viewId: currentId, itemId: item.id, name, payload }); },
     ...(item.c.type === "design" || item.c.type === "custom" ? { openPage: () => setOpened(item.id) } : {}),
-    report: (ok, message) => { if (currentId && !showing) report(currentId, version, item.id, ok, message); },
+    report: (ok, message, retract) => { if (currentId && !showing) report(currentId, version, item.id, ok, message, retract); },
   }), [results, mode, theme, media, currentId, version, showing, report, reduced]);
   const params = currentId ? state.params[currentId] : undefined;
 

@@ -329,7 +329,8 @@ export async function startServer(opts: ServerOpts) {
     }
   });
 
-  const wss = new WebSocketServer({ server, path: "/ws", verifyClient: ({ req }: { req: IncomingMessage }) => allowed(req) });
+  // Screens send small reports and events; a 1 MB cap keeps one bad message from tying the server up.
+  const wss = new WebSocketServer({ server, path: "/ws", maxPayload: 1024 * 1024, verifyClient: ({ req }: { req: IncomingMessage }) => allowed(req) });
   wss.on("connection", (ws) => {
     clients.add(ws);
     ws.on("close", () => clients.delete(ws));

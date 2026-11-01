@@ -20,3 +20,12 @@ test("a late report for an older version doesn't discard the newer pending repor
   const v2 = mergeReport(undefined, 2, "a", true)!;
   expect(mergeReport(v2, 1, "map", true)).toBeUndefined();
 });
+
+test("a retracting ok report clears the item's earlier failure", () => {
+  let p = mergeReport(undefined, 1, "d", false, "design: did not finish loading")!;
+  p = mergeReport(p, 1, "d", true)!;
+  expect([...p.failed]).toEqual([["d", "design: did not finish loading"]]);
+  p = mergeReport(p, 1, "d", true, undefined, true)!;
+  expect([...p.failed]).toEqual([]);
+  expect([...p.ok]).toEqual(["d"]);
+});

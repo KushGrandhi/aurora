@@ -142,3 +142,59 @@ test("viewport switcher narrows the frame", async ({ page, request }) => {
   await page.locator('[data-item="d"] button[data-viewport="phone"]').click();
   await expect.poll(async () => Math.round((await page.locator('[data-item="d"] iframe').boundingBox())!.width)).toBe(390);
 });
+
+for (const [name, html] of [
+  ["a <header> fragment", "<header><h1>Hi</h1></header><script>fetch('https://example.com/x').catch(() => {})</script>"],
+  ["a script before <head>", "<html><script>fetch('https://example.com/x').catch(() => {})</script><head><title>t</title></head><body><h1>Hi</h1></body></html>"],
+  ["a commented <head>", "<!-- <head> --><html><head><title>t</title></head><body><h1>Hi</h1><script>fetch('https://example.com/x').catch(() => {})</script></body></html>"],
+] as const) {
+  test(`network stays blocked for ${name}`, async ({ page, request }) => {
+    const id = `esc_${name.replace(/\W+/g, "")}`;
+    await show(page, request, id, { type: "custom", html });
+    await expect(frame(page).locator("h1")).toHaveText("Hi");
+    await expect.poll(async () => JSON.stringify((await status(request, id)).problems)).toContain("blocked network request to https://example.com");
+  });
+}
+
+test("a design that navigates away is torn down and reported", async ({ page, request, baseURL }) => {
+  await show(page, request, "ds13", { type: "custom", html: `<h1>Hi</h1><script>setTimeout(() => { location.href = '${baseURL}/api/gallery?rows=' + JSON.stringify(genui.data); }, 300)</script>` });
+  await expect.poll(async () => JSON.stringify((await status(request, "ds13")).problems)).toContain("navigated away");
+  await expect(page.locator('[data-item="d"] .design-error')).toContainText("navigated away");
+  await expect(frame(page).locator("body")).not.toContainText("sections");
+});
+
+test("inline scripts in html get the bridge, storage and error reporting", async ({ page, request }) => {
+  await show(page, request, "ds14", { type: "custom", html: "<h1>Hi</h1><script>localStorage.setItem('k', 'v'); genui.send('boot', { storage: localStorage.getItem('k'), theme: genui.theme });</script><script>missingFn()</script>" });
+  await expect.poll(async () => (await (await request.get("/api/views/ds14/events")).json()).events.length).toBe(1);
+  const [ev] = (await (await request.get("/api/views/ds14/events")).json()).events;
+  expect(ev.payload).toEqual({ storage: "v", theme: "light" });
+  await expect.poll(async () => JSON.stringify((await status(request, "ds14")).problems)).toContain("missingFn");
+});
+
+test("raw postMessage floods are rate-limited by the screen", async ({ page, request }) => {
+  await show(page, request, "ds15", react({ "App.tsx": "export default () => <button id='b' onClick={() => { for (let i = 0; i < 1000; i++) parent.postMessage({ __genui: true, type: 'send', name: 'spam', payload: i }, '*'); }}>spam</button>;" }));
+  await frame(page).locator("#b").click();
+  await page.waitForTimeout(800);
+  const n = (await (await request.get("/api/views/ds15/events")).json()).events.length;
+  expect(n).toBeGreaterThan(0);
+  expect(n).toBeLessThanOrEqual(20);
+});
+
+test("a filter change while the design loads still reaches it", async ({ page, request }) => {
+  await page.route(/\/lib\//, async (r) => { await new Promise((ok) => setTimeout(ok, 1500)); await r.continue(); });
+  await show(page, request, "ds16", react({ "App.tsx": "import { useEffect, useState } from 'react';\nexport default function App() { const g = (window as any).genui; const [rows, setRows] = useState(g.data.q); useEffect(() => g.onData((d: any) => setRows(d.q)), []); return <h1 id='n'>{rows[0].n}</h1>; }" }, { data: ["q"] }), {
+    datasets: { data: sales },
+    params: { region: { type: "select", label: "Region", options: ["East", "West"] } },
+    queries: { q: { sql: "SELECT count(*) AS n FROM data WHERE ($region IS NULL OR region = $region)" } },
+  });
+  await page.locator(".filterbar select").selectOption("East");
+  await expect(frame(page).locator("#n")).toHaveText("48", { timeout: 15_000 });
+});
+
+test("a slow design that finishes after the stuck warning clears it", async ({ page, request }) => {
+  test.setTimeout(40_000);
+  await show(page, request, "ds17", react({ "App.tsx": "await new Promise((r) => setTimeout(r, 9500));\nexport default () => <h1>late</h1>;" }));
+  await expect.poll(async () => JSON.stringify((await status(request, "ds17")).problems), { timeout: 15_000 }).toContain("did not finish loading");
+  await expect(frame(page).locator("h1")).toHaveText("late", { timeout: 10_000 });
+  await expect.poll(async () => (await status(request, "ds17")).problems).toEqual([]);
+});

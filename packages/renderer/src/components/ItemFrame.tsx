@@ -46,9 +46,9 @@ export function ItemFrame({ item, version, changedAt = 0, ctx, problem, showTitl
   latest.current = { ctx, cJson };
   const selfCtx = useMemo<RenderCtx>(() => ({
     ...ctx,
-    report: (ok, message) => {
+    report: (ok, message, retract) => {
       last.current = { c: latest.current.cJson, ok, message };
-      latest.current.ctx.report(ok, message);
+      latest.current.ctx.report(ok, message, retract);
     },
   }), [ctx]);
 

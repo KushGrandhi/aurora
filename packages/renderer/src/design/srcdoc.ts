@@ -1,4 +1,5 @@
 import type { CompiledProject } from "./compile.ts";
+import { genuiBootstrap } from "./bootstrap.ts";
 import { IMPORT_MAP } from "./libs.ts";
 
 export type SrcdocOpts = { origin: string; framework: "react" | "html"; mode: "light" | "dark"; data: Record<string, unknown[]>; assets: Record<string, string> };
@@ -36,22 +37,21 @@ export function buildSrcdoc(p: CompiledProject, o: SrcdocOpts): string {
     '<meta name="viewport" content="width=device-width, initial-scale=1">',
     `<script type="importmap">${safeJson({ imports })}</script>`,
     `<link rel="stylesheet" href="${o.origin}/lib/fonts/inter.css">`,
+    `<script type="application/json" id="genui-project">${safeJson(project)}</script>`,
+    `<script id="genui-bootstrap">(${String(genuiBootstrap).replace(/<\/script/gi, "<\\/script")})()</script>`,
     `<script src="${o.origin}/lib/tailwind.js"></script>`,
     // Tailwind's `dark:` follows genui's theme (a class on <html>), not the OS setting.
     '<style type="text/tailwindcss">@custom-variant dark (&:where(.dark, .dark *));</style>',
     "<style>html,body{margin:0}body{font-family:'Inter Variable',Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}</style>",
     ...p.css.map((c) => `<style>${c.replace(/<\/style/gi, "<\\/style")}</style>`),
-    `<script type="application/json" id="genui-project">${safeJson(project)}</script>`,
     `<script type="module" src="${o.origin}/lib/runtime.js"></script>`,
   ].join("\n");
   const cls = o.mode === "dark" ? ' class="dark"' : "";
 
-  if (o.framework === "react") return `<!doctype html>\n<html${cls}>\n<head>\n${head}\n</head>\n<body>\n<div id="root"></div>\n</body>\n</html>`;
-
-  let html = p.html ?? "";
-  if (/<head[^>]*>/i.test(html)) html = html.replace(/<head[^>]*>/i, (m) => `${m}\n${head}\n`);
-  else if (/<html[^>]*>/i.test(html)) html = html.replace(/<html[^>]*>/i, (m) => `${m}\n<head>\n${head}\n</head>\n`);
-  else html = `<!doctype html>\n<html>\n<head>\n${head}\n</head>\n<body>\n${html}\n</body>\n</html>`;
-  if (cls && /<html(?![^>]*\bclass=)[^>]*>/i.test(html)) html = html.replace(/<html/i, `<html${cls}`);
-  return html;
+  const open = `<!doctype html>\n<html${cls}>\n<head>\n${head}\n</head>\n<body>\n`;
+  if (o.framework === "react") return `${open}<div id="root"></div>\n</body>\n</html>`;
+  // genui's head always comes first, so its CSP and bootstrap precede every byte of the author's markup (a CSP <meta>
+  // outside the real <head>, or after a script, is ignored). The author's own <html>, <head> and <body> tags then
+  // merge into the open document the way a browser handles any repeated tag; their contents still apply.
+  return open + (p.html ?? "").replace(/^\s*<!doctype[^>]*>/i, "");
 }

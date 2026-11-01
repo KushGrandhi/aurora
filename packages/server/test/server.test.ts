@@ -150,3 +150,12 @@ test("openai provider requires a base URL", async () => {
   const { providerFromConfig } = await import("../src/config.ts");
   expect(() => providerFromConfig(loadConfig({ HOME: "/nonexistent", GENUI_PROVIDER: "openai" }))).toThrow(/baseUrl/);
 });
+
+test("oversized websocket messages close the connection", async () => {
+  srv = await startServer({ viewsDir: await mkdtemp(path.join(tmpdir(), "genui-srv-")), waitMs: 10, port: 0, provider: createFakeProvider(doc), openBrowser: () => {} });
+  const ws = new WebSocket(srv.url.replace("http", "ws") + "/ws", { origin: srv.url });
+  await new Promise((r) => ws.once("open", r));
+  const code = new Promise<number>((r) => ws.once("close", (c) => r(c)));
+  ws.send(JSON.stringify({ t: "event", viewId: "x", itemId: "d", name: "big", payload: "x".repeat(2 * 1024 * 1024) }));
+  expect(await code).toBe(1009);
+});

@@ -17,7 +17,7 @@ const clamp = (n: number) => Math.min(2400, Math.max(200, n));
 function Frame({ spec, ready, on }: {
   spec: FrameSpec;
   ready: boolean;
-  on: React.RefObject<{ ready(id: number): void; error(id: number, m: string): void; height(id: number, px: number): void; send(name: string, p: unknown): void; stuck(id: number): void; register(id: number, c: Controller | undefined): void }>;
+  on: React.RefObject<{ ready(id: number): void; error(id: number, m: string): void; navigate(id: number): void; height(id: number, px: number): void; send(name: string, p: unknown): void; stuck(id: number): void; register(id: number, c: Controller | undefined): void }>;
 }) {
   const ref = useRef<HTMLIFrameElement>(null);
   useEffect(() => {
@@ -27,6 +27,7 @@ function Frame({ spec, ready, on }: {
       onError: (m) => h().error(spec.id, m),
       onHeight: (px) => h().height(spec.id, px),
       onSend: (name, payload) => h().send(name, payload),
+      onNavigate: () => h().navigate(spec.id),
     });
     h().register(spec.id, ctl);
     const timer = setTimeout(() => h().stuck(spec.id), STUCK_MS);
@@ -58,6 +59,7 @@ export default function Design({ c, ctx }: { c: DesignC | Custom; ctx: RenderCtx
   const [height, setHeight] = useState(c.height ?? 480);
   const [viewport, setViewport] = useState<Viewport>(c.type === "design" ? c.viewport ?? "desktop" : "desktop");
   const seq = useRef(0);
+  const stuckIds = useRef(new Set<number>());
   const controllers = useRef(new Map<number, Controller>());
   const latest = useRef({ ctx, data, mode: ctx.mode, assets, fixedHeight: ctx.page ? 0 : c.height });
   latest.current = { ctx, data, mode: ctx.mode, assets, fixedHeight: ctx.page ? 0 : c.height };
@@ -87,7 +89,15 @@ export default function Design({ c, ctx }: { c: DesignC | Custom; ctx: RenderCtx
     ready(id: number) {
       setReadyIds((s) => new Set(s).add(id));
       setFrames((f) => f.filter((x) => x.id >= id));
-      if (id === newest()) latest.current.ctx.report(true);
+      // A design that finishes after its stuck warning is working after all: take the warning back.
+      if (id === newest()) latest.current.ctx.report(true, undefined, stuckIds.current.has(id));
+    },
+    navigate(id: number) {
+      const m = "navigated away to another page (the sandbox has no network: keep everything in the design, and link out with genui.send)";
+      setReadyIds((s) => new Set(s).add(id));
+      if (id !== newest()) return;
+      setError(m);
+      latest.current.ctx.report(false, `design: ${m}`);
     },
     error(id: number, m: string) {
       if (id !== newest()) return;
@@ -103,7 +113,10 @@ export default function Design({ c, ctx }: { c: DesignC | Custom; ctx: RenderCtx
     stuck(id: number) {
       if (id !== newest()) return;
       setReadyIds((s) => {
-        if (!s.has(id)) latest.current.ctx.report(false, "design: did not finish loading (an infinite loop or a promise that never settles?)");
+        if (!s.has(id)) {
+          stuckIds.current.add(id);
+          latest.current.ctx.report(false, "design: did not finish loading (an infinite loop or a promise that never settles?)");
+        }
         return s;
       });
     },

@@ -30,7 +30,8 @@ export type RenderCtx = {
   /** Tell the caller what the person did (genui.send from a design). */
   send(name: string, payload: unknown): void;
   /** Tell the server whether this item drew. Components marked selfReport must call it; others are reported on mount. */
-  report(ok: boolean, message?: string): void;
+  /** `retract` lets an ok report clear this item's earlier failure for the same version. */
+  report(ok: boolean, message?: string, retract?: boolean): void;
 };
 export type Renderer = FC<{ c: any; ctx: RenderCtx }> & { selfReport?: boolean };
 

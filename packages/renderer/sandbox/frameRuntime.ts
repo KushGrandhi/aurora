@@ -1,5 +1,5 @@
-// Runs inside a sandboxed design frame (served as /lib/runtime.js). Reads the compiled project from the page,
-// links its modules through blob URLs, mounts it, and bridges data, theme, height, errors and genui.send() to the screen.
+// Runs inside a sandboxed design frame (served as /lib/runtime.js), after the inline bootstrap: links the compiled
+// project's modules through blob URLs, mounts it, and reports height and readiness to the screen.
 type Project = {
   framework: "react" | "html";
   entry: string;
@@ -9,106 +9,14 @@ type Project = {
   assets: Record<string, string>;
   mode: "light" | "dark";
 };
-type Listener<T> = (v: T) => void;
+export {};
+type Boot = { project: Project; post(msg: Record<string, unknown>): void; reportError(message: unknown): void };
 
 const DEP = "__genui__/";
-const SEND_PER_SECOND = 20;
-const MAX_ERRORS = 20;
-
-const post = (msg: Record<string, unknown>) => window.parent.postMessage({ __genui: true, ...msg }, "*");
+// The classic bootstrap (src/design/bootstrap.ts) ran first and set up errors, storage, window.genui and messages.
+const { project, post, reportError } = (window as unknown as { __genuiBoot: Boot }).__genuiBoot;
 // Libraries come from the frame's import map at run time; a variable specifier keeps the bundler from inlining them.
 const load = (spec: string): Promise<any> => import(/* @vite-ignore */ spec);
-
-let errors = 0;
-function reportError(message: unknown) {
-  if (errors++ >= MAX_ERRORS) return;
-  post({ type: "error", message: String(message ?? "unknown error").slice(0, 600) });
-}
-
-/** Opaque-origin frames throw on localStorage; ordinary sites expect it to work, so give them memory-backed storage. */
-function memoryStorage(): Storage {
-  const m = new Map<string, string>();
-  return {
-    get length() { return m.size; },
-    clear: () => m.clear(),
-    getItem: (k) => (m.has(String(k)) ? m.get(String(k))! : null),
-    key: (i) => [...m.keys()][i] ?? null,
-    removeItem: (k) => void m.delete(String(k)),
-    setItem: (k, v) => void m.set(String(k), String(v)),
-  };
-}
-for (const name of ["localStorage", "sessionStorage"] as const) {
-  try {
-    window[name].getItem("genui");
-  } catch {
-    Object.defineProperty(window, name, { value: memoryStorage(), configurable: true });
-  }
-}
-
-addEventListener("error", (e) => reportError(e.error?.message ?? e.message));
-addEventListener("unhandledrejection", (e) => reportError((e.reason as Error)?.message ?? e.reason));
-addEventListener("securitypolicyviolation", (e) => {
-  const what = e.blockedURI && /^https?:/.test(e.blockedURI) ? `blocked network request to ${e.blockedURI}` : `blocked by the sandbox (${e.effectiveDirective}${e.blockedURI ? `: ${e.blockedURI}` : ""})`;
-  reportError(`${what} (the sandbox has no network: pass data with "data", files with "assets")`);
-});
-const consoleError = console.error.bind(console);
-console.error = (...args: unknown[]) => {
-  reportError(args.map((a) => (a instanceof Error ? a.message : typeof a === "string" ? a : JSON.stringify(a))).join(" "));
-  consoleError(...args);
-};
-
-const project: Project = JSON.parse(document.getElementById("genui-project")!.textContent!);
-const dataListeners = new Set<Listener<Record<string, unknown[]>>>();
-const themeListeners = new Set<Listener<"light" | "dark">>();
-let windowStart = 0;
-let sentInWindow = 0;
-let warned = false;
-
-const genui = {
-  data: project.data,
-  theme: project.mode,
-  onData(cb: Listener<Record<string, unknown[]>>) {
-    dataListeners.add(cb);
-    return () => dataListeners.delete(cb);
-  },
-  onTheme(cb: Listener<"light" | "dark">) {
-    themeListeners.add(cb);
-    return () => themeListeners.delete(cb);
-  },
-  asset: (name: string): string | undefined => project.assets[name],
-  send(name: string, payload?: unknown) {
-    const now = Date.now();
-    if (now - windowStart > 1000) {
-      windowStart = now;
-      sentInWindow = 0;
-    }
-    if (++sentInWindow > SEND_PER_SECOND) {
-      if (!warned) console.warn(`genui.send: more than ${SEND_PER_SECOND} events a second; extra events are dropped`);
-      warned = true;
-      return;
-    }
-    try {
-      post({ type: "send", name: String(name), payload: payload ?? null });
-    } catch (e) {
-      reportError(`genui.send("${name}"): payload must be plain data (${(e as Error).message})`);
-    }
-  },
-};
-(window as unknown as { genui: typeof genui }).genui = genui;
-
-addEventListener("message", (e) => {
-  if (e.source !== window.parent) return;
-  const m = e.data as { __genui?: boolean; type?: string; data?: Record<string, unknown[]>; mode?: "light" | "dark" };
-  if (!m?.__genui) return;
-  if (m.type === "data" && m.data) {
-    genui.data = m.data;
-    for (const cb of dataListeners) cb(m.data);
-  } else if (m.type === "theme" && m.mode) {
-    genui.theme = m.mode;
-    document.documentElement.classList.toggle("dark", m.mode === "dark");
-    for (const cb of themeListeners) cb(m.mode);
-  }
-});
 
 function watchHeight() {
   let queued = false;

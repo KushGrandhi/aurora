@@ -31,3 +31,25 @@ test("html projects keep the author's body", () => {
   expect(html).toContain("connect-src 'none'");
   expect(html).not.toContain("<div id=\"root\">");
 });
+
+// The CSP only counts inside the real <head>, before anything that could run or load: genui's head comes first, always.
+const ourHeadFirst = /^<!doctype html>\s*<html[^>]*>\s*<head>\s*<meta charset="utf-8">\s*<meta http-equiv="Content-Security-Policy"/;
+for (const [name, doc] of [
+  ["a <header> fragment", "<header><h1>Hi</h1></header><script>fetch('http://x')</script>"],
+  ["a script before <head>", "<html><script>fetch('http://x')</script><head><title>t</title></head><body>b</body></html>"],
+  ["a commented <head>", "<!-- <head> --><html><head><title>t</title></head><body><script>fetch('http://x')</script></body></html>"],
+  ["a full document", "<!doctype html><html lang='en'><head><title>t</title><script>fetch('http://x')</script></head><body>b</body></html>"],
+] as const) {
+  test(`the CSP leads the document for ${name}`, () => {
+    const html = buildSrcdoc({ ...project, entry: "", order: [], modules: {}, html: doc, css: [] }, { ...opts, framework: "html" });
+    expect(html).toMatch(ourHeadFirst);
+    expect(html.indexOf("Content-Security-Policy")).toBeLessThan(html.indexOf("fetch("));
+  });
+}
+
+test("the classic bootstrap runs before any author script", () => {
+  const html = buildSrcdoc({ ...project, entry: "", order: [], modules: {}, html: "<script>genui.send('x')</script>", css: [] }, { ...opts, framework: "html" });
+  const boot = html.indexOf('<script id="genui-bootstrap">');
+  expect(boot).toBeGreaterThan(html.indexOf('id="genui-project"'));
+  expect(boot).toBeLessThan(html.indexOf("genui.send('x')"));
+});
