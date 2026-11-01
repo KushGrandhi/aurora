@@ -8,8 +8,8 @@ import { homedir } from "node:os";
 import path from "node:path";
 import { WebSocketServer, type WebSocket } from "ws";
 import { z } from "zod";
-import { compose, SpecCache, type DataInput, type LlmProvider } from "@genui/engine";
-import { PatchOpSchema, type ScreenMessage, type ViewEvent } from "@genui/spec";
+import { compose, SpecCache, type DataInput, type LlmProvider } from "@aurora/engine";
+import { PatchOpSchema, type ScreenMessage, type ViewEvent } from "@aurora/spec";
 import { createComposeAdapter } from "./composeAdapter.ts";
 import { galleryView } from "./gallery.ts";
 import { DataRuntime } from "./dataRuntime.ts";
@@ -23,9 +23,9 @@ export type ServerOpts = {
   provider: LlmProvider;
   staticDir?: string;
   openBrowser?: (url: string) => void;
-  viewsDir?: string; // default ~/.genui/views
+  viewsDir?: string; // default ~/.aurora/views
   waitMs?: number; // how long render/patch wait for a screen report (default 1500)
-  secretFile?: string; // media token secret, default ~/.genui/secret
+  secretFile?: string; // media token secret, default ~/.aurora/secret
 };
 
 const REPLAY_VIEWS = 20;
@@ -122,7 +122,7 @@ export async function startServer(opts: ServerOpts) {
   await store.load();
   await store.prune();
   const data = new DataRuntime({ inlineDir: viewsDir });
-  const media = new MediaRegistry({ secretFile: opts.secretFile ?? path.join(homedir(), ".genui", "secret") });
+  const media = new MediaRegistry({ secretFile: opts.secretFile ?? path.join(homedir(), ".aurora", "secret") });
 
   const send = (ws: WebSocket, e: ViewEvent) => {
     if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(e));

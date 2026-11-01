@@ -20,7 +20,7 @@ test("compile resolves relative imports and orders dependencies", async () => {
   expect(at("util.ts")).toBeLessThan(at("components/Hero.tsx"));
   expect(at("components/Hero.tsx")).toBeLessThan(at("App.tsx"));
   expect(p.order.at(-1)).toBe("App.tsx");
-  expect(p.modules["App.tsx"].code).toContain("__genui__/components/Hero.tsx");
+  expect(p.modules["App.tsx"].code).toContain("__aurora__/components/Hero.tsx");
   expect(p.modules["App.tsx"].code).toContain("react/jsx-runtime");
   expect(p.modules["components/Hero.tsx"].code).not.toContain(": P");
   expect(p.modules["components/hero.css"].code).toContain("h1 { color: red }");
@@ -34,7 +34,7 @@ test("compile keeps bare library imports and handles json, svg and index files",
     "lib/index.ts": "export const x = 1;",
   } });
   expect(p.modules["App.tsx"].code).toContain("\"motion/react\"".slice(1, -1));
-  expect(p.modules["App.tsx"].code).toContain("__genui__/lib/index.ts");
+  expect(p.modules["App.tsx"].code).toContain("__aurora__/lib/index.ts");
   expect(p.modules["data.json"].code).toContain("export default");
 });
 

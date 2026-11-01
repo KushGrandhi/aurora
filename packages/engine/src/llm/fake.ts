@@ -2,7 +2,7 @@ import type { LlmProvider, LlmRequest } from "./types.ts";
 
 export type FakeOpts = { chunkSize?: number; delayMs?: number; repair?: object; repairDelayMs?: number; throwError?: string; truncateAt?: number };
 
-/** Deterministic provider for tests and GENUI_FAKE_PROVIDER: streams a canned document in chunks. */
+/** Deterministic provider for tests and AURORA_FAKE_PROVIDER: streams a canned document in chunks. */
 export function createFakeProvider(doc: object, opts: FakeOpts = {}): LlmProvider & { calls: number } {
   const p = {
     name: "fake",

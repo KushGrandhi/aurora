@@ -1,4 +1,4 @@
-import type { ScreenMessage, ViewEvent } from "@genui/spec";
+import type { ScreenMessage, ViewEvent } from "@aurora/spec";
 
 export type Conn = { send(m: ScreenMessage): void; close(): void };
 

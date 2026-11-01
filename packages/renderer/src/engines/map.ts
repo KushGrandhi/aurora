@@ -2,7 +2,7 @@
 import * as maplibregl from "maplibre-gl";
 import type { GeoJSONSource, LngLatBoundsLike, MapLayerMouseEvent, StyleSpecification } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url"; // served by genui like every other asset
+import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url"; // served by aurora like every other asset
 import type { Feature, FeatureCollection, Geometry } from "geojson";
 import { countryFeatures } from "../countries.ts";
 import type { Theme } from "../registry.tsx";

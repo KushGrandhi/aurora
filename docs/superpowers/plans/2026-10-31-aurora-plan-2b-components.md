@@ -1,23 +1,23 @@
-# genui Plan 2b — Components Implementation Plan
+# aurora Plan 2b — Components Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** The calling LLM can show any common kind of picture on the genui screen: Mermaid diagrams, good-looking architecture diagrams, network graphs, maps, timelines, cards, images and video, code, callouts and steps. It also gets KPI sparklines and view-level filters that re-run queries. Every component is checked, animated and reported back like the Plan 2a ones.
+**Goal:** The calling LLM can show any common kind of picture on the aurora screen: Mermaid diagrams, good-looking architecture diagrams, network graphs, maps, timelines, cards, images and video, code, callouts and steps. It also gets KPI sparklines and view-level filters that re-run queries. Every component is checked, animated and reported back like the Plan 2a ones.
 
 **Architecture:** Each component is one spec-side `ComponentDef` (schema, doc, data binding, semantic `check`, `media` refs) plus one renderer module. Heavy engines (Mermaid, ELK, Cytoscape, MapLibre, Shiki) sit behind small adapter files in `renderer/src/engines/`. They are lazy-loaded, so a view only downloads the engines it uses. The server gains a media registry, which serves only files that accepted views reference, at token URLs. It also gains view params: filter values held per view, which re-run the queries that reference them.
 
 **Tech Stack:** Plan 2a stack plus `mermaid` 12.x, `elkjs` 0.12.x, `cytoscape` 3.34.x, `maplibre-gl` 6.x, `world-atlas` 2.x + `topojson-client` 3.x, `i18n-iso-countries` 7.x, `shiki` 4.x, `lucide-react` 1.x.
 
-**Spec:** `docs/specs/2026-10-31-genui-canvas-design.md` (§5.1 catalog, §5 adapters, §6 motion for diagrams, §8 media, §12 testing, §5.1 filters/params). The Plan 2a foundation is merged on `plan-1-core`.
+**Spec:** `docs/specs/2026-10-31-aurora-canvas-design.md` (§5.1 catalog, §5 adapters, §6 motion for diagrams, §8 media, §12 testing, §5.1 filters/params). The Plan 2a foundation is merged on `plan-1-core`.
 
 **Scope:** `diagram`, `architecture`, `graph`, `map`, `timeline`, `cards`, `media` (+ media tokens), `code`, `callout`, `steps`, filters/params, KPI sparklines, the component gallery and the generated skill's guidance for them. **Not here (Plan 2c):** `design`/`custom` sandbox, side-by-side variants, viewport switcher.
 
 ## Global Constraints
 
-- The calling LLM composes; genui validates, renders, animates and reports problems (D1).
+- The calling LLM composes; aurora validates, renders, animates and reports problems (D1).
 - Engines are swappable: each engine is used only through its adapter in `packages/renderer/src/engines/`; no component imports another component's internals (D5).
 - Engines: Mermaid for diagrams; ELK layout + custom SVG/React rendering for `architecture`; MapLibre with bundled Natural Earth boundaries for `map`, with online OSM raster tiles as an optional layer (§5.1).
-- No CDN: every library and asset is bundled by Vite or served by genui (D8 spirit; the screen works offline except optional map tiles).
+- No CDN: every library and asset is bundled by Vite or served by aurora (D8 spirit; the screen works offline except optional map tiles).
 - Engines load lazily: the main entry chunk must not contain Mermaid, ELK, Cytoscape, MapLibre or Shiki.
 - Media is displayed, never generated (D6). Local files are served **only** when an accepted view references them, at unguessable token URLs; nothing else is readable (§8, §10).
 - No-typed-numbers applies only to data-bound components (those whose `dataBound()` is non-empty): their figures come from query results and their titles/labels follow the Plan 1 digit rule. Authored content is free (§4.4).
@@ -55,7 +55,7 @@ packages/server/src/
   dataRuntime.ts              run(..., params?)
   gallery.ts                  galleryView()
   assets/gallery/             sample.svg
-  server.ts / cli.ts          /media, /api/gallery, `genui gallery`
+  server.ts / cli.ts          /media, /api/gallery, `aurora gallery`
   skillGuide.md               + patterns for diagrams, architecture, filters, media
 packages/renderer/src/
   registry.tsx                lazy renderers + Suspense, ctx.media
@@ -157,7 +157,7 @@ packages/renderer/src/
 **Interfaces:**
 - Consumes: `ComponentDef.media`, `ParamSchema`, `paramDefaults`, `validateParamValue`, `sqlVars`
 - Produces:
-  - `class MediaRegistry { constructor(opts: { secretFile: string /* ~/.genui/secret, created 0600 with 32 random bytes */ }) }`
+  - `class MediaRegistry { constructor(opts: { secretFile: string /* ~/.aurora/secret, created 0600 with 32 random bytes */ }) }`
     - `register(absPath): string | null`. It returns `/media/<token>` when the path is absolute, exists, is a regular file (resolved through `realpath`) and has one of these extensions: png, jpg, jpeg, gif, webp, avif, svg, mp4, webm, mov, m4v, ogg. Otherwise it returns null. The token is `sha256(secret + realpath)`, hex, first 32 characters, so it is stable across restarts.
     - `serve(token, req, res): Promise<boolean>`. It serves only registered tokens and re-checks `realpath` against the registered one. It honours `Range` (206 with a correct `Content-Range`), and sets `X-Content-Type-Options: nosniff`, plus `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; sandbox` for SVG.
   - Intake:
@@ -299,7 +299,7 @@ packages/renderer/src/
 **Interfaces:**
 - Produces:
   - `DiagramEngine = { render(id: string, source: string, mode: "light" | "dark"): Promise<{ svg: string } | { error: string }> }`, exported as `mermaidEngine`.
-    - It lazy-imports `mermaid` and initializes once per mode with `startOnLoad: false`, `securityLevel: "strict"`, `theme: "base"` and `themeVariables` from the genui tokens (surface, ink, hair, accent, font `Inter, system-ui`).
+    - It lazy-imports `mermaid` and initializes once per mode with `startOnLoad: false`, `securityLevel: "strict"`, `theme: "base"` and `themeVariables` from the aurora tokens (surface, ink, hair, accent, font `Inter, system-ui`).
     - Parse errors return `{ error }` with Mermaid's first message line.
   - `Diagram`:
     - It renders the SVG inline with `max-width: 100%` and pan/zoom off, and adds the optional caption.
@@ -424,7 +424,7 @@ packages/renderer/src/
 - Consumes: every `ComponentDef.doc` (`example`, `fixture`)
 - Produces:
   - `galleryView(): View` with id `gallery`, title "Component gallery", one grid section per registered component (title = type, the item's span 12 for wide components and 6 otherwise). Every example and its fixture's datasets/queries are merged. `media`, plus cards' `image`, have their src replaced by the absolute path of `assets/gallery/sample.svg`.
-  - `POST /api/gallery` → renders it (source `caller`) and returns the `IntakeResult`; `genui gallery` calls it.
+  - `POST /api/gallery` → renders it (source `caller`) and returns the `IntakeResult`; `aurora gallery` calls it.
   - The skill guide gains a "Pick the right component" section:
     - analysis → kpi/chart/table plus filters
     - explaining a project → architecture for the system, diagram for flows and sequences, steps for processes, callout for decisions
@@ -441,7 +441,7 @@ packages/renderer/src/
   - Take full-page screenshots to `docs/screenshots/gallery-light.png` and `gallery-dark.png`.
   - Open both screenshots and look at them: no overlapping labels, nothing clipped, dark mode is legible. Fix what you see before committing.
   → PASS.
-- [ ] **Step 5:** Run `npm run genui -- skill` to regenerate the installed skill. **Commit** `feat: component gallery and skill guidance`.
+- [ ] **Step 5:** Run `npm run aurora -- skill` to regenerate the installed skill. **Commit** `feat: component gallery and skill guidance`.
 
 ---
 
@@ -451,9 +451,9 @@ packages/renderer/src/
 - Modify: `README.md` (component list, filters, media, gallery)
 - Create: `docs/screenshots/2b-*.png`
 
-- [ ] **Step 1:** Restart the shared server on the new build (`npx vite build`, then `genui serve`).
-- [ ] **Step 2:** In a scratch folder, run `claude -p "Using genui, explain the genui project in /Users/kush/Documents/projects/genui to a colleague: an architecture diagram of its packages and how a request flows through them, a sequence diagram of an MCP render call, the build steps, and one key code excerpt. Build it part by part." --allowedTools "mcp__genui__*,Read,Glob,Grep"`. Expected: a view with architecture, diagram, steps and code items; `status` has no errors or unverified items. Take a screenshot.
-- [ ] **Step 3:** Run `claude -p "Using genui, analyse <scratch>/projects.csv with a language filter, KPIs with sparklines over last_modified, and a timeline of last activity" --allowedTools "mcp__genui__*"`. Then change the filter on screen and confirm the panels update. Take a screenshot.
+- [ ] **Step 1:** Restart the shared server on the new build (`npx vite build`, then `aurora serve`).
+- [ ] **Step 2:** In a scratch folder, run `claude -p "Using aurora, explain the aurora project in /Users/kush/Documents/projects/aurora to a colleague: an architecture diagram of its packages and how a request flows through them, a sequence diagram of an MCP render call, the build steps, and one key code excerpt. Build it part by part." --allowedTools "mcp__aurora__*,Read,Glob,Grep"`. Expected: a view with architecture, diagram, steps and code items; `status` has no errors or unverified items. Take a screenshot.
+- [ ] **Step 3:** Run `claude -p "Using aurora, analyse <scratch>/projects.csv with a language filter, KPIs with sparklines over last_modified, and a timeline of last activity" --allowedTools "mcp__aurora__*"`. Then change the filter on screen and confirm the panels update. Take a screenshot.
 - [ ] **Step 4:** Full suite: `npx vitest run` and `npx playwright test` green.
 - [ ] **Step 5: Commit** `docs: plan 2b components usage and screenshots`.
 

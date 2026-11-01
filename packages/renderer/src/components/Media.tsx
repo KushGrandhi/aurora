@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
-import type { Media as MediaC } from "@genui/spec";
+import type { Media as MediaC } from "@aurora/spec";
 import { SPRING, STAGGER_S } from "../motion.tsx";
 import type { RenderCtx } from "../registry.tsx";
 

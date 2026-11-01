@@ -1,25 +1,25 @@
-# genui Canvas — Design (Plan 2: rich canvas + design canvas)
+# aurora Canvas — Design (Plan 2: rich canvas + design canvas)
 
-Status: draft for approval · 2026-10-31 · builds on `docs/specs/2026-10-31-genui-design.md` (Plan 1, implemented on branch `plan-1-core`)
+Status: draft for approval · 2026-10-31 · builds on `docs/specs/2026-10-31-aurora-design.md` (Plan 1, implemented on branch `plan-1-core`)
 
 ## 1. Intent and the why
 
-genui becomes a **universal surface**: whatever an LLM needs to show, it appears on screen as the right interface, immediately, and can be refined in place. Kush's three scenarios:
+aurora becomes a **universal surface**: whatever an LLM needs to show, it appears on screen as the right interface, immediately, and can be refined in place. Kush's three scenarios:
 
 1. **Analysis.** Asking an LLM for an analysis today yields a static artifact or a SQL table. Wanted: a live, rich, explorable view.
 2. **Explaining a project to a colleague.** After discussing a project with Claude, Kush has to ask for a flow diagram and then draw it himself because there is no good surface. Wanted: the flow/architecture diagram generated from what was discussed, on a screen he can show.
 3. **Complex designs and problems.** Building a design or website takes many slow iterations. Wanted: describe it, see it rendered, refine it in place — pictures, video, flow and architecture diagrams, websites, anything.
 
-**genui is a renderer plus a skill.** The calling LLM — whichever one, through a router or a subscription — composes; genui validates, renders, animates, and reports problems back. genui never needs its own model to be useful.
+**aurora is a renderer plus a skill.** The calling LLM — whichever one, through a router or a subscription — composes; aurora validates, renders, animates, and reports problems back. aurora never needs its own model to be useful.
 
 ## 2. Decisions (made with Kush)
 
 | # | Decision |
 |---|---|
-| D1 | **The calling LLM composes.** genui is a tool any LLM (via a router or a subscription) hooks into. genui's built-in composer (Plan 1) stays only as a fallback for callers without an LLM. |
+| D1 | **The calling LLM composes.** aurora is a tool any LLM (via a router or a subscription) hooks into. aurora's built-in composer (Plan 1) stays only as a fallback for callers without an LLM. |
 | D2 | **Hook-in surface: skill + MCP tools**, with HTTP underneath. The skill teaches the spec so any harness can use it. |
 | D3 | **Edits are patches by component id**, applied in place with natural, Apple-like animation. |
-| D4 | **The LLM authors content** (diagrams, prose, cards, designs). Two delivery paradigms, both live: **direct calls** (tool/HTTP) and **file streaming** (the LLM writes/appends a view file that genui watches). Components show up the moment they arrive. |
+| D4 | **The LLM authors content** (diagrams, prose, cards, designs). Two delivery paradigms, both live: **direct calls** (tool/HTTP) and **file streaming** (the LLM writes/appends a view file that aurora watches). Components show up the moment they arrive. |
 | D5 | **Engines are swappable.** Every engine/component/UI element sits behind a small interface so it can be replaced when something better comes along. Mermaid for breadth of diagram types; a custom architecture/graph component for diagrams that must look great. |
 | D6 | **Media is displayed, not generated.** Images and video come from files/URLs the caller provides. |
 | D7 | Also in scope: maps, network graphs, timelines, cards, tabs and sections, sparklines in tiles, filters. |
@@ -37,16 +37,16 @@ genui becomes a **universal surface**: whatever an LLM needs to show, it appears
 - Usable from any LLM harness with only a skill + tools (Claude Code, Codex, a local agent, a backend-connected LLM).
 
 **Non-goals (this plan)**
-- "Frontend for a backend SaaS" (actions, forms, API binding, auth) — Kush: an LLM connected to the backend plus genui covers it.
+- "Frontend for a backend SaaS" (actions, forms, API binding, auth) — Kush: an LLM connected to the backend plus aurora covers it.
 - Sharing, hosting, multi-user, server deployment.
 - Generating images/video.
-- Making genui's own LLM composer smarter.
+- Making aurora's own LLM composer smarter.
 
 **Anti-goals**
 - **Numbers typed by an LLM in data panels.** The Plan 1 rule stays for anything bound to a dataset: numbers come from queries. (Authored content — diagrams, prose, designs — is the LLM's own and is exempt.)
 - **Lock-in to one engine.** No component reaches into another's internals; replacing Mermaid or ELK touches one adapter.
 - **Janky or gratuitous motion.** Layout jumps, flashes of unstyled content, animations that delay reading.
-- **Unsafe execution.** LLM-written code never runs with access to genui, the machine, or the network.
+- **Unsafe execution.** LLM-written code never runs with access to aurora, the machine, or the network.
 - **Silent failure.** If something the caller sent can't render, the caller finds out with a reason it can act on.
 
 ## 4. Architecture
@@ -56,9 +56,9 @@ genui becomes a **universal surface**: whatever an LLM needs to show, it appears
    │ skill teaches the spec
    ├── MCP tools: render / patch / status / profile / version
    ├── HTTP: same operations
-   └── file streaming: writes/appends  <workspace>/.genui/views/<name>.ndjson
+   └── file streaming: writes/appends  <workspace>/.aurora/views/<name>.ndjson
                 │
- ┌──────────────▼───────────── genui server ─────────────────────────────┐
+ ┌──────────────▼───────────── aurora server ─────────────────────────────┐
  │ op intake → validate (component registry schemas, data rules)         │
  │          → view store (current state + version history per view)      │
  │          → data runtime (Plan 1: DuckDB ingest/profile/queries)        │
@@ -106,7 +106,7 @@ A patch is an ordered list of ops applied atomically (all validate or none apply
 
 A full `render` is just "replace the whole view". Each accepted patch creates a new **version** of the view (history kept, revertible).
 
-**Persistence** (my call): views and their version history are saved as plain JSON under `~/.genui/views/<id>/`. Inline data is saved beside them as NDJSON. Old views stay **fully editable** after a restart: the data runtime becomes **per view**, opening that view's DuckDB on demand (re-loading datasets from their paths) and closing it after 10 idle minutes. If a dataset path has disappeared, data-bound items report a problem and authored items still render. Retention: the last 200 views or 30 days, whichever keeps more.
+**Persistence** (my call): views and their version history are saved as plain JSON under `~/.aurora/views/<id>/`. Inline data is saved beside them as NDJSON. Old views stay **fully editable** after a restart: the data runtime becomes **per view**, opening that view's DuckDB on demand (re-loading datasets from their paths) and closing it after 10 idle minutes. If a dataset path has disappeared, data-bound items report a problem and authored items still render. Retention: the last 200 views or 30 days, whichever keeps more.
 
 ### 4.3 Delivery paradigms (D4)
 
@@ -117,10 +117,10 @@ A full `render` is just "replace the whole view". Each accepted patch creates a 
    - `status({viewId})` → current version plus any render-time problems reported by the screen.
    - `version({viewId, to})` → revert/compare.
    A caller wanting a live build-up sends `render` with the frame (title, sections) and then a `patch` per component as it writes them; each appears with its entrance animation.
-2. **File streaming** — the caller appends JSON lines to `<workspace>/.genui/views/<name>.ndjson`: the first line is a view (or a Plan 1 spec), later lines are patches. genui watches the directory, applies lines as they land (partial lines wait), and writes problems to `<name>.problems.json` beside it so a file-only harness can read them. Any harness that can write files can stream.
+2. **File streaming** — the caller appends JSON lines to `<workspace>/.aurora/views/<name>.ndjson`: the first line is a view (or a Plan 1 spec), later lines are patches. aurora watches the directory, applies lines as they land (partial lines wait), and writes problems to `<name>.problems.json` beside it so a file-only harness can read them. Any harness that can write files can stream.
 3. Both paths feed the **same op intake**, so validation, versions and animation are identical.
 
-**Server and folders** (my call): one shared local server (port 4317, as in Plan 1). The MCP entry point is a small stdio command, `genui mcp`, that each harness spawns; it starts the shared server if it isn't running, forwards calls to it, and on connect **registers its working directory's `.genui/views/` for watching**. `genui watch <dir>` registers a folder by hand. Because watching is tied to an MCP connection or an explicit command, writing view files in a folder genui doesn't know about is reported by the skill as a mistake ("connect genui or run `genui watch`").
+**Server and folders** (my call): one shared local server (port 4317, as in Plan 1). The MCP entry point is a small stdio command, `aurora mcp`, that each harness spawns; it starts the shared server if it isn't running, forwards calls to it, and on connect **registers its working directory's `.aurora/views/` for watching**. `aurora watch <dir>` registers a folder by hand. Because watching is tied to an MCP connection or an explicit command, writing view files in a folder aurora doesn't know about is reported by the skill as a mistake ("connect aurora or run `aurora watch`").
 
 ### 4.4 Validation and feedback to the caller
 
@@ -147,7 +147,7 @@ interface ComponentDef<C> {
 
 Engines (Mermaid, ELK, MapLibre, Vega-Lite, the sandbox runtime, the code highlighter) sit behind **adapter interfaces** owned by the component that uses them, e.g. `DiagramEngine.render(source, theme) → {svg} | {error}`. Swapping an engine replaces one adapter file.
 
-The skill's component reference is **generated from the registry** (`genui skill` writes `SKILL.md`), so adding a component updates what LLMs know.
+The skill's component reference is **generated from the registry** (`aurora skill` writes `SKILL.md`), so adding a component updates what LLMs know.
 
 ### 5.1 Catalog
 
@@ -157,7 +157,7 @@ New:
 
 | type | what | engine (swappable) |
 |---|---|---|
-| `diagram` | Mermaid source: flowchart, sequence, state, class, ER, gantt, mindmap, timeline, journey, etc. Themed to genui tokens. | Mermaid |
+| `diagram` | Mermaid source: flowchart, sequence, state, class, ER, gantt, mindmap, timeline, journey, etc. Themed to aurora tokens. | Mermaid |
 | `architecture` | nodes (label, kind/icon, group), edges (label, style, animated flow), groups/boundaries; auto-layout; for system and project diagrams that must look great | ELK layout + custom SVG/React rendering; icons from a bundled open icon set |
 | `graph` | larger network graphs (hundreds–thousands of nodes) with pan/zoom, from data or authored | Cytoscape.js or Sigma.js |
 | `map` | points, routes, choropleth (bundled Natural Earth boundaries), from data | MapLibre + free OSM-based style (online tiles) |
@@ -190,9 +190,9 @@ Containers: `section` (grid or tabs), plus `tabs` within a grid item if needed.
 
 ## 7. Design canvas (D8)
 
-- Component `design`: `{ framework: "html" | "react", files: { [path: string]: string }, entry?: string, viewport?: "desktop" | "tablet" | "phone", data?: string[] /* query ids injected as window.genui.data */ }`.
+- Component `design`: `{ framework: "html" | "react", files: { [path: string]: string }, entry?: string, viewport?: "desktop" | "tablet" | "phone", data?: string[] /* query ids injected as window.aurora.data */ }`.
 - **Projects, not snippets** (my call): any number of files with relative imports between them (a small in-browser module resolver over `files`), multiple pages via in-frame hash routing, local images/video through media token URLs (allowed by the frame's CSP), and bundled open-license fonts (e.g. Inter) served from `/lib/fonts`.
-- Runs in a **sandboxed iframe** (`sandbox="allow-scripts"`, no same-origin, CSP blocks all network except genui's own `/lib/*` route). Libraries served locally: React, ReactDOM, Tailwind (browser build), Sucrase (JSX transpile), plus an approved small set (e.g. Motion, an icon set). No CDN; works offline.
+- Runs in a **sandboxed iframe** (`sandbox="allow-scripts"`, no same-origin, CSP blocks all network except aurora's own `/lib/*` route). Libraries served locally: React, ReactDOM, Tailwind (browser build), Sucrase (JSX transpile), plus an approved small set (e.g. Motion, an icon set). No CDN; works offline.
 - **Iteration:** patches can replace a file or apply search/replace edits to it (cheap for small changes). Every accepted change is a new version; the screen shows a version strip with instant switching and a side-by-side **variants** mode (up to 3 versions or caller-sent alternatives). Picking one on screen makes it current (D11).
 - **Viewport switcher:** desktop / tablet / phone frames.
 - **Errors:** runtime and console errors from inside the frame are reported as render-time problems for the caller (§4.4).
@@ -200,20 +200,20 @@ Containers: `section` (grid or tabs), plus `tabs` within a grid item if needed.
 
 ## 8. Media and files
 
-- `media` items reference a path or URL. genui serves local files **only** when they are referenced by an accepted view: intake registers each path and serves it at an unguessable token URL. No arbitrary file reads (lesson from the Plan 1 review's cross-site finding).
+- `media` items reference a path or URL. aurora serves local files **only** when they are referenced by an accepted view: intake registers each path and serves it at an unguessable token URL. No arbitrary file reads (lesson from the Plan 1 review's cross-site finding).
 - Supported: common image and video formats the browser plays natively.
 
 ## 9. The skill
 
-- `genui skill` generates `SKILL.md` from the registry: when to use genui, the two delivery paradigms, the view/patch format, each component's summary + example + guidance, how to read problems and fix them, and patterns (build up a view part by part; refine with patches; diagrams for explanations; design canvas for UI).
-- Installed for Claude Code at `~/.claude/skills/genui/` (replaces the Plan 1 bridge skill). The same markdown is usable by other harnesses (e.g. referenced from an `AGENTS.md`).
+- `aurora skill` generates `SKILL.md` from the registry: when to use aurora, the two delivery paradigms, the view/patch format, each component's summary + example + guidance, how to read problems and fix them, and patterns (build up a view part by part; refine with patches; diagrams for explanations; design canvas for UI).
+- Installed for Claude Code at `~/.claude/skills/aurora/` (replaces the Plan 1 bridge skill). The same markdown is usable by other harnesses (e.g. referenced from an `AGENTS.md`).
 
 ## 10. Security
 
 - Plan 1 protections stay (local-only Origin/Host checks, JSON content-type, SQL sandbox).
 - Sandboxed frames for `design`/`custom`; no network; no access to the parent page.
 - Media served only by registered tokens.
-- File streaming only watches `<workspace>/.genui/views/` directories genui was started for (configurable list).
+- File streaming only watches `<workspace>/.aurora/views/` directories aurora was started for (configurable list).
 
 ## 11. Not blocking server hosting (D9)
 
@@ -245,4 +245,4 @@ Containers: `section` (grid or tabs), plus `tabs` within a grid item if needed.
 
 ## 14. Left to the builder
 
-Exact library choices where a row says "or" (Cytoscape vs Sigma, Shiki vs alternative), icon set choice (open license), spring constants, gallery page design, file-watch implementation, MCP SDK usage details, version storage format (plain JSON on disk under `~/.genui/views/`), and the exact wording/structure of the generated skill.
+Exact library choices where a row says "or" (Cytoscape vs Sigma, Shiki vs alternative), icon set choice (open license), spring constants, gallery page design, file-watch implementation, MCP SDK usage details, version storage format (plain JSON on disk under `~/.aurora/views/`), and the exact wording/structure of the generated skill.

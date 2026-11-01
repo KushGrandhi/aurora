@@ -1,28 +1,28 @@
-# genui Plan 1 — Core Pipeline Implementation Plan
+# aurora Plan 1 — Core Pipeline Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** `genui render sales.csv --intent "revenue trends"` shows a default view in a browser tab within ~0.4 s, then streams in an LLM-composed view (KPIs, Vega-Lite charts, tables, text) built from a local Ollama model, with every number coming from DuckDB.
+**Goal:** `aurora render sales.csv --intent "revenue trends"` shows a default view in a browser tab within ~0.4 s, then streams in an LLM-composed view (KPIs, Vega-Lite charts, tables, text) built from a local Ollama model, with every number coming from DuckDB.
 
-**Architecture:** npm-workspace TypeScript monorepo. `@genui/spec` holds the Zod schemas and shared types. `@genui/engine` ingests files into an in-process DuckDB, profiles them, guards and runs SQL, builds a deterministic default spec, streams a "parts" document from the LLM, validates each part, and emits render events. `@genui/server` exposes HTTP + WebSocket and the CLI. `@genui/renderer` is a React/Vite "screen" that draws events as they arrive.
+**Architecture:** npm-workspace TypeScript monorepo. `@aurora/spec` holds the Zod schemas and shared types. `@aurora/engine` ingests files into an in-process DuckDB, profiles them, guards and runs SQL, builds a deterministic default spec, streams a "parts" document from the LLM, validates each part, and emits render events. `@aurora/server` exposes HTTP + WebSocket and the CLI. `@aurora/renderer` is a React/Vite "screen" that draws events as they arrive.
 
 **Tech Stack:** Node 24, TypeScript, npm workspaces, tsx (runs TS directly; no lib build step), Zod 4 (`z.toJSONSchema`), `@duckdb/node-api`, `ws`, React 18 + Vite, vega-embed, @tanstack/react-table + @tanstack/react-virtual, marked + DOMPurify, Vitest, Playwright.
 
-**Spec:** `docs/specs/2026-10-31-genui-design.md`
+**Spec:** `docs/specs/2026-10-31-aurora-design.md`
 
-**Scope of this plan:** milestones 1–3 of spec §15 (data path + default view, LLM compose with repair, streaming + layout cache), components `kpi`, `chart`, `table`, `text`, `grid`, and an HTTP `render` endpoint + CLI. **Later plans:** Plan 2 = `map`, `graph`, `timeline`, `cards`, `json`, `tabs`/`stack`, params (§6, §11). Plan 3 = MCP server, `refine`, `save` (§10, §12). Plan 4 = Anthropic adapter, `genui eval`, default-model choice (§8, §13). Plan 5 = `custom` sandbox (§6).
+**Scope of this plan:** milestones 1–3 of spec §15 (data path + default view, LLM compose with repair, streaming + layout cache), components `kpi`, `chart`, `table`, `text`, `grid`, and an HTTP `render` endpoint + CLI. **Later plans:** Plan 2 = `map`, `graph`, `timeline`, `cards`, `json`, `tabs`/`stack`, params (§6, §11). Plan 3 = MCP server, `refine`, `save` (§10, §12). Plan 4 = Anthropic adapter, `aurora eval`, default-model choice (§8, §13). Plan 5 = `custom` sandbox (§6).
 
 ## Global Constraints
 
 - No number shown to the user is typed by the LLM: prose uses `{queryId.field|format}` placeholders; formats `number`, `integer`, `percent`, `currency`, `date`, `compact`, `delta`.
 - The LLM sees only the profile (schema, types, cardinality, min/max, nulls, 5 sample rows), never full data.
-- Generated SQL may only `SELECT` from genui-created views; `enable_external_access=false` and `lock_configuration=true` after views are created.
+- Generated SQL may only `SELECT` from aurora-created views; `enable_external_access=false` and `lock_configuration=true` after views are created.
 - Query results capped at 10,000 rows to the browser (`truncated: true` beyond).
 - Wide data (>40 columns): profile compressed to names + types + cardinality, samples truncated.
 - Vega-Lite `data`, `datasets`, `data.url`, numeric `datum` literals are stripped; data is injected by the renderer.
 - Static prompt prefix first (instructions + catalog + examples) so Ollama reuses its KV cache; `keep_alive: "30m"`.
 - Default provider Ollama at `http://127.0.0.1:11434`, default model `qwen3:8b` (installed on Kush's machine), `think: false`.
-- Default port `4317`; config at `~/.genui/config.json`, env overrides `GENUI_MODEL`, `GENUI_OLLAMA_URL`, `GENUI_PORT`.
+- Default port `4317`; config at `~/.aurora/config.json`, env overrides `AURORA_MODEL`, `AURORA_OLLAMA_URL`, `AURORA_PORT`.
 - Free/open-source dependencies only.
 - Latency targets (log, don't fail tests on them except where stated): default view < 400 ms, first LLM component < 3 s local, cache hit < 150 ms, 1M-row Parquet profile < 300 ms.
 
@@ -66,12 +66,12 @@ packages/engine/test/fixtures/   sales.csv, empty.csv, header_only.csv, awkward.
 packages/server/src/
   config.ts                      loadConfig()
   server.ts                      startServer()
-  cli.ts                         `genui serve` / `genui render`
+  cli.ts                         `aurora serve` / `aurora render`
 packages/renderer/
   index.html, vite.config.ts
   src/main.tsx, App.tsx, store.ts, ws.ts
   src/components/{Grid,Kpi,Chart,Table,Text}.tsx
-  src/format.ts                  re-export of @genui/spec placeholders
+  src/format.ts                  re-export of @aurora/spec placeholders
   e2e/smoke.spec.ts
 ```
 
@@ -84,7 +84,7 @@ packages/renderer/
 - Test: `packages/spec/test/spec.test.ts`, `packages/spec/test/placeholders.test.ts`
 
 **Interfaces:**
-- Produces (all exported from `@genui/spec`, package `exports` → `./src/index.ts`):
+- Produces (all exported from `@aurora/spec`, package `exports` → `./src/index.ts`):
   - `QuerySchema = { sql: string }`; `Query`
   - Components (discriminated on `type`):
     - `{ type:"kpi", query, field, label, format?: Format, delta?: { query, field } }`
@@ -105,7 +105,7 @@ packages/renderer/
   - `fillPlaceholders(text, results: Record<string, QueryResult|undefined>): string` — uses first row; missing → `…`
   - `formatValue(v: unknown, format?: Format): string` — `Intl.NumberFormat("en-US")`; `currency` USD; `percent` multiplies by 100 (input is a ratio); `compact` notation compact; `delta` signed percent with `+`/`−`; `date` → `toLocaleDateString("en-US")`.
 
-- [ ] **Step 1: Scaffold.** Root `package.json` with `"private": true`, `"workspaces": ["packages/*"]`, `"type":"module"`, scripts `test: vitest run`, devDeps `typescript`, `vitest`, `tsx`. `.gitignore`: `node_modules`, `dist`, `test-results`, `.genui`. Run `npm install` → exits 0.
+- [ ] **Step 1: Scaffold.** Root `package.json` with `"private": true`, `"workspaces": ["packages/*"]`, `"type":"module"`, scripts `test: vitest run`, devDeps `typescript`, `vitest`, `tsx`. `.gitignore`: `node_modules`, `dist`, `test-results`, `.aurora`. Run `npm install` → exits 0.
 - [ ] **Step 2: Write failing tests.**
 
 ```ts
@@ -307,7 +307,7 @@ Algorithm (not determined by the signature): a character scanner tracking `inStr
 - Produces:
   - `class SpecCache { constructor(max = 200); key(fingerprint: string, intent?: string): string; get(k): Spec | undefined; set(k, spec): void }` — LRU on `Map`; intent normalized (lowercase, trim, collapse whitespace).
   - `compose(opts: { renderId: string; input: DataInput | Record<string, DataInput>; intent?: string; provider: LlmProvider; cache: SpecCache; emit(e: RenderEvent): void; signal?: AbortSignal }): Promise<void>`
-  - `createFakeProvider(doc: object, opts?: { chunkSize?: number; delayMs?: number; repair?: object; throwError?: string }): LlmProvider` in `llm/fake.ts` — streams `JSON.stringify(doc)` in chunks; returns `repair` for repair prompts. Used by tests, the server tests, and `GENUI_FAKE_PROVIDER=1`.
+  - `createFakeProvider(doc: object, opts?: { chunkSize?: number; delayMs?: number; repair?: object; throwError?: string }): LlmProvider` in `llm/fake.ts` — streams `JSON.stringify(doc)` in chunks; returns `repair` for repair prompts. Used by tests, the server tests, and `AURORA_FAKE_PROVIDER=1`.
   - `index.ts` exports `compose`, `SpecCache`, `createOllamaProvider`, `createFakeProvider`, `LlmProvider`, `DataInput`.
 
 Flow (order matters for latency):
@@ -331,25 +331,25 @@ Default-to-composed swap is the renderer's job: the first composed `item` clears
 ### Task 10: Server + CLI
 
 **Files:**
-- Create: `packages/server/{package.json,tsconfig.json}`, `packages/server/src/{config,server,cli}.ts`; root script `"genui": "tsx packages/server/src/cli.ts"` and `bin` entry
+- Create: `packages/server/{package.json,tsconfig.json}`, `packages/server/src/{config,server,cli}.ts`; root script `"aurora": "tsx packages/server/src/cli.ts"` and `bin` entry
 - Test: `packages/server/test/server.test.ts`
 
 **Interfaces:**
 - Consumes: `compose`, `SpecCache`, `createOllamaProvider`, `RenderEvent`
 - Produces:
-  - `loadConfig(env = process.env): { port: number; provider: "ollama"; model: string; ollamaUrl: string }` — defaults from Global Constraints, merged with `~/.genui/config.json` then env.
+  - `loadConfig(env = process.env): { port: number; provider: "ollama"; model: string; ollamaUrl: string }` — defaults from Global Constraints, merged with `~/.aurora/config.json` then env.
   - `startServer(opts: { port: number; provider: LlmProvider; staticDir?: string; openBrowser?: (url: string) => void }): Promise<{ url: string; close(): Promise<void> }>`
     - `POST /api/render` body `{ data: DataInput | Record<string, DataInput>; intent?: string }` → `202 { renderId, url: "<base>/#<renderId>" }`; starts `compose` in the background. Relative paths resolved against the CLI's cwd, which the CLI sends as absolute paths.
     - `GET /ws` WebSocket: server broadcasts every `RenderEvent`; keeps the last 20 renders' events in memory and replays them to newly connected clients.
     - If no WebSocket client is connected when a render starts, call `openBrowser(url)` (default: `child_process.spawn("open", [url])`).
     - Serves `staticDir` (renderer build) at `/`.
-  - CLI: `genui serve` (starts server with config); `genui render <input...> [--intent "..."]` where each input is `path` or `name=path` → POST to running server (start it in-process if `GET /api/health` fails), print the URL.
+  - CLI: `aurora serve` (starts server with config); `aurora render <input...> [--intent "..."]` where each input is `path` or `name=path` → POST to running server (start it in-process if `GET /api/health` fails), print the URL.
 
 - [ ] **Step 1: Write failing tests** (fake provider, ephemeral port, `ws` client): `render endpoint returns renderId and streams events over ws`, `replays recent events to late client`, `concurrent renders stay isolated` (two POSTs on two fixtures → each renderId's `item` events match its own data's queries), `opens browser when no client connected` (spy called once), `bad body returns 400`.
 - [ ] **Step 2: Run** → FAIL.
 - [ ] **Step 3: Implement** with `node:http` + `ws`.
 - [ ] **Step 4: Run** `npx vitest run packages/server` → PASS.
-- [ ] **Step 5: Commit** `feat(server): http/ws server and genui cli`.
+- [ ] **Step 5: Commit** `feat(server): http/ws server and aurora cli`.
 
 ---
 
@@ -370,7 +370,7 @@ Default-to-composed swap is the renderer's job: the first composed `item` clears
 - [ ] **Step 2: Run** `npx vitest run packages/renderer` → FAIL.
 - [ ] **Step 3: Implement** `store.ts`, then components and app.
 - [ ] **Step 4: Run** → PASS.
-- [ ] **Step 5: Write Playwright smoke test**: start server (fake provider via `GENUI_FAKE_PROVIDER=1`, which `cli.ts` honors with `createFakeProvider` and a canned sales doc), build renderer, POST a render of `sales.csv`, expect a KPI with a `$` value, a `canvas`/`svg` chart, a table with rows, and no element containing the text `d_`. Run `npx playwright test` → PASS. Save a screenshot to `test-results/smoke.png`.
+- [ ] **Step 5: Write Playwright smoke test**: start server (fake provider via `AURORA_FAKE_PROVIDER=1`, which `cli.ts` honors with `createFakeProvider` and a canned sales doc), build renderer, POST a render of `sales.csv`, expect a KPI with a `$` value, a `canvas`/`svg` chart, a table with rows, and no element containing the text `d_`. Run `npx playwright test` → PASS. Save a screenshot to `test-results/smoke.png`.
 - [ ] **Step 6: Commit** `feat(renderer): streaming screen with kpi, chart, table, text`.
 
 ---
@@ -378,12 +378,12 @@ Default-to-composed swap is the renderer's job: the first composed `item` clears
 ### Task 12: Real-model end-to-end check
 
 **Files:**
-- Create: `README.md` (install, `npm run genui -- serve`, `npm run genui -- render file.csv --intent "..."`, config keys)
+- Create: `README.md` (install, `npm run aurora -- serve`, `npm run aurora -- render file.csv --intent "..."`, config keys)
 - Create: `scripts/latency.ts` — runs `compose` with the real Ollama provider on 3 fixtures (sales.csv, a generated 1M-row Parquet, docs dir), prints the `done.timings` table.
 
 - [ ] **Step 1:** Ensure `ollama serve` is running and `qwen3:8b` is present (`ollama list`).
 - [ ] **Step 2:** Run `npx tsx scripts/latency.ts` twice (second run shows cache hits). Expected: every run ends with `done`, at least 3 composed items per fixture, no `error` events; record timings in the README under "Measured latency (M4 Air 16 GB)". If first-component time > 3 s, record it and note it for Plan 4 (model choice) — do not tune here.
-- [ ] **Step 3:** Run `npm run genui -- render packages/engine/test/fixtures/sales.csv --intent "monthly revenue by region"` and view in the browser; screenshot to `docs/screenshots/sales.png`.
+- [ ] **Step 3:** Run `npm run aurora -- render packages/engine/test/fixtures/sales.csv --intent "monthly revenue by region"` and view in the browser; screenshot to `docs/screenshots/sales.png`.
 - [ ] **Step 4: Commit** `docs: readme, latency script and measured results`.
 
 ---

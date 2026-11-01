@@ -5,7 +5,7 @@ import { createServer, request, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import type { View, ViewEvent } from "@genui/spec";
+import type { View, ViewEvent } from "@aurora/spec";
 import { DataRuntime } from "../src/dataRuntime.ts";
 import { Intake } from "../src/intake.ts";
 import { MediaRegistry } from "../src/media.ts";
@@ -14,7 +14,7 @@ import { ViewStore } from "../src/viewStore.ts";
 let dir: string;
 let server: Server | undefined;
 let data: DataRuntime | undefined;
-beforeEach(async () => { dir = await mkdtemp(path.join(tmpdir(), "genui-media-")); });
+beforeEach(async () => { dir = await mkdtemp(path.join(tmpdir(), "aurora-media-")); });
 afterEach(async () => {
   if (server) await new Promise((r) => server!.close(r));
   server = undefined;

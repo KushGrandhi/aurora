@@ -41,7 +41,7 @@ function checkDesign(c: Design): string | null {
 }
 
 const LIBS = DESIGN_LIBRARIES.join(", ");
-const BRIDGE = "`window.genui`: `data` (rows of the queries named in `data`), `onData(cb)`, `theme` (\"light\" | \"dark\", also the `dark` class on <html> for Tailwind `dark:`), `onTheme(cb)`, `asset(name)` (URL of an entry in `assets`), `send(name, payload)` (tell the caller what the person did; read with the `events` tool)";
+const BRIDGE = "`window.aurora`: `data` (rows of the queries named in `data`), `onData(cb)`, `theme` (\"light\" | \"dark\", also the `dark` class on <html> for Tailwind `dark:`), `onTheme(cb)`, `asset(name)` (URL of an entry in `assets`), `send(name, payload)` (tell the caller what the person did; read with the `events` tool)";
 
 export const design: ComponentDef<Design> = {
   type: "design",
@@ -54,7 +54,7 @@ export const design: ComponentDef<Design> = {
       display: "card",
       files: {
         "App.tsx": "import Hero from \"./Hero\";\n\nexport default function App() {\n  return (\n    <main className=\"min-h-screen bg-white text-slate-900 dark:bg-slate-950 dark:text-white\">\n      <Hero />\n    </main>\n  );\n}\n",
-        "Hero.tsx": "import { motion } from \"motion/react\";\nimport { Sparkles } from \"lucide-react\";\n\nexport default function Hero() {\n  return (\n    <section className=\"mx-auto max-w-3xl px-6 py-20 text-center\">\n      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className=\"inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-sm text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300\">\n        <Sparkles size={14} /> Now with a design canvas\n      </motion.div>\n      <h1 className=\"mt-6 text-5xl font-semibold tracking-tight\">Show, don't tell.</h1>\n      <p className=\"mt-4 text-lg text-slate-600 dark:text-slate-400\">Any idea, rendered live and refined in place.</p>\n      <button onClick={() => window.genui?.send(\"cta\", { from: \"hero\" })} className=\"mt-8 rounded-xl bg-indigo-600 px-5 py-3 font-medium text-white hover:bg-indigo-500\">Try it</button>\n    </section>\n  );\n}\n",
+        "Hero.tsx": "import { motion } from \"motion/react\";\nimport { Sparkles } from \"lucide-react\";\n\nexport default function Hero() {\n  return (\n    <section className=\"mx-auto max-w-3xl px-6 py-20 text-center\">\n      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className=\"inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-sm text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300\">\n        <Sparkles size={14} /> Now with a design canvas\n      </motion.div>\n      <h1 className=\"mt-6 text-5xl font-semibold tracking-tight\">Show, don't tell.</h1>\n      <p className=\"mt-4 text-lg text-slate-600 dark:text-slate-400\">Any idea, rendered live and refined in place.</p>\n      <button onClick={() => window.aurora?.send(\"cta\", { from: \"hero\" })} className=\"mt-8 rounded-xl bg-indigo-600 px-5 py-3 font-medium text-white hover:bg-indigo-500\">Try it</button>\n    </section>\n  );\n}\n",
       },
     },
     guidance: [

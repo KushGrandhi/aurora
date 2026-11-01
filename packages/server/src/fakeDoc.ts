@@ -1,4 +1,4 @@
-// Canned composition for GENUI_FAKE_PROVIDER=1 (smoke tests, demos without a model). Targets sales.csv-shaped data.
+// Canned composition for AURORA_FAKE_PROVIDER=1 (smoke tests, demos without a model). Targets sales.csv-shaped data.
 export const fakeSalesDoc = {
   title: "Revenue overview",
   parts: [

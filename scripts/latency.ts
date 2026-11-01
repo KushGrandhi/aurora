@@ -3,14 +3,14 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { DuckDBInstance } from "@duckdb/node-api";
-import { compose, createOllamaProvider, SpecCache, type DataInput } from "@genui/engine";
-import type { RenderEvent } from "@genui/spec";
+import { compose, createOllamaProvider, SpecCache, type DataInput } from "@aurora/engine";
+import type { RenderEvent } from "@aurora/spec";
 
-const model = process.argv[2] ?? process.env.GENUI_MODEL ?? "qwen3:8b";
+const model = process.argv[2] ?? process.env.AURORA_MODEL ?? "qwen3:8b";
 const fx = (n: string) => path.resolve("packages/engine/test/fixtures", n);
 
 async function bigParquet(): Promise<string> {
-  const file = path.join(await mkdtemp(path.join(tmpdir(), "genui-lat-")), "events.parquet");
+  const file = path.join(await mkdtemp(path.join(tmpdir(), "aurora-lat-")), "events.parquet");
   const db = await DuckDBInstance.create(":memory:");
   const c = await db.connect();
   await c.run(`COPY (SELECT TIMESTAMP '2025-01-01' + INTERVAL (range % 525600) MINUTE AS ts,
@@ -26,7 +26,7 @@ const cases: { name: string; input: DataInput | Record<string, DataInput>; inten
   { name: "docs dir", input: { docs: fx("docs") } },
 ];
 
-const provider = createOllamaProvider({ url: process.env.GENUI_OLLAMA_URL ?? "http://127.0.0.1:11434", model });
+const provider = createOllamaProvider({ url: process.env.AURORA_OLLAMA_URL ?? "http://127.0.0.1:11434", model });
 const cache = new SpecCache();
 console.log(`model ${model}`);
 for (const pass of [1, 2]) {

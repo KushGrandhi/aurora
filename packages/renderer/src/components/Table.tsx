@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { flexRender, getCoreRowModel, getSortedRowModel, useReactTable, type ColumnDef, type SortingState } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { humanizeField, inferFormat, type Component, type Format, type QueryResult } from "@genui/spec";
+import { humanizeField, inferFormat, type Component, type Format, type QueryResult } from "@aurora/spec";
 import { formatValue } from "../format.ts";
 
 type TableC = Extract<Component, { type: "table" }>;

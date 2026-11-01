@@ -1,5 +1,5 @@
 {
-  "name": "@genui/spec",
+  "name": "@aurora/spec",
   "version": "0.1.0",
   "type": "module",
   "exports": "./src/index.ts",

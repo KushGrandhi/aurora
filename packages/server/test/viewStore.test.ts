@@ -2,11 +2,11 @@ import { afterEach, beforeEach, expect, test } from "vitest";
 import { mkdtemp, readdir, readFile, rm, writeFile, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import type { View } from "@genui/spec";
+import type { View } from "@aurora/spec";
 import { ViewStore } from "../src/viewStore.ts";
 
 let dir: string;
-beforeEach(async () => { dir = await mkdtemp(path.join(tmpdir(), "genui-store-")); });
+beforeEach(async () => { dir = await mkdtemp(path.join(tmpdir(), "aurora-store-")); });
 afterEach(async () => { await rm(dir, { recursive: true, force: true }); });
 
 const view = (id = "v", title = "T"): View => ({ v: 2, id, title, sections: [{ id: "s", layout: "grid", items: [{ id: "a", c: { type: "text", md: "A" } }, { id: "b", c: { type: "text", md: "B" } }] }] });

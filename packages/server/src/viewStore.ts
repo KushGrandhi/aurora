@@ -1,16 +1,16 @@
 import { mkdir, readdir, readFile, rm, writeFile, rename } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
-import { applyOps, type PatchOp, type Problem, type View } from "@genui/spec";
+import { applyOps, type PatchOp, type Problem, type View } from "@aurora/spec";
 
 export type VersionSource = "caller" | "file" | "screen" | "compose";
 export type VersionEntry = { version: number; at: string; source: VersionSource; note?: string; view: View };
 export type PatchOutcome = { entry: VersionEntry; changed: string[]; rebased: boolean } | { problem: Problem };
-import type { ListEntry } from "@genui/spec";
+import type { ListEntry } from "@aurora/spec";
 export type { ListEntry };
 
 const SAFE_ID = /^[A-Za-z_]\w*$/;
-export const defaultViewsDir = () => path.join(homedir(), ".genui", "views");
+export const defaultViewsDir = () => path.join(homedir(), ".aurora", "views");
 
 /** Versioned views on disk: `<dir>/<id>/v<N>.json`, one file per version, current = highest N. History is linear. */
 export class ViewStore {

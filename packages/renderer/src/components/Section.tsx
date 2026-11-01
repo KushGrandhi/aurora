@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import type { Item, Problem, Section as SectionT, ViewItem } from "@genui/spec";
+import type { Item, Problem, Section as SectionT, ViewItem } from "@aurora/spec";
 import { packRows } from "../layout.ts";
 import { SPRING, SPRING_SOFT, STAGGER_S, shouldGlow } from "../motion.tsx";
 import type { RenderCtx } from "../registry.tsx";

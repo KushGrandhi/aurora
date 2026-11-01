@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { Component, Format, QueryResult } from "@genui/spec";
+import type { Component, Format, QueryResult } from "@aurora/spec";
 import { formatValue } from "../format.ts";
 import { sparklinePath, toNumber } from "../sparkline.ts";
 import { useWidth } from "../useWidth.ts";

@@ -24,7 +24,7 @@ test("three options, pick one", async ({ page, request }) => {
   const s = await (await request.get("/api/views/vr1/status")).json();
   expect(s.version).toBe(2);
   const { events } = await (await request.get("/api/views/vr1/events")).json();
-  expect(events.at(-1)).toMatchObject({ name: "genui:variant-picked", payload: { index: 1, label: "Calm", version: 2 } });
+  expect(events.at(-1)).toMatchObject({ name: "aurora:variant-picked", payload: { index: 1, label: "Calm", version: 2 } });
 });
 
 test("variants can be closed and reopened", async ({ page, request }) => {

@@ -3,13 +3,13 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { View } from "@genui/spec";
+import type { View } from "@aurora/spec";
 import { DataRuntime } from "../src/dataRuntime.ts";
 
 const fx = (n: string) => path.join(path.dirname(fileURLToPath(import.meta.url)), "../../engine/test/fixtures", n);
 let dir: string;
 let rt: DataRuntime;
-beforeEach(async () => { dir = await mkdtemp(path.join(tmpdir(), "genui-data-")); });
+beforeEach(async () => { dir = await mkdtemp(path.join(tmpdir(), "aurora-data-")); });
 afterEach(async () => { await rt?.closeAll(); await rm(dir, { recursive: true, force: true }); });
 
 const view = (datasets: View["datasets"]): View => ({ v: 2, id: "v", title: "T", datasets, sections: [] });

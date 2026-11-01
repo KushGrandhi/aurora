@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import type { Architecture } from "@genui/spec";
+import type { Architecture } from "@aurora/spec";
 import { edgeKey, layoutArchitecture } from "../src/engines/elk.ts";
 
 const arch = (direction?: "right" | "down"): Architecture => ({

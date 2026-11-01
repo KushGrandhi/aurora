@@ -1,4 +1,4 @@
-import { applyOps, type PatchOp, type Problem, type View } from "@genui/spec";
+import { applyOps, type PatchOp, type Problem, type View } from "@aurora/spec";
 
 const DATA_OPS = new Set(["addQuery", "addDataset", "addParam", "removeParam"]);
 

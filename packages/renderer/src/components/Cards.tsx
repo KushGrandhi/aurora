@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { humanizeField, inferFormat, type Cards as CardsC } from "@genui/spec";
+import { humanizeField, inferFormat, type Cards as CardsC } from "@aurora/spec";
 import { formatValue } from "../format.ts";
 import { SPRING, STAGGER_S } from "../motion.tsx";
 import type { RenderCtx } from "../registry.tsx";

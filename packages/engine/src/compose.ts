@@ -1,4 +1,4 @@
-import { itemQueries, llmDocJsonSchema, partJsonSchema, type Item, type Part, type RenderEvent, type Spec } from "@genui/spec";
+import { itemQueries, llmDocJsonSchema, partJsonSchema, type Item, type Part, type RenderEvent, type Spec } from "@aurora/spec";
 import type { SpecCache } from "./cache.ts";
 import { openDb, type Db } from "./db.ts";
 import { defaultSpec } from "./defaultSpec.ts";
@@ -188,7 +188,7 @@ export async function compose(opts: ComposeOpts): Promise<void> {
         const fixed = await repair(raw, r.reason);
         if (fixed !== undefined) return handle(fixed, order, true);
       }
-      console.warn(`[genui] dropped part: ${r.reason}`);
+      console.warn(`[aurora] dropped part: ${r.reason}`);
     };
 
     const parser = createPartsParser({
@@ -222,10 +222,10 @@ export async function compose(opts: ComposeOpts): Promise<void> {
         raw += chunk;
       }
       complete = parser.end().complete;
-      if (!complete) console.warn(`[genui] ${provider.name} output incomplete (${raw.length} chars); tail: ${JSON.stringify(raw.slice(-300))}`);
-      if (!complete && process.env.GENUI_DEBUG_DIR) {
+      if (!complete) console.warn(`[aurora] ${provider.name} output incomplete (${raw.length} chars); tail: ${JSON.stringify(raw.slice(-300))}`);
+      if (!complete && process.env.AURORA_DEBUG_DIR) {
         const { writeFile } = await import("node:fs/promises");
-        await writeFile(`${process.env.GENUI_DEBUG_DIR}/incomplete-${renderId}.txt`, raw);
+        await writeFile(`${process.env.AURORA_DEBUG_DIR}/incomplete-${renderId}.txt`, raw);
       }
     } finally {
       while (inflight.size) await Promise.all([...inflight]);

@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { createGenuiMcpServer } from "../src/mcp.ts";
+import { createAuroraMcpServer } from "../src/mcp.ts";
 
 type Call = { method: string; url: string; body?: unknown };
 
@@ -18,7 +18,7 @@ function fakeFetch(reply: (c: Call) => { status?: number; body: unknown }) {
 
 async function connect(reply: Parameters<typeof fakeFetch>[0]) {
   const { f, calls } = fakeFetch(reply);
-  const server = createGenuiMcpServer({ baseUrl: "http://localhost:9", fetch: f, cwd: "/work/proj" });
+  const server = createAuroraMcpServer({ baseUrl: "http://localhost:9", fetch: f, cwd: "/work/proj" });
   const [a, b] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "t", version: "1" });
   await Promise.all([server.connect(a), client.connect(b)]);

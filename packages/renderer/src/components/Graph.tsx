@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import type { Graph as GraphC } from "@genui/spec";
+import type { Graph as GraphC } from "@aurora/spec";
 import { cytoscapeEngine, graphData, groupLegend } from "../engines/graph.ts";
 import type { RenderCtx } from "../registry.tsx";
 

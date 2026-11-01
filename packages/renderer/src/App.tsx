@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ScreenMessage, View, ViewEvent, ViewItem } from "@genui/spec";
+import type { ScreenMessage, View, ViewEvent, ViewItem } from "@aurora/spec";
 import { fillPlaceholders } from "./format.ts";
 import { AnimatePresence, useReducedMotion } from "motion/react";
 import { Section } from "./components/Section.tsx";
@@ -23,7 +23,7 @@ const ago = (at: string) => {
 
 function useMode(): [Mode, () => void] {
   const media = matchMedia("(prefers-color-scheme: dark)");
-  const stored = (() => { try { return localStorage.getItem("genui-theme") as Mode | null; } catch { return null; } })();
+  const stored = (() => { try { return localStorage.getItem("aurora-theme") as Mode | null; } catch { return null; } })();
   const [mode, setMode] = useState<Mode>(stored ?? (media.matches ? "dark" : "light"));
   useEffect(() => {
     document.documentElement.dataset.theme = mode;
@@ -35,7 +35,7 @@ function useMode(): [Mode, () => void] {
   }, []);
   const toggle = () => setMode((m) => {
     const next = m === "dark" ? "light" : "dark";
-    try { localStorage.setItem("genui-theme", next); } catch { /* private mode */ }
+    try { localStorage.setItem("aurora-theme", next); } catch { /* private mode */ }
     return next;
   });
   return [mode, toggle];
@@ -161,7 +161,7 @@ export function App() {
     <MotionRoot>
     <div className={`app${pageItem ? " page-mode" : ""}`}>
       <aside className="side">
-        <div className="brand"><span className="mark" />genui<span className={`conn${up ? " up" : ""}`} title={up ? "connected" : "reconnecting"} /></div>
+        <div className="brand"><span className="mark" />aurora<span className={`conn${up ? " up" : ""}`} title={up ? "connected" : "reconnecting"} /></div>
         {list.length > 0 && <h2>Views</h2>}
         <ul className="hist">
           {list.map((l) => (
@@ -193,7 +193,7 @@ export function App() {
           {!view || !currentId ? (
             <div className="empty">
               <div><div className="big">Nothing on screen yet</div>
-              <p>Ask your assistant to show something with genui, and it will build itself here.</p></div>
+              <p>Ask your assistant to show something with aurora, and it will build itself here.</p></div>
             </div>
           ) : (
             <>

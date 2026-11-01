@@ -1,6 +1,6 @@
-# genui — show anything as a live interface
+# aurora — show anything as a live interface
 
-genui is a local screen that shows whatever you compose — including **anything you can build as a web page** (sites, interactive explainers, games, 3D, mockups) on its design canvas, plus ready-made components: analyses with KPIs, charts, tables and filters over data files; architecture and Mermaid diagrams; network graphs, maps and timelines; code, images, video, cards, steps and callouts; prose and JSON. **You compose the view; genui validates it, renders it with motion, keeps every version and tells you what went wrong.** Use it instead of dumping tables or long explanations in the terminal whenever seeing beats reading.
+aurora is a local screen that shows whatever you compose — including **anything you can build as a web page** (sites, interactive explainers, games, 3D, mockups) on its design canvas, plus ready-made components: analyses with KPIs, charts, tables and filters over data files; architecture and Mermaid diagrams; network graphs, maps and timelines; code, images, video, cards, steps and callouts; prose and JSON. **You compose the view; aurora validates it, renders it with motion, keeps every version and tells you what went wrong.** Use it instead of dumping tables or long explanations in the terminal whenever seeing beats reading.
 
 ## When to use
 
@@ -22,11 +22,11 @@ When the components below can't express it, or the result should feel like a rea
 
 - **Files:** `App.tsx` (or `entry`) default-exports the root component; files import each other with relative paths (`./Hero`, `../lib/util`), plus `.css`, `.json`, `.svg`. `framework: "html"` runs `index.html` instead. `custom` is a single HTML document.
 - **Libraries** (bundled, offline): `react`, `react-dom`, `motion` / `motion/react`, `lucide-react`, `three`, `d3`, `gsap`. Tailwind classes work everywhere, including `dark:` (it follows the screen's theme). Nothing else can be imported.
-- **No network.** `fetch`, external images and CDNs are blocked and come back as problems. Pass data with `data: ["queryId"]` (rows arrive as `window.genui.data.queryId`, updated live when filters change via `genui.onData`) and local images/video with `assets: {"logo": "/abs/path/logo.png"}` (`genui.asset("logo")` gives its URL).
+- **No network.** `fetch`, external images and CDNs are blocked and come back as problems. Pass data with `data: ["queryId"]` (rows arrive as `window.aurora.data.queryId`, updated live when filters change via `aurora.onData`) and local images/video with `assets: {"logo": "/abs/path/logo.png"}` (`aurora.asset("logo")` gives its URL).
 - **Show it big.** `display: "page"` on a view's only item shows it as the whole screen, like a real site. Cards have a desktop/tablet/phone switcher (`viewport`) and an "open full screen" button.
 - **Iterate cheaply** with `editFile`: `{"op":"editFile","id":"landing","path":"Hero.tsx","edits":[{"find":"text-6xl","replace":"text-7xl"}]}` (each `find` must occur exactly once), `content` to replace or create a file, `deleteFile` to remove one. Don't resend the whole project.
-- **Offer options:** `mcp__genui__variants` with 2–3 `{label, ops}` alternatives shows them side by side; the person picks one and it becomes the current version. Then call `mcp__genui__events` with `waitMs` (up to 60000) to wait for the `genui:variant-picked` event and continue from their choice.
-- **Hear clicks:** inside the page, `window.genui.send("chose", {plan: "pro"})` reports what the person did; read it with `mcp__genui__events` (`after` = last seq seen, `waitMs` to wait). Use it for choices, forms and games.
+- **Offer options:** `mcp__aurora__variants` with 2–3 `{label, ops}` alternatives shows them side by side; the person picks one and it becomes the current version. Then call `mcp__aurora__events` with `waitMs` (up to 60000) to wait for the `aurora:variant-picked` event and continue from their choice.
+- **Hear clicks:** inside the page, `window.aurora.send("chose", {plan: "pro"})` reports what the person did; read it with `mcp__aurora__events` (`after` = last seq seen, `waitMs` to wait). Use it for choices, forms and games.
 - **Problems** come back on the item: compile errors with `file:line:col`, runtime errors, blocked network requests, and "did not finish loading" (an infinite loop or a promise that never settles). Fix them with `editFile`.
 
 ## Pick the right component
@@ -40,9 +40,9 @@ When the components below can't express it, or the result should feel like a rea
 
 ## Two ways to deliver
 
-**1. Tools (preferred when available):** `mcp__genui__render`, `mcp__genui__patch`, `mcp__genui__status`, `mcp__genui__profile`, `mcp__genui__version` (and `mcp__genui__compose`, a fallback that lets genui's own model design a view from data + intent). Over HTTP the same operations are `POST localhost:4317/api/views {view}`, `POST /api/views/<id>/patch {ops, baseVersion}`, `GET /api/views/<id>/status`, `POST /api/profile {data}`.
+**1. Tools (preferred when available):** `mcp__aurora__render`, `mcp__aurora__patch`, `mcp__aurora__status`, `mcp__aurora__profile`, `mcp__aurora__version` (and `mcp__aurora__compose`, a fallback that lets aurora's own model design a view from data + intent). Over HTTP the same operations are `POST localhost:4317/api/views {view}`, `POST /api/views/<id>/patch {ops, baseVersion}`, `GET /api/views/<id>/status`, `POST /api/profile {data}`.
 
-**2. File streaming (any harness that can write files):** append JSON lines to `<project>/.genui/views/<name>.ndjson`. Line 1 is a view; each later line is a patch `{"ops": [...], "baseVersion": N}`. Lines apply as they land (a line waits until its newline). genui writes `<name>.problems.json` beside the file after every line: read it to see problems. The folder is watched only when genui's MCP server runs in that project or after `genui watch <project>`; if nothing appears, that's why.
+**2. File streaming (any harness that can write files):** append JSON lines to `<project>/.aurora/views/<name>.ndjson`. Line 1 is a view; each later line is a patch `{"ops": [...], "baseVersion": N}`. Lines apply as they land (a line waits until its newline). aurora writes `<name>.problems.json` beside the file after every line: read it to see problems. The folder is watched only when aurora's MCP server runs in that project or after `aurora watch <project>`; if nothing appears, that's why.
 
 ## The view document
 
@@ -90,7 +90,7 @@ A patch is a list of ops applied all-or-nothing; any bad op rejects the whole pa
 
 ## Filters (params)
 
-A view's `params` become one row of filters above its sections. Queries read them as bound variables; genui never pastes values into SQL, so hostile input is just a value.
+A view's `params` become one row of filters above its sections. Queries read them as bound variables; aurora never pastes values into SQL, so hostile input is just a value.
 
 ```json
 "params": {
@@ -108,7 +108,7 @@ A view's `params` become one row of filters above its sections. Queries read the
 
 ## Media
 
-Media is displayed, never generated: `media` and `cards` show images and videos that already exist. Use absolute local paths (png, jpg, gif, webp, avif, svg, mp4, webm, mov, m4v, ogg) or http(s) URLs. genui serves a local file only because an accepted view references it, at a private token URL. A missing or unsupported file comes back as a warning on the item.
+Media is displayed, never generated: `media` and `cards` show images and videos that already exist. Use absolute local paths (png, jpg, gif, webp, avif, svg, mp4, webm, mov, m4v, ogg) or http(s) URLs. aurora serves a local file only because an accepted view references it, at a private token URL. A missing or unsupported file comes back as a warning on the item.
 
 ## Build up, then refine
 

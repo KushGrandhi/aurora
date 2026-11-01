@@ -1,4 +1,4 @@
-import { humanizeField, inferFormat, type Format } from "@genui/spec";
+import { humanizeField, inferFormat, type Format } from "@aurora/spec";
 
 type Enc = Record<string, unknown> & { field?: string; type?: string; title?: unknown; axis?: Record<string, unknown> | null; sort?: unknown };
 type Spec = Record<string, unknown> & { mark?: unknown; encoding?: Record<string, Enc>; layer?: Spec[] };

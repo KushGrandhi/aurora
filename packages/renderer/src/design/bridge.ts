@@ -10,7 +10,7 @@ const SEND_PER_SECOND = 20;
 
 /**
  * The screen's side of a design frame: trusts only messages from that frame's own window, and only while it still
- * shows genui's document. A srcdoc frame loads exactly once; a second load means the code navigated the frame
+ * shows aurora's document. A srcdoc frame loads exactly once; a second load means the code navigated the frame
  * somewhere else, so the frame is blanked and nothing more is sent to or accepted from it.
  */
 export function mountFrame(iframe: HTMLIFrameElement, srcdoc: string, h: FrameHandlers): { setData(d: Record<string, unknown[]>): void; setTheme(m: "light" | "dark"): void; destroy(): void } {
@@ -20,12 +20,12 @@ export function mountFrame(iframe: HTMLIFrameElement, srcdoc: string, h: FrameHa
   let sentInWindow = 0;
   let data: Record<string, unknown[]> | undefined;
   let mode: "light" | "dark" | undefined;
-  const send = (msg: Record<string, unknown>) => { if (!dead) iframe.contentWindow?.postMessage({ __genui: true, ...msg }, "*"); };
+  const send = (msg: Record<string, unknown>) => { if (!dead) iframe.contentWindow?.postMessage({ __aurora: true, ...msg }, "*"); };
 
   const onMessage = (e: MessageEvent) => {
     if (dead || e.source !== iframe.contentWindow) return;
-    const m = e.data as { __genui?: boolean; type?: string; message?: string; px?: number; name?: string; payload?: unknown };
-    if (!m || m.__genui !== true) return;
+    const m = e.data as { __aurora?: boolean; type?: string; message?: string; px?: number; name?: string; payload?: unknown };
+    if (!m || m.__aurora !== true) return;
     if (m.type === "ready") {
       // Data or theme sent while the frame was still loading may have missed it: repeat the latest of each.
       if (data) send({ type: "data", data });
@@ -34,7 +34,7 @@ export function mountFrame(iframe: HTMLIFrameElement, srcdoc: string, h: FrameHa
     } else if (m.type === "error") h.onError(String(m.message ?? "error"));
     else if (m.type === "height" && typeof m.px === "number") h.onHeight(m.px);
     else if (m.type === "send" && typeof m.name === "string") {
-      // The frame's genui.send limits itself; raw postMessage calls are limited here.
+      // The frame's aurora.send limits itself; raw postMessage calls are limited here.
       const now = Date.now();
       if (now - windowStart > 1000) {
         windowStart = now;

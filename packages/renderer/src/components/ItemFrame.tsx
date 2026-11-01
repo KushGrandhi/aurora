@@ -1,6 +1,6 @@
 import { Component as ReactComponent, Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { getComponent, parsePlaceholders, type Problem, type ViewItem } from "@genui/spec";
+import { getComponent, parsePlaceholders, type Problem, type ViewItem } from "@aurora/spec";
 import { rendererFor, type RenderCtx } from "../registry.tsx";
 import { FallbackCard } from "./FallbackCard.tsx";
 

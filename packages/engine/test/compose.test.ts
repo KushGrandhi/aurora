@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import type { RenderEvent } from "@genui/spec";
+import type { RenderEvent } from "@aurora/spec";
 import { compose } from "../src/compose.ts";
 import { SpecCache } from "../src/cache.ts";
 import { createFakeProvider } from "../src/llm/fake.ts";

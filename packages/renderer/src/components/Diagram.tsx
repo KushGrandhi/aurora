@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { Diagram as DiagramC } from "@genui/spec";
+import type { Diagram as DiagramC } from "@aurora/spec";
 import { mermaidEngine } from "../engines/mermaid.ts";
 import type { RenderCtx } from "../registry.tsx";
 import { FallbackCard } from "./FallbackCard.tsx";

@@ -1,29 +1,29 @@
-# genui Plan 2a — Canvas Foundation Implementation Plan
+# aurora Plan 2a — Canvas Foundation Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Any LLM can build and refine a genui view through MCP tools, HTTP or a streamed file: a full view or patches by id, versioned, validated with problems reported back, drawn on a screen with natural spring motion, where the person can pick any version as current.
+**Goal:** Any LLM can build and refine a aurora view through MCP tools, HTTP or a streamed file: a full view or patches by id, versioned, validated with problems reported back, drawn on a screen with natural spring motion, where the person can pick any version as current.
 
-**Architecture:** The spec package gains a v2 *view document* (sections → items), pure patch ops and a component registry of schemas and docs (no React). The server gains an op intake that validates, versions (ViewStore on disk), runs data through a per-view DuckDB runtime (DataRuntime) and broadcasts view/patch events. Three front doors feed that intake: HTTP, a stdio MCP shim (`genui mcp`) and an NDJSON file watcher. The renderer becomes a v2 store, a renderer-side registry of React components and a Motion-based layout system. Plan 1's composer stays as a fallback; an adapter turns its events into view ops.
+**Architecture:** The spec package gains a v2 *view document* (sections → items), pure patch ops and a component registry of schemas and docs (no React). The server gains an op intake that validates, versions (ViewStore on disk), runs data through a per-view DuckDB runtime (DataRuntime) and broadcasts view/patch events. Three front doors feed that intake: HTTP, a stdio MCP shim (`aurora mcp`) and an NDJSON file watcher. The renderer becomes a v2 store, a renderer-side registry of React components and a Motion-based layout system. Plan 1's composer stays as a fallback; an adapter turns its events into view ops.
 
 **Tech Stack:** existing (Node 24, TS, npm workspaces, Zod 4, DuckDB, ws, React 18 + Vite, Vitest, Playwright) + `@modelcontextprotocol/sdk` (1.32.x), `motion` (12.x, `motion/react`).
 
-**Spec:** `docs/specs/2026-10-31-genui-canvas-design.md` (Plan 1 design: `docs/specs/2026-10-31-genui-design.md`)
+**Spec:** `docs/specs/2026-10-31-aurora-canvas-design.md` (Plan 1 design: `docs/specs/2026-10-31-aurora-design.md`)
 
 **Scope:** design §4 (all), §5 registry + migrated `kpi`/`chart`/`table`/`text` + new `json`, §6 motion, §9 skill, §10 security for new surfaces, §11, §13a, D11 version picking (not side-by-side variants). **Plan 2b:** `diagram`, `architecture`, `graph`, `map`, `timeline`, `cards`, `media` (+ media tokens), `code`, `callout`, `steps`, filters/params, KPI sparklines. **Plan 2c:** `design`/`custom` sandbox, alternatives/variants side by side, viewport switcher.
 
 ## Global Constraints
 
-- The calling LLM composes; genui validates, renders, animates and reports problems (D1).
+- The calling LLM composes; aurora validates, renders, animates and reports problems (D1).
 - Edits are patches by stable id, applied atomically: all ops validate or none apply (§4.2).
 - Each accepted change creates a new version; history is linear; picking an older version on screen creates a new version copying it (D11).
 - Picking on screen makes that version current; a patch made against an older base applies on top of current and its result says `rebased: true` (D11).
 - No-typed-numbers applies only to data-bound components (`dataBound()` returns query ids): their values come from queries, their labels follow the Plan 1 digit rule. Authored content is free (§4.4).
 - Invalid items never break the view; they render as an inline "couldn't render: reason" card (§4.4).
 - No screen connected: open one; items not confirmed by a screen are reported `unverified`, never fine; `render`/`patch` wait ≤ 1500 ms for the first screen report when a screen is connected (§4.4).
-- Views persist as plain JSON under `~/.genui/views/<id>/`; inline data saved as NDJSON beside them; retention: last 200 views or 30 days, whichever keeps more (§4.2).
+- Views persist as plain JSON under `~/.aurora/views/<id>/`; inline data saved as NDJSON beside them; retention: last 200 views or 30 days, whichever keeps more (§4.2).
 - DataRuntime is per view: DuckDB opened on demand, closed after 10 idle minutes (§4.2).
-- File streaming watches only registered `<dir>/.genui/views/` folders; problems written to `<name>.problems.json` (§4.3, §10).
+- File streaming watches only registered `<dir>/.aurora/views/` folders; problems written to `<name>.problems.json` (§4.3, §10).
 - Motion: springs, 150–450 ms, interruptible, reduced-motion → fades (§6).
 - Engines and components are swappable: no component imports another's internals (D5).
 - Plan 1 inputs keep working: `POST /api/render {data, intent}`, CLI `render`, MCP `compose` (§13a).
@@ -57,7 +57,7 @@ packages/server/src/
   intake.ts          Intake: render/patch orchestration, status, screen reports
   composeAdapter.ts  Plan 1 compose events → view ops
   watcher.ts         NDJSON file streaming
-  mcp.ts             `genui mcp` stdio shim
+  mcp.ts             `aurora mcp` stdio shim
   skill.ts           SKILL.md generator
   server.ts          + v2 HTTP routes and WS protocol
   cli.ts             + mcp, watch, skill commands
@@ -164,7 +164,7 @@ packages/renderer/src/
 - Consumes: `View`, `PatchOp`, `applyOps`
 - Produces:
   - `type VersionEntry = { version: number; at: string; source: "caller" | "file" | "screen" | "compose"; note?: string; view: View }`
-  - `class ViewStore { constructor(dir: string /* default ~/.genui/views */, opts?: { keep?: number /* 200 */; maxAgeDays?: number /* 30 */ }) }`
+  - `class ViewStore { constructor(dir: string /* default ~/.aurora/views */, opts?: { keep?: number /* 200 */; maxAgeDays?: number /* 30 */ }) }`
     - `render(view, source): Promise<VersionEntry>` — new view or full replace (new version)
     - `patch(viewId, ops, source, baseVersion?): Promise<{ entry: VersionEntry; changed: string[]; rebased: boolean } | { problem: Problem }>`
     - `pick(viewId, version): Promise<VersionEntry>` — copies that version as a new current version, `source:"screen"`, `note:"picked v<N>"`
@@ -279,7 +279,7 @@ packages/renderer/src/
 - Consumes: `Intake`
 - Produces:
   - `class ViewFileWatcher { constructor(intake: Intake, opts?: { pollMs?: number /* 250 */ }) }`
-    - `watch(dir: string): void` — watches `<dir>/.genui/views/*.ndjson` (creates the folder); idempotent
+    - `watch(dir: string): void` — watches `<dir>/.aurora/views/*.ndjson` (creates the folder); idempotent
     - `dirs(): string[]`, `close()`
   - Line format (one JSON value per line): a `View` (`v:2`) or a Plan 1 `Spec` (`v:1`) → render; `{ "ops": PatchOp[], "baseVersion"?: number }` → patch. View id = `view.id`, else the file's basename.
   - Reads only appended bytes (per-file offset), waits for a trailing newline; a file truncated or replaced restarts from 0 and re-renders.
@@ -303,16 +303,16 @@ packages/renderer/src/
 **Interfaces:**
 - Consumes: HTTP API (Task 7)
 - Produces:
-  - `createGenuiMcpServer(opts: { baseUrl: string; fetch?: typeof fetch; cwd: string }): McpServer` with tools (input schemas from the spec package's Zod schemas):
+  - `createAuroraMcpServer(opts: { baseUrl: string; fetch?: typeof fetch; cwd: string }): McpServer` with tools (input schemas from the spec package's Zod schemas):
     `render {view}` · `patch {viewId, ops, baseVersion?}` · `status {viewId}` · `profile {data}` · `version {viewId, action: "history" | "pick" | "revertItem", version?, itemId?}` · `compose {data, intent?}` (Plan 1 fallback)
     Each returns the HTTP JSON as text content; HTTP errors become `isError` results with the message.
-  - `genui mcp`: ensure the shared server is up (`GET /api/health`; else spawn `genui serve` detached and poll health ≤ 10 s), `POST /api/watch {dir: cwd}`, then serve MCP over stdio.
-  - `genui watch <dir>` → `POST /api/watch`.
+  - `aurora mcp`: ensure the shared server is up (`GET /api/health`; else spawn `aurora serve` detached and poll health ≤ 10 s), `POST /api/watch {dir: cwd}`, then serve MCP over stdio.
+  - `aurora watch <dir>` → `POST /api/watch`.
 
 - [ ] **Step 1: Write failing tests** using the SDK's in-memory transport pair and a fake fetch: `lists the six tools`, `render tool posts the view and returns the result`, `http error becomes an error result`, `registers cwd for watching on start` (fake fetch saw `POST /api/watch` with cwd).
 - [ ] **Step 2: Run** → FAIL.
 - [ ] **Step 3: Implement** with `@modelcontextprotocol/sdk` (`McpServer`, `StdioServerTransport`).
-- [ ] **Step 4: Run** → PASS. Manual check: `claude mcp add genui -- npx tsx /Users/kush/Documents/projects/genui/packages/server/src/cli.ts mcp` then `claude mcp list` shows `genui` connected.
+- [ ] **Step 4: Run** → PASS. Manual check: `claude mcp add aurora -- npx tsx /Users/kush/Documents/projects/aurora/packages/server/src/cli.ts mcp` then `claude mcp list` shows `aurora` connected.
 - [ ] **Step 5: Commit** `feat(server): mcp shim with auto-start and folder registration`.
 
 ---
@@ -321,17 +321,17 @@ packages/renderer/src/
 
 **Files:**
 - Create: `packages/server/src/skill.ts`, `packages/server/src/skillGuide.md` (static sections)
-- Modify: `packages/server/src/cli.ts` (command `skill [--out <path>]`, default `~/.claude/skills/genui/SKILL.md`)
+- Modify: `packages/server/src/cli.ts` (command `skill [--out <path>]`, default `~/.claude/skills/aurora/SKILL.md`)
 - Test: `packages/server/test/skill.test.ts`
 
 **Interfaces:**
 - Consumes: `allComponents()`
-- Produces: `generateSkill(): string` — frontmatter (`name: genui`, description covering: show analyses, diagrams, designs, any visual; build up and refine views), then guide sections: when to use; the two delivery paradigms (MCP tools; file streaming with exact path and line format); view document and patch ops with examples; build-up pattern (render frame, then one patch per component); reading problems and fixing them; data rules (profile first, queries, placeholders, single-row); then **one subsection per registered component** from `doc` (summary, guidance, example as JSON).
+- Produces: `generateSkill(): string` — frontmatter (`name: aurora`, description covering: show analyses, diagrams, designs, any visual; build up and refine views), then guide sections: when to use; the two delivery paradigms (MCP tools; file streaming with exact path and line format); view document and patch ops with examples; build-up pattern (render frame, then one patch per component); reading problems and fixing them; data rules (profile first, queries, placeholders, single-row); then **one subsection per registered component** from `doc` (summary, guidance, example as JSON).
 
-- [ ] **Step 1: Write failing tests**: `skill has frontmatter and every component section` (each `allComponents()` type appears as a heading and its example JSON parses), `skill documents both delivery paradigms` (contains `.genui/views/` and `patch`).
+- [ ] **Step 1: Write failing tests**: `skill has frontmatter and every component section` (each `allComponents()` type appears as a heading and its example JSON parses), `skill documents both delivery paradigms` (contains `.aurora/views/` and `patch`).
 - [ ] **Step 2: Run** → FAIL.
 - [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run** → PASS. Then `npm run genui -- skill` writes the installed skill (replaces the Plan 1 bridge skill).
+- [ ] **Step 4: Run** → PASS. Then `npm run aurora -- skill` writes the installed skill (replaces the Plan 1 bridge skill).
 - [ ] **Step 5: Commit** `feat: skill generated from the component registry`.
 
 ---
@@ -392,9 +392,9 @@ packages/renderer/src/
 - Modify: `README.md` (v2 usage: MCP setup, file streaming, HTTP, skill install)
 - Create: `docs/screenshots/canvas-*.png`
 
-- [ ] **Step 1:** `npm run genui -- skill` (installs SKILL.md), `claude mcp add genui -- npx tsx /Users/kush/Documents/projects/genui/packages/server/src/cli.ts mcp`.
-- [ ] **Step 2:** In a scratch folder, run `claude -p "Using genui, show an overview of <projects.csv path>: a KPI row, a size chart and a table, built up part by part, then change the chart to show deps vs source" --allowedTools "mcp__genui__*"`. Expected: a view appears and builds up, then the chart is patched in place; `status` shows no errors or unverified items. Screenshot before/after the patch.
-- [ ] **Step 3:** File-streaming check: append a view line and two patch lines to `<scratch>/.genui/views/demo.ndjson` with the server watching that folder; expected: items appear in order; `demo.problems.json` exists with empty `problems`.
+- [ ] **Step 1:** `npm run aurora -- skill` (installs SKILL.md), `claude mcp add aurora -- npx tsx /Users/kush/Documents/projects/aurora/packages/server/src/cli.ts mcp`.
+- [ ] **Step 2:** In a scratch folder, run `claude -p "Using aurora, show an overview of <projects.csv path>: a KPI row, a size chart and a table, built up part by part, then change the chart to show deps vs source" --allowedTools "mcp__aurora__*"`. Expected: a view appears and builds up, then the chart is patched in place; `status` shows no errors or unverified items. Screenshot before/after the patch.
+- [ ] **Step 3:** File-streaming check: append a view line and two patch lines to `<scratch>/.aurora/views/demo.ndjson` with the server watching that folder; expected: items appear in order; `demo.problems.json` exists with empty `problems`.
 - [ ] **Step 4:** Full suite `npx vitest run` and `npx playwright test` green.
 - [ ] **Step 5: Commit** `docs: canvas foundation usage and screenshots`.
 

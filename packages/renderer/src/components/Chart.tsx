@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import embed from "vega-embed";
-import type { Component, QueryResult } from "@genui/spec";
+import type { Component, QueryResult } from "@aurora/spec";
 import { vegaConfig, type Mode } from "../theme.ts";
 import { prepareVegaLite } from "../vegaPrep.ts";
 

@@ -48,7 +48,7 @@ test("integer-named fields get whole-number ticks", () => {
 });
 
 test("date strings encoded as quantitative become temporal, and date-length bars become dots", () => {
-  const rows = [{ project: "genui", last_modified: "2026-10-31" }, { project: "rea", last_modified: "2026-10-17" }];
+  const rows = [{ project: "aurora", last_modified: "2026-10-31" }, { project: "rea", last_modified: "2026-10-17" }];
   const out: any = prepareVegaLite({ mark: "bar", encoding: { y: { field: "project", type: "nominal" }, x: { field: "last_modified", type: "quantitative" } } }, rows);
   expect(out.encoding.x.type).toBe("temporal");
   expect(out.mark.type).toBe("point");
@@ -60,7 +60,7 @@ test("text encoded as quantitative becomes nominal", () => {
 });
 
 test("date dot plots run horizontally, newest first", () => {
-  const rows = [{ project: "genui", last_modified: "2026-10-31" }];
+  const rows = [{ project: "aurora", last_modified: "2026-10-31" }];
   const out: any = prepareVegaLite({ mark: "bar", encoding: { x: { field: "project", type: "nominal" }, y: { field: "last_modified", type: "quantitative" } } }, rows);
   expect(out.mark.type).toBe("point");
   expect(out.encoding.y).toMatchObject({ field: "project", sort: "-x" });

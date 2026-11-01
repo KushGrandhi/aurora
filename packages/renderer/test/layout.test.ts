@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import type { Item } from "@genui/spec";
+import type { Item } from "@aurora/spec";
 import { packRows } from "../src/layout.ts";
 
 const it = (id: string, span: number, type = "chart"): Item =>

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Info, Lightbulb, Scale, TriangleAlert } from "lucide-react";
-import type { Callout as CalloutC, QueryResult } from "@genui/spec";
+import type { Callout as CalloutC, QueryResult } from "@aurora/spec";
 import { fillPlaceholders } from "../format.ts";
 import { renderMarkdown } from "../markdown.ts";
 import type { RenderCtx } from "../registry.tsx";

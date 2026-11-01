@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { motion } from "motion/react";
 import { X } from "lucide-react";
-import type { View } from "@genui/spec";
+import type { View } from "@aurora/spec";
 import { SPRING, STAGGER_S } from "../motion.tsx";
 import { useWidth } from "../useWidth.ts";
 

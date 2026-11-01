@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import type { View, ViewItem } from "@genui/spec";
+import type { View, ViewItem } from "@aurora/spec";
 import { validateView } from "../src/validateView.ts";
 
 const view = (items: ViewItem[], extra: Partial<View> = {}): View => ({

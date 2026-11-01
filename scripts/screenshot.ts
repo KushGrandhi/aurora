@@ -1,10 +1,10 @@
-// Renders a file through a running genui server and saves a screenshot once the render is done.
-// Usage: npx tsx scripts/screenshot.ts <file> "<intent>" <out.png>   (server: GENUI_NO_OPEN=1 npm run genui -- serve)
+// Renders a file through a running aurora server and saves a screenshot once the render is done.
+// Usage: npx tsx scripts/screenshot.ts <file> "<intent>" <out.png>   (server: AURORA_NO_OPEN=1 npm run aurora -- serve)
 import path from "node:path";
 import { chromium } from "@playwright/test";
 
 const [file, intent, out] = process.argv.slice(2);
-const base = `http://localhost:${process.env.GENUI_PORT ?? 4317}`;
+const base = `http://localhost:${process.env.AURORA_PORT ?? 4317}`;
 const browser = await chromium.launch({ channel: "chrome" });
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 await page.goto(base);

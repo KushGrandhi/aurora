@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Check, Copy } from "lucide-react";
-import type { Code as CodeC } from "@genui/spec";
+import type { Code as CodeC } from "@aurora/spec";
 import { diffLineKind, highlight } from "../engines/highlight.ts";
 import type { RenderCtx } from "../registry.tsx";
 

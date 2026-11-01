@@ -12,7 +12,7 @@ export const steps: ComponentDef<Steps> = {
   schema: StepsSchema,
   doc: {
     summary: "A numbered sequence of steps, each optionally marked done, current or todo.",
-    example: { type: "steps", steps: [{ title: "Install", detail: "npm install", status: "done" }, { title: "Build the screen", detail: "npx vite build", status: "current" }, { title: "Serve", detail: "genui serve", status: "todo" }] },
+    example: { type: "steps", steps: [{ title: "Install", detail: "npm install", status: "done" }, { title: "Build the screen", detail: "npx vite build", status: "current" }, { title: "Serve", detail: "aurora serve", status: "todo" }] },
     guidance: "Pick it for processes, setup instructions and progress through a plan. Keep titles short; put commands or detail in `detail`.",
   },
 };

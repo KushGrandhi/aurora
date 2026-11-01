@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import type { RenderEvent, Spec } from "@genui/spec";
+import type { RenderEvent, Spec } from "@aurora/spec";
 import { createComposeAdapter } from "../src/composeAdapter.ts";
 
 const def: Spec = { v: 1, title: "Default", queries: { d_q: { sql: "SELECT count(*) AS n FROM data" } }, layout: { type: "grid", cols: 12, items: [

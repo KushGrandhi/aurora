@@ -1,4 +1,4 @@
-import { inferFormat, isSizeFormat, itemQueries, parsePlaceholders, PartSchema, PLACEHOLDER_RE, type Format, type Item, type Part } from "@genui/spec";
+import { inferFormat, isSizeFormat, itemQueries, parsePlaceholders, PartSchema, PLACEHOLDER_RE, type Format, type Item, type Part } from "@aurora/spec";
 
 export type ValidateCtx = {
   knownQueries: Set<string>;

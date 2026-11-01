@@ -3,16 +3,16 @@ import { existsSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { validateView } from "@genui/engine";
-import { allComponents, getComponent } from "@genui/spec";
-import { createFakeProvider } from "@genui/engine";
+import { validateView } from "@aurora/engine";
+import { allComponents, getComponent } from "@aurora/spec";
+import { createFakeProvider } from "@aurora/engine";
 import { DataRuntime } from "../src/dataRuntime.ts";
 import { galleryView, GALLERY_SAMPLE } from "../src/gallery.ts";
 import { startServer } from "../src/server.ts";
 
 let dir: string;
 let data: DataRuntime | undefined;
-beforeEach(async () => { dir = await mkdtemp(path.join(tmpdir(), "genui-gallery-")); });
+beforeEach(async () => { dir = await mkdtemp(path.join(tmpdir(), "aurora-gallery-")); });
 afterEach(async () => { await data?.closeAll(); await rm(dir, { recursive: true, force: true }); });
 
 test("gallery covers every component and validates", async () => {

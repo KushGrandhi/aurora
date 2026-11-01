@@ -12,7 +12,7 @@ let out: string;
 const files = (dir: string): string[] => readdirSync(dir).flatMap((f) => (statSync(path.join(dir, f)).isDirectory() ? files(path.join(dir, f)) : [path.join(dir, f)]));
 
 beforeAll(async () => {
-  out = await mkdtemp(path.join(tmpdir(), "genui-lib-"));
+  out = await mkdtemp(path.join(tmpdir(), "aurora-lib-"));
   await build({ root, configFile: path.join(root, "vite.sandbox.config.ts"), logLevel: "silent", build: { outDir: out } });
 }, 180_000);
 

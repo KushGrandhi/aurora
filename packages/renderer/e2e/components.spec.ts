@@ -3,7 +3,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-const dir = mkdtempSync(path.join(tmpdir(), "genui-e2e-media-"));
+const dir = mkdtempSync(path.join(tmpdir(), "aurora-e2e-media-"));
 const svg = path.join(dir, "sample.svg");
 writeFileSync(svg, '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="200" viewBox="0 0 320 200"><rect width="320" height="200" fill="#2a78d6"/><circle cx="160" cy="100" r="60" fill="#fcfcfb"/></svg>');
 const svg2 = path.join(dir, "second.svg");

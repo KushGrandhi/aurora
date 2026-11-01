@@ -4,14 +4,14 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { View, ViewEvent } from "@genui/spec";
-import { createFakeProvider } from "@genui/engine";
+import type { View, ViewEvent } from "@aurora/spec";
+import { createFakeProvider } from "@aurora/engine";
 import { startServer } from "../src/server.ts";
 
 const fx = (n: string) => path.join(path.dirname(fileURLToPath(import.meta.url)), "../../engine/test/fixtures", n);
 let dir: string;
 let srv: Awaited<ReturnType<typeof startServer>> | undefined;
-beforeEach(async () => { dir = await mkdtemp(path.join(tmpdir(), "genui-api-")); });
+beforeEach(async () => { dir = await mkdtemp(path.join(tmpdir(), "aurora-api-")); });
 afterEach(async () => { await srv?.close(); srv = undefined; await rm(dir, { recursive: true, force: true }); });
 
 const doc = { title: "T", parts: [
@@ -176,7 +176,7 @@ test("watch endpoint registers a folder and streams its files", async () => {
   expect(r.watching).toEqual([proj]);
   expect((await send(srv.url, "/api/watch", { dir: "relative" })).status).toBe(400);
   const { writeFile } = await import("node:fs/promises");
-  await writeFile(path.join(proj, ".genui", "views", "w.ndjson"), JSON.stringify({ ...view(), id: "w" }) + "\n");
+  await writeFile(path.join(proj, ".aurora", "views", "w.ndjson"), JSON.stringify({ ...view(), id: "w" }) + "\n");
   await until(() => false, 600).catch(() => {});
   expect((await fetch(srv.url + "/api/views/w")).status).toBe(200);
 });

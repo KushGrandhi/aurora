@@ -27,7 +27,7 @@ function formatFor(p: string): InputFormat {
 }
 
 async function tempFile(name: string, content: string): Promise<string> {
-  const dir = await mkdtemp(path.join(tmpdir(), "genui-"));
+  const dir = await mkdtemp(path.join(tmpdir(), "aurora-"));
   const file = path.join(dir, name);
   await writeFile(file, content);
   return file;

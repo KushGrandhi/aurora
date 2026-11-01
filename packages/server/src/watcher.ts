@@ -2,7 +2,7 @@ import { mkdirSync, watch, type FSWatcher } from "node:fs";
 import { open, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { PatchOpSchema, type Problem } from "@genui/spec";
+import { PatchOpSchema, type Problem } from "@aurora/spec";
 import type { Intake, IntakeResult } from "./intake.ts";
 
 const PatchLine = z.object({ ops: z.array(PatchOpSchema), baseVersion: z.number().int().optional() });
@@ -20,7 +20,7 @@ type FileState = {
 };
 
 /**
- * File streaming: each `<dir>/.genui/views/<name>.ndjson` is a view followed by patches, one JSON value per line.
+ * File streaming: each `<dir>/.aurora/views/<name>.ndjson` is a view followed by patches, one JSON value per line.
  * Reads only appended bytes; problems for each file go to `<name>.problems.json` beside it.
  */
 export class ViewFileWatcher {
@@ -38,7 +38,7 @@ export class ViewFileWatcher {
   watch(dir: string): void {
     const root = path.resolve(dir);
     if (this.watched.has(root)) return;
-    const folder = path.join(root, ".genui", "views");
+    const folder = path.join(root, ".aurora", "views");
     mkdirSync(folder, { recursive: true });
     let fsw: FSWatcher | undefined;
     try {

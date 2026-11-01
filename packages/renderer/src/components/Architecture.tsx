@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import type { Architecture as ArchC } from "@genui/spec";
+import type { Architecture as ArchC } from "@aurora/spec";
 import { edgeKey, layoutArchitecture, type ArchLayout } from "../engines/elk.ts";
 import { SPRING, STAGGER_S } from "../motion.tsx";
 import type { RenderCtx } from "../registry.tsx";

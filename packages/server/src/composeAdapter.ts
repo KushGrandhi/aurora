@@ -1,5 +1,5 @@
-import { fromPlan1, type DataInputJson, type PatchOp, type Problem, type RenderEvent, type View, type ViewItem } from "@genui/spec";
-import type { DataInput } from "@genui/engine";
+import { fromPlan1, type DataInputJson, type PatchOp, type Problem, type RenderEvent, type View, type ViewItem } from "@aurora/spec";
+import type { DataInput } from "@aurora/engine";
 
 export type ComposeAction =
   | { kind: "render"; view: View }

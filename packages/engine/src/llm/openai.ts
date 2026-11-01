@@ -13,7 +13,7 @@ export type OpenAIOpts = {
 function responseFormat(mode: OpenAIOpts["jsonMode"], schema: object): object | undefined {
   if (mode === "none") return undefined;
   if (mode === "object") return { type: "json_object" };
-  return { type: "json_schema", json_schema: { name: "genui", schema: portableSchema(schema), strict: false } };
+  return { type: "json_schema", json_schema: { name: "aurora", schema: portableSchema(schema), strict: false } };
 }
 
 export function createOpenAIProvider(opts: OpenAIOpts): LlmProvider {

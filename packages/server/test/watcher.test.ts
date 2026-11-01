@@ -12,7 +12,7 @@ let watcher: ViewFileWatcher;
 let data: DataRuntime;
 let store: ViewStore;
 beforeEach(async () => {
-  dir = await mkdtemp(path.join(tmpdir(), "genui-watch-"));
+  dir = await mkdtemp(path.join(tmpdir(), "aurora-watch-"));
   store = new ViewStore(path.join(dir, "store"));
   data = new DataRuntime({ inlineDir: path.join(dir, "store") });
   const intake = new Intake({ store, data, emit: () => {}, baseUrl: () => "http://x", screens: () => 1, openScreen: () => {}, waitMs: 10 });
@@ -24,7 +24,7 @@ const until = async (fn: () => boolean | Promise<boolean>, ms = 3000) => {
   const t = Date.now();
   while (!(await fn())) { if (Date.now() - t > ms) throw new Error("timeout"); await new Promise((r) => setTimeout(r, 15)); }
 };
-const views = () => path.join(dir, "proj", ".genui", "views");
+const views = () => path.join(dir, "proj", ".aurora", "views");
 const file = (n = "demo") => path.join(views(), `${n}.ndjson`);
 const line = (o: unknown) => JSON.stringify(o) + "\n";
 const frame = { v: 2, id: "demo", title: "Demo", sections: [{ id: "main", layout: "grid", items: [{ id: "a", c: { type: "text", md: "A" } }] }] };

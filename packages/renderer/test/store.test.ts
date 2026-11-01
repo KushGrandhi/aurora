@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import type { View, ViewEvent } from "@genui/spec";
+import type { View, ViewEvent } from "@aurora/spec";
 import { emptyState, reduce, type State } from "../src/store.ts";
 
 const view = (): View => ({ v: 2, id: "v", title: "T", sections: [{ id: "s", layout: "grid", items: [{ id: "a", c: { type: "text", md: "A" } }, { id: "b", c: { type: "text", md: "B" } }] }] });

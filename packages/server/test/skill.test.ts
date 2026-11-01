@@ -1,10 +1,10 @@
 import { expect, test } from "vitest";
-import { allComponents } from "@genui/spec";
+import { allComponents } from "@aurora/spec";
 import { generateSkill } from "../src/skill.ts";
 
 test("skill has frontmatter and every component section", () => {
   const md = generateSkill();
-  expect(md.startsWith("---\nname: genui\ndescription: ")).toBe(true);
+  expect(md.startsWith("---\nname: aurora\ndescription: ")).toBe(true);
   for (const def of allComponents()) {
     expect(md).toContain(`### \`${def.type}\``);
     const section = md.slice(md.indexOf(`### \`${def.type}\``));
@@ -15,8 +15,8 @@ test("skill has frontmatter and every component section", () => {
 
 test("skill documents both delivery paradigms", () => {
   const md = generateSkill();
-  expect(md).toContain(".genui/views/");
-  expect(md).toContain("mcp__genui__patch");
+  expect(md).toContain(".aurora/views/");
+  expect(md).toContain("mcp__aurora__patch");
   expect(md).toContain('"ops"');
   for (const op of ["set", "addSection", "removeSection", "moveSection", "add", "update", "replace", "remove", "move", "addQuery", "addDataset"]) expect(md).toContain(`\`${op}\``);
 });
@@ -32,6 +32,6 @@ test("skill mentions params and every component", () => {
 test("skill covers the design canvas", () => {
   const md = generateSkill();
   expect(md).toContain("## The design canvas: build anything");
-  for (const s of ['display: "page"', "editFile", "mcp__genui__variants", "genui.send", "mcp__genui__events", "waitMs"]) expect(md).toContain(s);
+  for (const s of ['display: "page"', "editFile", "mcp__aurora__variants", "aurora.send", "mcp__aurora__events", "waitMs"]) expect(md).toContain(s);
   for (const lib of ["react", "motion", "lucide-react", "three", "d3", "gsap"]) expect(md).toContain(lib);
 });

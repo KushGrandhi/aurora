@@ -1,4 +1,4 @@
-import { humanizeField as human, type Item, type Spec } from "@genui/spec";
+import { humanizeField as human, type Item, type Spec } from "@aurora/spec";
 import { isNumericType, isTemporalType, type DatasetProfile, type Profile } from "./profile.ts";
 import { quoteIdent as q } from "./sql.ts";
 

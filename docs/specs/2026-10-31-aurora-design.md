@@ -1,12 +1,12 @@
-# genui — Generative Interface Layer — Design
+# aurora — Generative Interface Layer — Design
 
-Status: draft for approval · 2026-10-31 · working name "genui" (rename freely)
+Status: draft for approval · 2026-10-31 · working name "aurora" (rename freely)
 
 ## 1. Intent and the why
 
-When an agent finishes a task, its output is data: tables, records, time series, graphs, documents. Today a human has to build a dashboard, deck, or web page to look at it. genui removes that step: any agent hands its result to genui, and an LLM composes the right interface for *that* data, on the spot, in a second or two.
+When an agent finishes a task, its output is data: tables, records, time series, graphs, documents. Today a human has to build a dashboard, deck, or web page to look at it. aurora removes that step: any agent hands its result to aurora, and an LLM composes the right interface for *that* data, on the spot, in a second or two.
 
-It is the display layer of Jarvis (see `projects/Jarvis/jarvis-ambient-intelligence-plan.md`): the Core produces data, genui turns it into a screen, and every Jarvis surface renders the same output. It follows Jarvis's principles: harness-independent, model-agnostic, local-first, free/open-source.
+It is the display layer of Jarvis (see `projects/Jarvis/jarvis-ambient-intelligence-plan.md`): the Core produces data, aurora turns it into a screen, and every Jarvis surface renders the same output. It follows Jarvis's principles: harness-independent, model-agnostic, local-first, free/open-source.
 
 ## 2. Goals
 
@@ -36,7 +36,7 @@ It is the display layer of Jarvis (see `projects/Jarvis/jarvis-ambient-intellige
  agent / Jarvis Core
         │  MCP tool: render({ data, intent })
         ▼
- ┌──────────────────────── genui server (local, Node/TS) ────────────────────────┐
+ ┌──────────────────────── aurora server (local, Node/TS) ────────────────────────┐
  │ 1. Ingest     data ref → DuckDB view "data" (CSV, JSON, Parquet, inline JSON)  │
  │ 2. Profile    schema, types, cardinality, min/max, nulls, 5 sample rows        │
  │ 3. Cache      key = schema fingerprint + normalized intent → cached spec?      │
@@ -121,7 +121,7 @@ Rules:
 ## 7. Data handling
 
 - **Inputs** to `render` (one, or a map of named inputs — see §6): a file path (CSV/TSV/JSON/NDJSON/Parquet), a URL to such a file, or inline JSON (small). The calling agent should pass a path for anything large so data does not flow through its own context.
-- **Engine:** DuckDB (Node binding) in-process, read-only, with external access disabled for generated SQL (no `read_csv` on arbitrary paths, no `ATTACH`, no `COPY`, no `INSTALL`). genui itself creates the `data` view; generated SQL can only `SELECT` from it. Enforce with a SQL parse/allowlist and DuckDB settings (`enable_external_access=false` after view creation, `lock_configuration=true`).
+- **Engine:** DuckDB (Node binding) in-process, read-only, with external access disabled for generated SQL (no `read_csv` on arbitrary paths, no `ATTACH`, no `COPY`, no `INSTALL`). aurora itself creates the `data` view; generated SQL can only `SELECT` from it. Enforce with a SQL parse/allowlist and DuckDB settings (`enable_external_access=false` after view creation, `lock_configuration=true`).
 - **Result limits:** each query result capped (default 10k rows to the browser; tables page server-side beyond that).
 - **Nested JSON** is flattened where obvious; otherwise exposed via DuckDB struct/list columns and the `json` component.
 - **Profile** is computed once per dataset and cached by file hash/mtime.
@@ -156,7 +156,7 @@ Levers: streaming (above); show the deterministic default skeleton instantly whi
 
 ## 10. Delivery and surfaces
 
-- `genui serve` runs a local server (HTTP + WebSocket + MCP over stdio and streamable HTTP).
+- `aurora serve` runs a local server (HTTP + WebSocket + MCP over stdio and streamable HTTP).
 - One persistent **screen** tab at `http://localhost:<port>/` shows the latest render, with a history sidebar of past renders this session. The MCP `render` tool returns the render URL and pushes to the open screen; if none is open, it opens one in the default browser.
 - MCP tools: `render({ data, intent?, title? }) → { renderId, url }`, `refine({ renderId, instruction })` (re-compose with the previous spec as context, e.g. "make it a map"), `save({ renderId })`.
 - HTTP: same operations as JSON endpoints so Jarvis Core and scripts can call without MCP.
@@ -168,11 +168,11 @@ Levers: streaming (above); show the deterministic default skeleton instantly whi
 
 ## 12. Saving
 
-`save` writes `{spec, dataRef, profileHash, createdAt}` to `~/.genui/saved/`. Re-opening re-runs queries against the current data (if still present). Plain JSON on disk, no database.
+`save` writes `{spec, dataRef, profileHash, createdAt}` to `~/.aurora/saved/`. Re-opening re-runs queries against the current data (if still present). Plain JSON on disk, no database.
 
 ## 13. Quality: evaluation harness
 
-Model-agnosticism is only real if measured. Ship a `genui eval` command with a fixture set (~20 datasets × intents: sales time series, geo points, org chart/hierarchy, social graph, logs, survey results, nested API JSON, wide 100-column table, 5M-row Parquet). Per model it reports: spec validity rate, query success rate, render success rate, time-to-first-component, total time, and a screenshot gallery for eyeballing. This is how a local model gets picked and prompts get tuned.
+Model-agnosticism is only real if measured. Ship a `aurora eval` command with a fixture set (~20 datasets × intents: sales time series, geo points, org chart/hierarchy, social graph, logs, survey results, nested API JSON, wide 100-column table, 5M-row Parquet). Per model it reports: spec validity rate, query success rate, render success rate, time-to-first-component, total time, and a screenshot gallery for eyeballing. This is how a local model gets picked and prompts get tuned.
 
 ## 14. Tech stack (my calls, builder may adjust with reason)
 

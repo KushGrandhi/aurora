@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import { formatValue, humanizeField, inferFormat, type MapSpec } from "@genui/spec";
+import { formatValue, humanizeField, inferFormat, type MapSpec } from "@aurora/spec";
 import { countryKey } from "../countries.ts";
 import { choroplethClasses, maplibreEngine, type MapData } from "../engines/map.ts";
 import type { RenderCtx } from "../registry.tsx";

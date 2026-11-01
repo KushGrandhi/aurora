@@ -1,6 +1,6 @@
 // Adapter for architecture layout. Only this file knows the engine (ELK); the Architecture chunk loads it lazily.
 import ELK, { type ElkExtendedEdge, type ElkNode } from "elkjs/lib/elk.bundled.js";
-import type { Architecture } from "@genui/spec";
+import type { Architecture } from "@aurora/spec";
 
 export type Box = { x: number; y: number; w: number; h: number };
 export type ArchLayout = {

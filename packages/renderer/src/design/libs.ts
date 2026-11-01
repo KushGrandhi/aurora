@@ -1,4 +1,4 @@
-/** Bare imports a design may use → the file under genui's /lib/ that provides it (built by vite.sandbox.config.ts). */
+/** Bare imports a design may use → the file under aurora's /lib/ that provides it (built by vite.sandbox.config.ts). */
 export const IMPORT_MAP: Record<string, string> = {
   react: "react.js",
   "react-dom": "react-dom.js",

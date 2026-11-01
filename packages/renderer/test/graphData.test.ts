@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import type { Graph, QueryResult } from "@genui/spec";
+import type { Graph, QueryResult } from "@aurora/spec";
 import { graphData } from "../src/engines/graph.ts";
 
 const res = (rows: Record<string, unknown>[]): QueryResult => ({ columns: [], rows, truncated: false, ms: 0 });

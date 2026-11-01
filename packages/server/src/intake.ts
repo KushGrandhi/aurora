@@ -1,8 +1,8 @@
-import { validateView } from "@genui/engine";
+import { validateView } from "@aurora/engine";
 import {
   allIds, applyOps, fromPlan1, getComponent, IdSchema, paramDefault, paramValueVars, paramVars, SpecSchema, sqlVars, validateParamValue, ViewSchema,
-  type GenuiEvent, type Param, type PatchOp, type Problem, type QueryResult, type ScreenMessage, type Spec, type View, type ViewEvent,
-} from "@genui/spec";
+  type AuroraEvent, type Param, type PatchOp, type Problem, type QueryResult, type ScreenMessage, type Spec, type View, type ViewEvent,
+} from "@aurora/spec";
 import { randomUUID } from "node:crypto";
 import type { DataRuntime } from "./dataRuntime.ts";
 import { EventLog } from "./events.ts";
@@ -180,12 +180,12 @@ export class Intake {
   }
 
   /** What the person did on screen since `after`. */
-  events(viewId: string, after = 0): GenuiEvent[] {
+  events(viewId: string, after = 0): AuroraEvent[] {
     return this.log.since(viewId, after);
   }
 
   /** Like events, but waits up to `ms` for the first one (the caller blocks until the person acts). */
-  waitEvents(viewId: string, after: number, ms: number): Promise<GenuiEvent[]> {
+  waitEvents(viewId: string, after: number, ms: number): Promise<AuroraEvent[]> {
     if (!this.deps.store.current(viewId)) throw new IntakeError(`no view "${viewId}"`, 404);
     return this.log.wait(viewId, after, ms);
   }
@@ -213,7 +213,7 @@ export class Intake {
       const item = r.variants?.items[index];
       if (!item) throw new IntakeError(r.variants ? `no variant ${index}` : `view "${viewId}" has no variants pending`, 404);
       const version = await this.commit(item.view, "screen", { note: `picked "${item.label}"` });
-      this.log.add(viewId, { name: "genui:variant-picked", payload: { index, label: item.label, version } });
+      this.log.add(viewId, { name: "aurora:variant-picked", payload: { index, label: item.label, version } });
       return version;
     });
     return this.finish(viewId, v, false);

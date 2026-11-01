@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import type { Part, RenderEvent } from "@genui/spec";
+import type { Part, RenderEvent } from "@aurora/spec";
 import { compose } from "../src/compose.ts";
 import { SpecCache } from "../src/cache.ts";
 import { openDb } from "../src/db.ts";

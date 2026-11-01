@@ -1,4 +1,4 @@
-import type { Spec } from "@genui/spec";
+import type { Spec } from "@aurora/spec";
 
 export class SpecCache {
   private map = new Map<string, Spec>();

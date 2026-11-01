@@ -1,5 +1,5 @@
 node_modules
 dist
 test-results
-.genui
+.aurora
 playwright-report

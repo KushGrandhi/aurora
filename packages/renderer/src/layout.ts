@@ -1,4 +1,4 @@
-import type { Item } from "@genui/spec";
+import type { Item } from "@aurora/spec";
 
 const GRID = 12;
 

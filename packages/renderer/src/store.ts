@@ -1,4 +1,4 @@
-import { applyOps, type ListEntry, type Problem, type QueryResult, type ScreenMessage, type View, type ViewEvent } from "@genui/spec";
+import { applyOps, type ListEntry, type Problem, type QueryResult, type ScreenMessage, type View, type ViewEvent } from "@aurora/spec";
 
 export type ViewState = {
   view: View;

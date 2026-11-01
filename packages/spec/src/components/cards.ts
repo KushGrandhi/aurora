@@ -18,7 +18,7 @@ export const cards: ComponentDef<Cards> = {
     example: {
       type: "cards",
       items: [
-        { title: "genui", subtitle: "Generative UI surface", tags: ["typescript", "react"], fields: { status: "active" } },
+        { title: "aurora", subtitle: "Generative UI surface", tags: ["typescript", "react"], fields: { status: "active" } },
         { title: "jarvis", subtitle: "Personal AI layer", tags: ["agents"], fields: { status: "active" } },
         { title: "ideaverse", subtitle: "Notes vault", tags: ["markdown"], fields: { status: "daily" } },
       ],

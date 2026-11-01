@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { motion } from "motion/react";
 import { Monitor, Smartphone, Tablet, X } from "lucide-react";
-import type { Problem, ViewItem } from "@genui/spec";
+import type { Problem, ViewItem } from "@aurora/spec";
 import { SPRING } from "../motion.tsx";
 import type { RenderCtx, Viewport } from "../registry.tsx";
 import { ItemFrame } from "./ItemFrame.tsx";

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Maximize2, Monitor, Smartphone, Tablet } from "lucide-react";
-import type { Custom, Design as DesignC } from "@genui/spec";
+import type { Custom, Design as DesignC } from "@aurora/spec";
 import { mountFrame } from "../design/bridge.ts";
 import { compileProject } from "../design/compile.ts";
 import { buildSrcdoc } from "../design/srcdoc.ts";
@@ -93,7 +93,7 @@ export default function Design({ c, ctx }: { c: DesignC | Custom; ctx: RenderCtx
       if (id === newest()) latest.current.ctx.report(true, undefined, stuckIds.current.has(id));
     },
     navigate(id: number) {
-      const m = "navigated away to another page (the sandbox has no network: keep everything in the design, and link out with genui.send)";
+      const m = "navigated away to another page (the sandbox has no network: keep everything in the design, and link out with aurora.send)";
       setReadyIds((s) => new Set(s).add(id));
       if (id !== newest()) return;
       setError(m);

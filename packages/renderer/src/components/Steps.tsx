@@ -1,6 +1,6 @@
 import { Check } from "lucide-react";
 import { motion } from "motion/react";
-import type { Steps as StepsC } from "@genui/spec";
+import type { Steps as StepsC } from "@aurora/spec";
 import { SPRING, STAGGER_S } from "../motion.tsx";
 
 export default function Steps({ c }: { c: StepsC }) {

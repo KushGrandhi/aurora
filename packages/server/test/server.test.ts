@@ -1,9 +1,9 @@
 import { afterEach, expect, test, vi } from "vitest";
 import WebSocket from "ws";
-import type { ViewEvent } from "@genui/spec";
+import type { ViewEvent } from "@aurora/spec";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { createFakeProvider } from "@genui/engine";
+import { createFakeProvider } from "@aurora/engine";
 import { startServer } from "../src/server.ts";
 import { loadConfig } from "../src/config.ts";
 import { fileURLToPath } from "node:url";
@@ -37,7 +37,7 @@ const post = (url: string, body: unknown) =>
 const done = (events: ViewEvent[], id: string) => events.some((e) => e.t === "activity" && e.viewId === id && e.text === "");
 
 test("render endpoint returns renderId and streams events over ws", async () => {
-  srv = await startServer({ viewsDir: await mkdtemp(path.join(tmpdir(), "genui-srv-")), waitMs: 10, port: 0, provider: createFakeProvider(doc), openBrowser: () => {} });
+  srv = await startServer({ viewsDir: await mkdtemp(path.join(tmpdir(), "aurora-srv-")), waitMs: 10, port: 0, provider: createFakeProvider(doc), openBrowser: () => {} });
   const l = listen(srv.url);
   await l.open;
   const res = await post(srv.url, { data: fx("sales.csv"), intent: "rows" });
@@ -50,7 +50,7 @@ test("render endpoint returns renderId and streams events over ws", async () => 
 });
 
 test("replays recent views to late client", async () => {
-  srv = await startServer({ viewsDir: await mkdtemp(path.join(tmpdir(), "genui-srv-")), waitMs: 10, port: 0, provider: createFakeProvider(doc), openBrowser: () => {} });
+  srv = await startServer({ viewsDir: await mkdtemp(path.join(tmpdir(), "aurora-srv-")), waitMs: 10, port: 0, provider: createFakeProvider(doc), openBrowser: () => {} });
   const first = listen(srv.url);
   await first.open;
   const { renderId } = await (await post(srv.url, { data: fx("sales.csv") })).json();
@@ -63,7 +63,7 @@ test("replays recent views to late client", async () => {
 });
 
 test("concurrent renders stay isolated", async () => {
-  srv = await startServer({ viewsDir: await mkdtemp(path.join(tmpdir(), "genui-srv-")), waitMs: 10, port: 0, provider: createFakeProvider(doc, { delayMs: 2 }), openBrowser: () => {} });
+  srv = await startServer({ viewsDir: await mkdtemp(path.join(tmpdir(), "aurora-srv-")), waitMs: 10, port: 0, provider: createFakeProvider(doc, { delayMs: 2 }), openBrowser: () => {} });
   const l = listen(srv.url);
   await l.open;
   const [a, b] = await Promise.all([post(srv.url, { data: fx("sales.csv") }), post(srv.url, { data: fx("awkward.csv") })]);
@@ -77,19 +77,19 @@ test("concurrent renders stay isolated", async () => {
 
 test("opens browser when no client connected", async () => {
   const open = vi.fn();
-  srv = await startServer({ viewsDir: await mkdtemp(path.join(tmpdir(), "genui-srv-")), waitMs: 10, port: 0, provider: createFakeProvider(doc), openBrowser: open });
+  srv = await startServer({ viewsDir: await mkdtemp(path.join(tmpdir(), "aurora-srv-")), waitMs: 10, port: 0, provider: createFakeProvider(doc), openBrowser: open });
   const { url } = await (await post(srv.url, { data: fx("sales.csv") })).json();
   expect(open).toHaveBeenCalledWith(url);
 });
 
 test("bad body returns 400", async () => {
-  srv = await startServer({ viewsDir: await mkdtemp(path.join(tmpdir(), "genui-srv-")), waitMs: 10, port: 0, provider: createFakeProvider(doc), openBrowser: () => {} });
+  srv = await startServer({ viewsDir: await mkdtemp(path.join(tmpdir(), "aurora-srv-")), waitMs: 10, port: 0, provider: createFakeProvider(doc), openBrowser: () => {} });
   expect((await post(srv.url, { intent: "x" })).status).toBe(400);
   expect((await fetch(srv.url + "/api/render", { method: "POST", headers: { "content-type": "application/json" }, body: "{nope" })).status).toBe(400);
 });
 
 test("health endpoint", async () => {
-  srv = await startServer({ viewsDir: await mkdtemp(path.join(tmpdir(), "genui-srv-")), waitMs: 10, port: 0, provider: createFakeProvider(doc), openBrowser: () => {} });
+  srv = await startServer({ viewsDir: await mkdtemp(path.join(tmpdir(), "aurora-srv-")), waitMs: 10, port: 0, provider: createFakeProvider(doc), openBrowser: () => {} });
   expect((await fetch(srv.url + "/api/health")).status).toBe(200);
 });
 
@@ -98,19 +98,19 @@ test("loadConfig defaults to the Claude Code subscription, with env overrides", 
   const c = loadConfig({ HOME: "/nonexistent" });
   expect(c).toEqual({ port: 4317, provider: "claude", ollamaUrl: "http://127.0.0.1:11434" });
   expect(providerFromConfig(c).name).toBe("claude:sonnet");
-  expect(loadConfig({ HOME: "/nonexistent", GENUI_MODEL: "x", GENUI_PORT: "9" })).toMatchObject({ model: "x", port: 9 });
-  expect(providerFromConfig(loadConfig({ HOME: "/nonexistent", GENUI_PROVIDER: "ollama" })).name).toBe("ollama:qwen3:8b");
+  expect(loadConfig({ HOME: "/nonexistent", AURORA_MODEL: "x", AURORA_PORT: "9" })).toMatchObject({ model: "x", port: 9 });
+  expect(providerFromConfig(loadConfig({ HOME: "/nonexistent", AURORA_PROVIDER: "ollama" })).name).toBe("ollama:qwen3:8b");
 });
 
 // C2: cross-site protection
 test("rejects render without JSON content-type", async () => {
-  srv = await startServer({ viewsDir: await mkdtemp(path.join(tmpdir(), "genui-srv-")), waitMs: 10, port: 0, provider: createFakeProvider(doc), openBrowser: () => {} });
+  srv = await startServer({ viewsDir: await mkdtemp(path.join(tmpdir(), "aurora-srv-")), waitMs: 10, port: 0, provider: createFakeProvider(doc), openBrowser: () => {} });
   const r = await fetch(srv.url + "/api/render", { method: "POST", headers: { "content-type": "text/plain" }, body: JSON.stringify({ data: fx("sales.csv") }) });
   expect(r.status).toBe(415);
 });
 
 test("rejects foreign Origin and Host", async () => {
-  srv = await startServer({ viewsDir: await mkdtemp(path.join(tmpdir(), "genui-srv-")), waitMs: 10, port: 0, provider: createFakeProvider(doc), openBrowser: () => {} });
+  srv = await startServer({ viewsDir: await mkdtemp(path.join(tmpdir(), "aurora-srv-")), waitMs: 10, port: 0, provider: createFakeProvider(doc), openBrowser: () => {} });
   const body = JSON.stringify({ data: fx("sales.csv") });
   const h = { "content-type": "application/json" };
   expect((await fetch(srv.url + "/api/render", { method: "POST", headers: { ...h, origin: "https://evil.example" }, body })).status).toBe(403);
@@ -124,14 +124,14 @@ test("rejects foreign Origin and Host", async () => {
 });
 
 test("rejects websocket from foreign origin", async () => {
-  srv = await startServer({ viewsDir: await mkdtemp(path.join(tmpdir(), "genui-srv-")), waitMs: 10, port: 0, provider: createFakeProvider(doc), openBrowser: () => {} });
+  srv = await startServer({ viewsDir: await mkdtemp(path.join(tmpdir(), "aurora-srv-")), waitMs: 10, port: 0, provider: createFakeProvider(doc), openBrowser: () => {} });
   const ws = new WebSocket(srv.url.replace("http", "ws") + "/ws", { origin: "https://evil.example" });
   const outcome = await new Promise<string>((r) => { ws.on("open", () => r("open")); ws.on("error", () => r("rejected")); });
   expect(outcome).toBe("rejected");
 });
 
 test("allows same-origin websocket and render", async () => {
-  srv = await startServer({ viewsDir: await mkdtemp(path.join(tmpdir(), "genui-srv-")), waitMs: 10, port: 0, provider: createFakeProvider(doc), openBrowser: () => {} });
+  srv = await startServer({ viewsDir: await mkdtemp(path.join(tmpdir(), "aurora-srv-")), waitMs: 10, port: 0, provider: createFakeProvider(doc), openBrowser: () => {} });
   const ws = new WebSocket(srv.url.replace("http", "ws") + "/ws", { origin: srv.url });
   expect(await new Promise<string>((r) => { ws.on("open", () => r("open")); ws.on("error", () => r("rejected")); })).toBe("open");
   ws.close();
@@ -141,18 +141,18 @@ test("allows same-origin websocket and render", async () => {
 
 test("config selects an OpenAI-compatible router", async () => {
   const { providerFromConfig } = await import("../src/config.ts");
-  const c = loadConfig({ HOME: "/nonexistent", GENUI_PROVIDER: "openai", GENUI_BASE_URL: "http://localhost:8000/v1", GENUI_MODEL: "auto", GENUI_API_KEY: "k" });
+  const c = loadConfig({ HOME: "/nonexistent", AURORA_PROVIDER: "openai", AURORA_BASE_URL: "http://localhost:8000/v1", AURORA_MODEL: "auto", AURORA_API_KEY: "k" });
   expect(c).toMatchObject({ provider: "openai", baseUrl: "http://localhost:8000/v1", model: "auto", apiKey: "k" });
   expect(providerFromConfig(c).name).toBe("auto");
 });
 
 test("openai provider requires a base URL", async () => {
   const { providerFromConfig } = await import("../src/config.ts");
-  expect(() => providerFromConfig(loadConfig({ HOME: "/nonexistent", GENUI_PROVIDER: "openai" }))).toThrow(/baseUrl/);
+  expect(() => providerFromConfig(loadConfig({ HOME: "/nonexistent", AURORA_PROVIDER: "openai" }))).toThrow(/baseUrl/);
 });
 
 test("oversized websocket messages close the connection", async () => {
-  srv = await startServer({ viewsDir: await mkdtemp(path.join(tmpdir(), "genui-srv-")), waitMs: 10, port: 0, provider: createFakeProvider(doc), openBrowser: () => {} });
+  srv = await startServer({ viewsDir: await mkdtemp(path.join(tmpdir(), "aurora-srv-")), waitMs: 10, port: 0, provider: createFakeProvider(doc), openBrowser: () => {} });
   const ws = new WebSocket(srv.url.replace("http", "ws") + "/ws", { origin: srv.url });
   await new Promise((r) => ws.once("open", r));
   const code = new Promise<number>((r) => ws.once("close", (c) => r(c)));

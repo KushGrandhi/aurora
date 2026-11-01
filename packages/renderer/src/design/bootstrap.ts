@@ -1,16 +1,16 @@
 /**
  * The frame's first script, inlined as a classic <script> right after the project JSON, so it runs before any of the
- * author's own scripts: error reporting, memory storage, `window.genui` and the screen's data/theme messages exist
+ * author's own scripts: error reporting, memory storage, `window.aurora` and the screen's data/theme messages exist
  * from the first line of their code. It is serialized with toString(), so it must not reference anything outside itself.
  */
-export function genuiBootstrap(): void {
+export function auroraBootstrap(): void {
   type Listener<T> = (v: T) => void;
   const SEND_PER_SECOND = 20;
   const MAX_ERRORS = 20;
   const w = window as unknown as Record<string, unknown>;
-  const project = JSON.parse(document.getElementById("genui-project")!.textContent!);
+  const project = JSON.parse(document.getElementById("aurora-project")!.textContent!);
 
-  const post = (msg: Record<string, unknown>) => window.parent.postMessage({ __genui: true, ...msg }, "*");
+  const post = (msg: Record<string, unknown>) => window.parent.postMessage({ __aurora: true, ...msg }, "*");
   let errors = 0;
   const reportError = (message: unknown) => {
     if (errors++ >= MAX_ERRORS) return;
@@ -31,7 +31,7 @@ export function genuiBootstrap(): void {
   };
   for (const name of ["localStorage", "sessionStorage"] as const) {
     try {
-      window[name].getItem("genui");
+      window[name].getItem("aurora");
     } catch {
       Object.defineProperty(window, name, { value: memoryStorage(), configurable: true });
     }
@@ -54,7 +54,7 @@ export function genuiBootstrap(): void {
   let windowStart = 0;
   let sentInWindow = 0;
   let warned = false;
-  const genui = {
+  const aurora = {
     data: project.data as Record<string, unknown[]>,
     theme: project.mode as "light" | "dark",
     onData(cb: Listener<Record<string, unknown[]>>) {
@@ -73,32 +73,32 @@ export function genuiBootstrap(): void {
         sentInWindow = 0;
       }
       if (++sentInWindow > SEND_PER_SECOND) {
-        if (!warned) console.warn(`genui.send: more than ${SEND_PER_SECOND} events a second; extra events are dropped`);
+        if (!warned) console.warn(`aurora.send: more than ${SEND_PER_SECOND} events a second; extra events are dropped`);
         warned = true;
         return;
       }
       try {
         post({ type: "send", name: String(name), payload: payload ?? null });
       } catch (e) {
-        reportError(`genui.send("${name}"): payload must be plain data (${(e as Error).message})`);
+        reportError(`aurora.send("${name}"): payload must be plain data (${(e as Error).message})`);
       }
     },
   };
-  w.genui = genui;
+  w.aurora = aurora;
 
   addEventListener("message", (e) => {
     if (e.source !== window.parent) return;
-    const m = e.data as { __genui?: boolean; type?: string; data?: Record<string, unknown[]>; mode?: "light" | "dark" };
-    if (!m?.__genui) return;
+    const m = e.data as { __aurora?: boolean; type?: string; data?: Record<string, unknown[]>; mode?: "light" | "dark" };
+    if (!m?.__aurora) return;
     if (m.type === "data" && m.data) {
-      genui.data = m.data;
+      aurora.data = m.data;
       for (const cb of dataListeners) cb(m.data);
     } else if (m.type === "theme" && m.mode) {
-      genui.theme = m.mode;
+      aurora.theme = m.mode;
       document.documentElement.classList.toggle("dark", m.mode === "dark");
       for (const cb of themeListeners) cb(m.mode);
     }
   });
 
-  w.__genuiBoot = { project, post, reportError };
+  w.__auroraBoot = { project, post, reportError };
 }

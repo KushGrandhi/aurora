@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { SpecSchema, type Spec } from "@genui/spec";
+import { SpecSchema, type Spec } from "@aurora/spec";
 import { openDb } from "../src/db.ts";
 import { ingest, type DataInput } from "../src/ingest.ts";
 import { profileDatasets, type Profile } from "../src/profile.ts";

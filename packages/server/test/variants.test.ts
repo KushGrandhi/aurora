@@ -2,14 +2,14 @@ import { afterEach, beforeEach, expect, test } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import type { View, ViewEvent } from "@genui/spec";
+import type { View, ViewEvent } from "@aurora/spec";
 import { DataRuntime } from "../src/dataRuntime.ts";
 import { Intake } from "../src/intake.ts";
 import { ViewStore } from "../src/viewStore.ts";
 
 let dir: string;
 let data: DataRuntime;
-beforeEach(async () => { dir = await mkdtemp(path.join(tmpdir(), "genui-variants-")); });
+beforeEach(async () => { dir = await mkdtemp(path.join(tmpdir(), "aurora-variants-")); });
 afterEach(async () => { await data?.closeAll(); await rm(dir, { recursive: true, force: true }); });
 
 function setup() {
@@ -53,7 +53,7 @@ test("pickVariant commits, logs and clears", async () => {
   expect(cur.version).toBe(2);
   expect((cur.view.sections[0].items[0].c as unknown as { html: string }).html).toBe("<h1>B</h1>");
   expect(cur.note).toContain("Calm");
-  expect(intake.events("lp").map((e) => e.name)).toContain("genui:variant-picked");
+  expect(intake.events("lp").map((e) => e.name)).toContain("aurora:variant-picked");
   expect(intake.events("lp").at(-1)!.payload).toMatchObject({ index: 1, label: "Calm", version: 2 });
   expect(lastVariants(events)!.variants).toEqual([]);
   await expect(intake.pickVariant("lp", 0)).rejects.toThrow(/no variants/);

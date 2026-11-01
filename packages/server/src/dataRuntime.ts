@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { explainQuery, ingest, lockDb, openDb, profileDatasets, referencesData, runQuery, type Db, type Profile } from "@genui/engine";
-import type { DataInput } from "@genui/engine";
-import type { DataInputJson, Problem, QueryResult, View } from "@genui/spec";
+import { explainQuery, ingest, lockDb, openDb, profileDatasets, referencesData, runQuery, type Db, type Profile } from "@aurora/engine";
+import type { DataInput } from "@aurora/engine";
+import type { DataInputJson, Problem, QueryResult, View } from "@aurora/spec";
 
 type Open = { db: Db; key: string; tables: string[]; failed: number; timer?: NodeJS.Timeout; queue: Promise<unknown> };
 

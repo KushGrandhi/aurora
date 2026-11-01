@@ -19,7 +19,7 @@ test("srcdoc carries the sandbox CSP and import map", () => {
 
 test("file content cannot end the project script", () => {
   const html = buildSrcdoc(project, opts);
-  const json = html.match(/<script type="application\/json" id="genui-project">([\s\S]*?)<\/script>/)![1];
+  const json = html.match(/<script type="application\/json" id="aurora-project">([\s\S]*?)<\/script>/)![1];
   expect(JSON.parse(json).modules["App.tsx"].code).toContain("</script><script>alert(1)</script>");
   expect(html.match(/<script>alert\(1\)<\/script>/)).toBeNull();
 });
@@ -32,7 +32,7 @@ test("html projects keep the author's body", () => {
   expect(html).not.toContain("<div id=\"root\">");
 });
 
-// The CSP only counts inside the real <head>, before anything that could run or load: genui's head comes first, always.
+// The CSP only counts inside the real <head>, before anything that could run or load: aurora's head comes first, always.
 const ourHeadFirst = /^<!doctype html>\s*<html[^>]*>\s*<head>\s*<meta charset="utf-8">\s*<meta http-equiv="Content-Security-Policy"/;
 for (const [name, doc] of [
   ["a <header> fragment", "<header><h1>Hi</h1></header><script>fetch('http://x')</script>"],
@@ -48,8 +48,8 @@ for (const [name, doc] of [
 }
 
 test("the classic bootstrap runs before any author script", () => {
-  const html = buildSrcdoc({ ...project, entry: "", order: [], modules: {}, html: "<script>genui.send('x')</script>", css: [] }, { ...opts, framework: "html" });
-  const boot = html.indexOf('<script id="genui-bootstrap">');
-  expect(boot).toBeGreaterThan(html.indexOf('id="genui-project"'));
-  expect(boot).toBeLessThan(html.indexOf("genui.send('x')"));
+  const html = buildSrcdoc({ ...project, entry: "", order: [], modules: {}, html: "<script>aurora.send('x')</script>", css: [] }, { ...opts, framework: "html" });
+  const boot = html.indexOf('<script id="aurora-bootstrap">');
+  expect(boot).toBeGreaterThan(html.indexOf('id="aurora-project"'));
+  expect(boot).toBeLessThan(html.indexOf("aurora.send('x')"));
 });

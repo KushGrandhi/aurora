@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { Component, QueryResult } from "@genui/spec";
+import type { Component, QueryResult } from "@aurora/spec";
 import { fillPlaceholders } from "../format.ts";
 import { renderMarkdown } from "../markdown.ts";
 

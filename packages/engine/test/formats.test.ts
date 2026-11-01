@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import type { Part } from "@genui/spec";
+import type { Part } from "@aurora/spec";
 import { validatePart } from "../src/validate.ts";
 
 const kpi = (field: string, label: string, format?: string): Part =>

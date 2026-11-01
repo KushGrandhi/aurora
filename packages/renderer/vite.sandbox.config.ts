@@ -1,4 +1,4 @@
-// Builds what sandboxed design frames load from genui's /lib/: the importable libraries (one shared React),
+// Builds what sandboxed design frames load from aurora's /lib/: the importable libraries (one shared React),
 // the frame runtime, Tailwind's browser build and the Inter font. Nothing comes from a CDN.
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -15,11 +15,11 @@ const CJS_ENTRIES: Record<string, string> = {
   "jsx-runtime": "react/jsx-runtime",
   "jsx-dev-runtime": "react/jsx-dev-runtime",
 };
-const CJS_PREFIX = "genui-cjs:";
+const CJS_PREFIX = "aurora-cjs:";
 
 function cjsEntries(): Plugin {
   return {
-    name: "genui-sandbox-cjs",
+    name: "aurora-sandbox-cjs",
     resolveId(id) {
       const at = id.indexOf(CJS_PREFIX); // library mode hands entries over as absolute paths
       return at >= 0 ? "\0" + id.slice(at) : null;
@@ -36,7 +36,7 @@ function cjsEntries(): Plugin {
 function copyStatic(): Plugin {
   let outDir = "";
   return {
-    name: "genui-sandbox-static",
+    name: "aurora-sandbox-static",
     configResolved(c) {
       outDir = c.build.outDir;
     },

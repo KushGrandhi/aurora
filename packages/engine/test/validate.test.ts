@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import type { Part } from "@genui/spec";
+import type { Part } from "@aurora/spec";
 import { checkProse, sanitizeVegaLite, validatePart } from "../src/validate.ts";
 
 const ctx = (over: Partial<Parameters<typeof validatePart>[1]> = {}) => ({

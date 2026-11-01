@@ -1,4 +1,4 @@
-import { stripSqlLiterals, type QueryResult } from "@genui/spec";
+import { stripSqlLiterals, type QueryResult } from "@aurora/spec";
 import type { Db } from "./db.ts";
 import { readRows } from "./serialize.ts";
 

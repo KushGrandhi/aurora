@@ -1,5 +1,5 @@
 {
-  "name": "genui",
+  "name": "aurora",
   "private": true,
   "type": "module",
   "workspaces": [
@@ -7,7 +7,7 @@
   ],
   "scripts": {
     "test": "vitest run",
-    "genui": "tsx packages/server/src/cli.ts"
+    "aurora": "tsx packages/server/src/cli.ts"
   },
   "devDependencies": {
     "@duckdb/node-api": "^2.0.0-r.1",

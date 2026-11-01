@@ -1,7 +1,7 @@
 // Adapter for network graphs. Only this file knows the engine (Cytoscape); the Graph chunk loads it lazily.
 import cytoscape, { type Core, type ElementDefinition } from "cytoscape";
 import { forceCenter, forceLink, forceManyBody, forceSimulation, type SimulationNodeDatum } from "d3-force";
-import type { Graph, QueryResult } from "@genui/spec";
+import type { Graph, QueryResult } from "@aurora/spec";
 import type { Theme } from "../registry.tsx";
 
 export type GNode = { id: string; label: string; group?: string; size?: number };

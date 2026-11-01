@@ -1,5 +1,5 @@
 import { lazy, type FC } from "react";
-import type { Component, QueryResult } from "@genui/spec";
+import type { Component, QueryResult } from "@aurora/spec";
 import type { MotionApi } from "./motion.tsx";
 import { TOKENS, type Mode } from "./theme.ts";
 import { Json } from "./components/Json.tsx";
@@ -27,7 +27,7 @@ export type RenderCtx = {
   page?: { viewport: Viewport };
   /** Opens a design item as the whole screen. */
   openPage?(): void;
-  /** Tell the caller what the person did (genui.send from a design). */
+  /** Tell the caller what the person did (aurora.send from a design). */
   send(name: string, payload: unknown): void;
   /** Tell the server whether this item drew. Components marked selfReport must call it; others are reported on mount. */
   /** `retract` lets an ok report clear this item's earlier failure for the same version. */

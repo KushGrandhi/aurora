@@ -1,5 +1,5 @@
 // Turns a design project (files) into modules the sandbox runtime can link: Sucrase strips TypeScript and JSX,
-// es-module-lexer finds imports, relative imports become `__genui__/<path>` tokens the runtime swaps for blob URLs.
+// es-module-lexer finds imports, relative imports become `__aurora__/<path>` tokens the runtime swaps for blob URLs.
 import { init, parse } from "es-module-lexer";
 import { transform } from "sucrase";
 import { IMPORT_MAP } from "./libs.ts";
@@ -7,7 +7,7 @@ import { IMPORT_MAP } from "./libs.ts";
 export type CompiledProject = { entry: string; modules: Record<string, { code: string }>; order: string[]; html?: string; css: string[] };
 type Input = { framework: "react" | "html"; files: Record<string, string>; entry?: string };
 
-export const DEP_TOKEN = "__genui__/";
+export const DEP_TOKEN = "__aurora__/";
 const LIBRARIES = "react, react-dom, motion, lucide-react, three, d3, gsap";
 const EXTS = [".tsx", ".ts", ".jsx", ".js"];
 const SYNTHETIC_ENTRY = "__entry__.js";

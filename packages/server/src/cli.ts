@@ -1,7 +1,7 @@
 #!/usr/bin/env -S npx tsx
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createFakeProvider, type DataInput } from "@genui/engine";
+import { createFakeProvider, type DataInput } from "@aurora/engine";
 import { loadConfig, providerFromConfig } from "./config.ts";
 import { fakeSalesDoc } from "./fakeDoc.ts";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -12,21 +12,21 @@ import { startServer } from "./server.ts";
 
 const STATIC_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../renderer/dist");
 const USAGE = `usage:
-  genui serve                 start the shared server and screen
-  genui mcp                   MCP server over stdio (starts the shared server if needed; watches ./.genui/views)
-  genui watch <dir>           stream views from <dir>/.genui/views/*.ndjson
-  genui skill [--out <path>]  write SKILL.md (default ~/.claude/skills/genui/SKILL.md)
-  genui gallery               show every component on the screen
-  genui render <path | name=path>... [--intent "what you want to see"]`;
+  aurora serve                 start the shared server and screen
+  aurora mcp                   MCP server over stdio (starts the shared server if needed; watches ./.aurora/views)
+  aurora watch <dir>           stream views from <dir>/.aurora/views/*.ndjson
+  aurora skill [--out <path>]  write SKILL.md (default ~/.claude/skills/aurora/SKILL.md)
+  aurora gallery               show every component on the screen
+  aurora render <path | name=path>... [--intent "what you want to see"]`;
 
 async function serve() {
   const cfg = loadConfig();
-  const provider = process.env.GENUI_FAKE_PROVIDER === "1"
+  const provider = process.env.AURORA_FAKE_PROVIDER === "1"
     ? createFakeProvider(fakeSalesDoc, { chunkSize: 24, delayMs: 5 })
     : providerFromConfig(cfg);
-  const openBrowser = process.env.GENUI_NO_OPEN === "1" ? () => {} : undefined;
-  const srv = await startServer({ port: cfg.port, provider, staticDir: STATIC_DIR, openBrowser, viewsDir: process.env.GENUI_VIEWS_DIR || undefined });
-  console.log(`genui screen: ${srv.url}  (provider ${provider.name})`);
+  const openBrowser = process.env.AURORA_NO_OPEN === "1" ? () => {} : undefined;
+  const srv = await startServer({ port: cfg.port, provider, staticDir: STATIC_DIR, openBrowser, viewsDir: process.env.AURORA_VIEWS_DIR || undefined });
+  console.log(`aurora screen: ${srv.url}  (provider ${provider.name})`);
   return srv;
 }
 
@@ -72,7 +72,7 @@ async function watchDir(dir: string | undefined) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ dir: path.resolve(dir) }),
   }).catch(() => {
-    throw new Error("genui server is not running; start it with `genui serve`");
+    throw new Error("aurora server is not running; start it with `aurora serve`");
   });
   const body = await res.json();
   if (!res.ok) throw new Error(body.error);
@@ -81,7 +81,7 @@ async function watchDir(dir: string | undefined) {
 
 async function gallery() {
   const res = await fetch(`http://localhost:${loadConfig().port}/api/gallery`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }).catch(() => {
-    throw new Error("genui server is not running; start it with `genui serve`");
+    throw new Error("aurora server is not running; start it with `aurora serve`");
   });
   const body = await res.json();
   if (!res.ok) throw new Error(body.error);
@@ -90,7 +90,7 @@ async function gallery() {
 
 async function writeSkill(argv: string[]) {
   const i = argv.indexOf("--out");
-  const out = i >= 0 && argv[i + 1] ? path.resolve(argv[i + 1]) : path.join(homedir(), ".claude", "skills", "genui", "SKILL.md");
+  const out = i >= 0 && argv[i + 1] ? path.resolve(argv[i + 1]) : path.join(homedir(), ".claude", "skills", "aurora", "SKILL.md");
   await mkdir(path.dirname(out), { recursive: true });
   await writeFile(out, generateSkill());
   console.log(`wrote ${out}`);

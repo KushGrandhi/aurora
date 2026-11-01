@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { Param } from "@genui/spec";
+import type { Param } from "@aurora/spec";
 
 type Props = {
   params: Record<string, Param>;

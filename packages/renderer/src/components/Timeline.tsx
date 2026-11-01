@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import type { Timeline as TimelineC } from "@genui/spec";
+import type { Timeline as TimelineC } from "@aurora/spec";
 import { SPRING, STAGGER_S } from "../motion.tsx";
 import type { RenderCtx } from "../registry.tsx";
 import { timeScale } from "../timeScale.ts";

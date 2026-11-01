@@ -44,8 +44,8 @@ export type ScreenMessage =
   | { t: "sync"; viewId: string }
   | { t: "revertItem"; viewId: string; itemId: string; version: number }
   | { t: "param"; viewId: string; name: string; value: unknown }
-  | { t: "event"; viewId: string; itemId: string; name: string; payload: unknown } // genui.send from a design
+  | { t: "event"; viewId: string; itemId: string; name: string; payload: unknown } // aurora.send from a design
   | { t: "pickVariant"; viewId: string; index: number };
 
 /** Something the person did on screen, kept for the caller (not versioned). */
-export type GenuiEvent = { seq: number; at: string; itemId?: string; name: string; payload: unknown };
+export type AuroraEvent = { seq: number; at: string; itemId?: string; name: string; payload: unknown };

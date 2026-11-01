@@ -1,1 +1,1 @@
-export { fillPlaceholders, formatValue, parsePlaceholders } from "@genui/spec";
+export { fillPlaceholders, formatValue, parsePlaceholders } from "@aurora/spec";

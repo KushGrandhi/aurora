@@ -1,4 +1,4 @@
-import { getComponent, paramVars, parsePlaceholders, sqlVars, type Item, type Problem, type View, type ViewItem } from "@genui/spec";
+import { getComponent, paramVars, parsePlaceholders, sqlVars, type Item, type Problem, type View, type ViewItem } from "@aurora/spec";
 import { checkProse, normalizeProse, validateItem, type ValidateCtx } from "./validate.ts";
 
 export type ViewValidateCtx = { queryRows: Map<string, number>; querySql: Map<string, string>; intent?: string };
@@ -55,15 +55,15 @@ export function validateView(view: View, ctx: ViewValidateCtx): ViewValidation {
         return item;
       };
       const def = getComponent(item.c.type);
-      if (!def) return fail(`unknown component type "${item.c.type}"`, "use one of the types listed in the genui skill");
+      if (!def) return fail(`unknown component type "${item.c.type}"`, "use one of the types listed in the aurora skill");
       const parsed = def.schema.safeParse(item.c);
       if (!parsed.success) {
         const issue = parsed.error.issues[0];
-        return fail(`${item.c.type}: ${issue?.path.join(".") || "(root)"}: ${issue?.message ?? "invalid"}`, `see the "${item.c.type}" example in the genui skill`);
+        return fail(`${item.c.type}: ${issue?.path.join(".") || "(root)"}: ${issue?.message ?? "invalid"}`, `see the "${item.c.type}" example in the aurora skill`);
       }
       const c = parsed.data as ViewItem["c"];
       const semantic = def.check?.(c);
-      if (semantic) return fail(`${c.type}: ${semantic}`, `see the "${c.type}" example in the genui skill`);
+      if (semantic) return fail(`${c.type}: ${semantic}`, `see the "${c.type}" example in the aurora skill`);
       const bound = def.dataBound?.(c) ?? [];
       const missing = bound.find((q) => !known.has(q));
       if (missing) return fail(`reads query "${missing}", which this view doesn't define`, "add it with addQuery (or in the view's queries)");
