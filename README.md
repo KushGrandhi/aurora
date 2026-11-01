@@ -1,10 +1,30 @@
 # genui
 
-A generative interface layer: hand it data, and an LLM composes the right view for it (KPIs, charts, tables, text), streamed into a browser tab. Every number on screen comes from a DuckDB query. The model never types data.
+A universal screen for LLMs: whichever model you are working with composes a view (KPIs, charts, tables, prose, JSON; diagrams and designs next), and genui validates it, draws it with spring motion, keeps every version and reports problems back. Views are built up part by part and refined in place with patches by id. Numbers in data-bound panels always come from DuckDB queries; the model never types data.
 
-Design: `docs/specs/2026-10-31-genui-design.md` · Plan 1: `docs/superpowers/plans/2026-10-31-genui-plan-1-core.md`
+Design: `docs/specs/2026-10-31-genui-canvas-design.md` (Plan 2) · `docs/specs/2026-10-31-genui-design.md` (Plan 1) · Plans: `docs/superpowers/plans/`
 
-## Run
+![Canvas](docs/screenshots/canvas-after.png)
+
+## Use it from Claude Code (or any MCP harness)
+
+```bash
+npm install && (cd packages/renderer && npx vite build)
+claude mcp add --scope user genui -- "$PWD/node_modules/.bin/tsx" "$PWD/packages/server/src/cli.ts" mcp
+npm run genui -- skill        # writes ~/.claude/skills/genui/SKILL.md, generated from the component registry
+```
+
+Then ask for something visual ("show an overview of projects.csv", "explain the auth flow on screen"). `genui mcp` starts the shared server on port 4317 if it isn't running and registers the session's folder for file streaming. Tools: `render`, `patch`, `status`, `profile`, `version` (history / pick / revertItem) and `compose` (genui's own composer, a fallback).
+
+**File streaming** works from any harness that can write files: append JSON lines to `<project>/.genui/views/<name>.ndjson` (line 1 a view, later lines `{"ops": [...], "baseVersion": N}`); genui applies each line as it lands and writes `<name>.problems.json` beside it. The folder must be registered: by an MCP session started there, or `npm run genui -- watch <project>`.
+
+**HTTP**: `POST /api/views {view}` · `POST /api/views/:id/patch {ops, baseVersion?}` · `GET /api/views/:id` · `GET /api/views/:id/status` · `GET /api/views/:id/history` · `GET /api/views/:id/versions/:n` · `POST /api/views/:id/pick {version}` · `POST /api/views/:id/revert {itemId, version}` · `POST /api/profile {data}` · `POST /api/watch {dir}`. The screen picks up everything over `GET /ws`.
+
+On the screen, the version chip lists every version; choosing one previews it and **Use this version** makes it current (a new version, so nothing is lost). A caller's next patch builds on it and its result says `rebased: true`.
+
+Views persist as JSON under `~/.genui/views/<id>/v<N>.json` (last 200 views or 30 days, whichever keeps more; `GENUI_VIEWS_DIR` overrides the folder).
+
+## Plan 1 entry: genui composes from data + intent
 
 Requires Node 24 and the `claude` CLI logged in (the default provider composes views on your Claude Code subscription: Sonnet at low effort, ~2 s to the first panel). For offline use, set `provider` to `ollama` and pull a model (default `qwen3:8b`).
 
@@ -20,7 +40,7 @@ npm run genui -- render orders=orders.parquet docs=./notes/   # several named da
 
 Inputs: CSV, TSV, JSON, NDJSON, Parquet, `.md`/`.txt` files or directories (loaded as a `(name, body)` table), or `http(s)` URLs.
 
-HTTP: `POST /api/render {"data": "<path>" | {"name": "<path>", ...} | {"inline": [...]}, "intent": "..."}` → `{renderId, url}`; events stream on `GET /ws`.
+HTTP: `POST /api/render {"data": "<path>" | {"name": "<path>", ...} | {"inline": [...]}, "intent": "..."}` → `{renderId, url}`; the composed view is an ordinary v2 view (`renderId` is its view id), so it can be patched and versioned like any other.
 
 ## Config
 
