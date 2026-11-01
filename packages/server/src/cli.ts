@@ -4,11 +4,14 @@ import { fileURLToPath } from "node:url";
 import { createFakeProvider, type DataInput } from "@genui/engine";
 import { loadConfig, providerFromConfig } from "./config.ts";
 import { fakeSalesDoc } from "./fakeDoc.ts";
+import { runMcp } from "./mcp.ts";
 import { startServer } from "./server.ts";
 
 const STATIC_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../renderer/dist");
 const USAGE = `usage:
-  genui serve
+  genui serve                 start the shared server and screen
+  genui mcp                   MCP server over stdio (starts the shared server if needed; watches ./.genui/views)
+  genui watch <dir>           stream views from <dir>/.genui/views/*.ndjson
   genui render <path | name=path>... [--intent "what you want to see"]`;
 
 async function serve() {
@@ -57,10 +60,26 @@ async function render(argv: string[]) {
   if (ownServer) console.log("server running in this process; Ctrl-C to stop");
 }
 
+async function watchDir(dir: string | undefined) {
+  if (!dir) throw new Error(USAGE);
+  const res = await fetch(`http://localhost:${loadConfig().port}/api/watch`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ dir: path.resolve(dir) }),
+  }).catch(() => {
+    throw new Error("genui server is not running; start it with `genui serve`");
+  });
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.error);
+  console.log(`watching: ${body.watching.join(", ")}`);
+}
+
 const [cmd, ...rest] = process.argv.slice(2);
 try {
   if (cmd === "serve") await serve();
   else if (cmd === "render") await render(rest);
+  else if (cmd === "mcp") await runMcp({ baseUrl: `http://localhost:${loadConfig().port}`, cwd: process.cwd() });
+  else if (cmd === "watch") await watchDir(rest[0]);
   else console.log(USAGE);
 } catch (e) {
   console.error((e as Error).message);

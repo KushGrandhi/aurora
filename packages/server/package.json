@@ -9,6 +9,7 @@
   "dependencies": {
     "@genui/engine": "*",
     "@genui/spec": "*",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "ws": "^8.22.1",
     "zod": "^4.1.0"
   },
