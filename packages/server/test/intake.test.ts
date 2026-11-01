@@ -191,3 +191,13 @@ test("inline datasets are stored as a file reference, not copied into each versi
   await intake.patch("inl", [{ op: "set", title: "I2" }], "caller");
   expect(store.current("inl")!.view.datasets).toEqual({ pts: ds });
 });
+
+test("queries re-run after a broken dataset is fixed", async () => {
+  const { intake } = setup();
+  const v = salesView();
+  v.datasets = { data: "/nonexistent/sales.csv" };
+  const first = await intake.render(v, "caller");
+  expect(first.problems.some((p) => p.message.includes('query "total"'))).toBe(true);
+  const fixed = await intake.patch("sales", [{ op: "addDataset", name: "data", input: fx("sales.csv") }], "caller");
+  expect(fixed.problems.filter((p) => p.severity === "error")).toEqual([]);
+});

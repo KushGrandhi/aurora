@@ -22,6 +22,7 @@ type Report = { version: number; ok: Set<string>; failed: { itemId: string; mess
 type Runtime = {
   results: Map<string, { sql: string; key: string; result?: QueryResult; problem?: Problem }>; // key = sql + the var values it ran with
   dataProblems: Problem[];
+  dataKey?: string; // the datasets the current results were computed from
   params: Record<string, unknown>; // current value by param name; runtime only, never versioned
   paramDefs: Record<string, Param>;
   options: Record<string, string[]>; // resolved select options
@@ -246,9 +247,13 @@ export class Intake {
     const { data } = this.deps;
     const r = this.runtime(view.id);
     const loaded = await data.ensure(view);
+    // Different data (or data that failed last time) makes every result stale, even where the SQL didn't change.
+    const dataKey = JSON.stringify(loaded.datasets);
+    const stale = loaded.problems.length > 0 || r.dataProblems.length > 0 || (r.dataKey !== undefined && r.dataKey !== dataKey);
     r.dataProblems = loaded.problems;
+    r.dataKey = dataKey;
     if (view.datasets) view = { ...view, datasets: loaded.datasets }; // inline rows live in a file beside the view, not in every version
-    if (loaded.problems.length) r.results.clear();
+    if (stale) r.results.clear();
 
     // Values survive a new version while the param keeps its type and the value still fits.
     const defs = view.params ?? {};
@@ -263,7 +268,7 @@ export class Intake {
 
     const queries = view.queries ?? {};
     for (const id of r.results.keys()) if (!(id in queries)) r.results.delete(id);
-    const fresh = await this.runQueries(view, undefined, loaded.problems.length > 0);
+    const fresh = await this.runQueries(view, undefined, stale);
 
     // A select whose value is no longer an option goes back to its default.
     this.resolveOptions(view);
