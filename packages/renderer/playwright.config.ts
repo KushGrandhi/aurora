@@ -9,7 +9,7 @@ export default defineConfig({
   workers: 1, // one shared server: the screen follows new views, so tests must not create views concurrently
   use: { baseURL: `http://localhost:${PORT}`, channel: "chrome" },
   webServer: {
-    command: "npx vite build && cd ../.. && npx tsx packages/server/src/cli.ts serve",
+    command: "npm run build && cd ../.. && npx tsx packages/server/src/cli.ts serve",
     url: `http://localhost:${PORT}/api/health`,
     env: { GENUI_PORT: String(PORT), GENUI_FAKE_PROVIDER: "1", GENUI_NO_OPEN: "1", GENUI_VIEWS_DIR: path.join(tmpdir(), `genui-e2e-${Date.now()}`) },
     reuseExistingServer: false,
