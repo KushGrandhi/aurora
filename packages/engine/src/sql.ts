@@ -1,4 +1,4 @@
-import type { QueryResult } from "@genui/spec";
+import { stripSqlLiterals, type QueryResult } from "@genui/spec";
 import type { Db } from "./db.ts";
 import { readRows } from "./serialize.ts";
 
@@ -7,16 +7,7 @@ export const quoteIdent = (name: string) => `"${name.replace(/"/g, '""')}"`;
 const FORBIDDEN = /\b(ATTACH|DETACH|COPY|INSTALL|LOAD|PRAGMA|SET|RESET|CREATE|INSERT|UPDATE|DELETE|DROP|ALTER|EXPORT|IMPORT|CALL|USE|CHECKPOINT|VACUUM)\b/i;
 const FORBIDDEN_FN = /\b(read_\w+|glob|parquet_scan|parquet_metadata|parquet_schema|sniff_csv|query_table|query|getenv)\s*\(/i;
 
-/** Remove string literals, quoted identifiers and comments so keyword scans only see SQL structure. */
-function stripLiterals(sql: string): string {
-  return sql
-    .replace(/\$(\w*)\$[\s\S]*?\$\1\$/g, "''")
-    .replace(/[Ee]'(?:[^'\\]|\\.|'')*'/g, "''")
-    .replace(/'(?:[^']|'')*'/g, "''")
-    .replace(/"(?:[^"]|"")*"/g, '""')
-    .replace(/--[^\n]*/g, " ")
-    .replace(/\/\*[\s\S]*?\*\//g, " ");
-}
+const stripLiterals = stripSqlLiterals;
 
 export function guardSql(sql: string): { ok: true; sql: string } | { ok: false; reason: string } {
   const trimmed = sql.trim().replace(/;\s*$/, "").trim();
@@ -68,12 +59,12 @@ export async function runQuery(
   };
 }
 
-export async function explainQuery(db: Db, sql: string): Promise<{ ok: true } | { ok: false; message: string }> {
+export async function explainQuery(db: Db, sql: string, params: Record<string, unknown> = {}): Promise<{ ok: true } | { ok: false; message: string }> {
   const g = guardSql(sql);
   if (!g.ok) return { ok: false, message: g.reason };
   try {
     // Wrapped like runQuery, so a smuggled second statement is a parse error instead of being executed.
-    await db.conn.run(`EXPLAIN SELECT * FROM (${g.sql}\n) AS _q`);
+    await db.conn.run(`EXPLAIN SELECT * FROM (${g.sql}\n) AS _q`, usedParams(g.sql, params) as never);
     return { ok: true };
   } catch (e) {
     return { ok: false, message: (e as Error).message };

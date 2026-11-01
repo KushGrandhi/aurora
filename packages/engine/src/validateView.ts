@@ -1,4 +1,4 @@
-import { getComponent, parsePlaceholders, type Item, type Problem, type View, type ViewItem } from "@genui/spec";
+import { getComponent, paramVars, parsePlaceholders, sqlVars, type Item, type Problem, type View, type ViewItem } from "@genui/spec";
 import { checkProse, normalizeProse, validateItem, type ValidateCtx } from "./validate.ts";
 
 export type ViewValidateCtx = { queryRows: Map<string, number>; querySql: Map<string, string>; intent?: string };
@@ -32,6 +32,15 @@ export function validateView(view: View, ctx: ViewValidateCtx): ViewValidation {
     return null;
   };
 
+  const provided = new Set(Object.entries(out.params ?? {}).flatMap(([name, p]) => paramVars(name, p)));
+  for (const [id, q] of Object.entries(out.queries ?? {})) {
+    const missing = sqlVars(q.sql).filter((n) => !provided.has(n));
+    if (missing.length) problems.push({ severity: "error", message: `query "${id}" uses ${missing.map((n) => `$${n}`).join(", ")}, which no param provides`, hint: "add a param with addParam (range gives $name_min/$name_max, daterange $name_from/$name_to) or remove the variable" });
+  }
+  for (const [name, p] of Object.entries(out.params ?? {})) {
+    if (p.type === "select" && !Array.isArray(p.options) && !known.has(p.options.query)) problems.push({ severity: "error", message: `param "${name}" reads options from query "${p.options.query}", which this view doesn't define`, hint: "add the query with addQuery" });
+  }
+
   if (out.summary) {
     const bad = placeholderProblem(out.summary);
     if (bad) problems.push({ severity: "error", message: `summary: ${bad}`, hint: "add the query with addQuery or remove the placeholder" });
@@ -53,6 +62,8 @@ export function validateView(view: View, ctx: ViewValidateCtx): ViewValidation {
         return fail(`${item.c.type}: ${issue?.path.join(".") || "(root)"}: ${issue?.message ?? "invalid"}`, `see the "${item.c.type}" example in the genui skill`);
       }
       const c = parsed.data as ViewItem["c"];
+      const semantic = def.check?.(c);
+      if (semantic) return fail(`${c.type}: ${semantic}`, `see the "${c.type}" example in the genui skill`);
       const bound = def.dataBound?.(c) ?? [];
       const missing = bound.find((q) => !known.has(q));
       if (missing) return fail(`reads query "${missing}", which this view doesn't define`, "add it with addQuery (or in the view's queries)");

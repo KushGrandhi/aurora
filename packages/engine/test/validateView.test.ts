@@ -84,3 +84,26 @@ test("d_ ids are allowed in views", () => {
   const r = validateView(view([{ id: "d_total", c: { type: "kpi", query: "total", field: "v", label: "Total" } }]), ctx());
   expect(r.problems).toEqual([]);
 });
+
+test("query with unknown $var is an error", () => {
+  const r = validateView({ v: 2, id: "v", title: "T", queries: { f: { sql: "SELECT sum(revenue) AS v FROM data WHERE region = $region" } }, sections: [] }, { queryRows: new Map(), querySql: new Map() });
+  expect(r.problems).toHaveLength(1);
+  expect(r.problems[0].itemId).toBeUndefined();
+  expect(r.problems[0].message).toContain("f");
+  expect(r.problems[0].message).toContain("$region");
+  const ok = validateView({ v: 2, id: "v", title: "T", params: { region: { type: "select", label: "Region", options: ["East"] } }, queries: { f: { sql: "SELECT sum(revenue) AS v FROM data WHERE region = $region" } }, sections: [] }, { queryRows: new Map(), querySql: new Map() });
+  expect(ok.problems).toEqual([]);
+});
+
+test("component check failure is invalid", () => {
+  const r = validateView(view([{ id: "a", c: { type: "architecture", nodes: [{ id: "x", label: "X" }], edges: [{ from: "x", to: "ghost" }] } }]), ctx());
+  expect(r.invalid.has("a")).toBe(true);
+  expect(r.problems[0]).toMatchObject({ itemId: "a", severity: "error" });
+  expect(r.problems[0].message).toContain("ghost");
+});
+
+test("param options query must exist", () => {
+  const r = validateView(view([], { params: { region: { type: "select", label: "Region", options: { query: "regions", field: "region" } } } }), ctx());
+  expect(r.problems).toHaveLength(1);
+  expect(r.problems[0].message).toContain("regions");
+});

@@ -9,3 +9,4 @@ export * from "./registry.ts";
 export * from "./components/index.ts";
 export * from "./view.ts";
 export * from "./ops.ts";
+export * from "./params.ts";

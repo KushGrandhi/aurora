@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { IdSchema, QuerySchema } from "./base.ts";
+import { ParamSchema } from "./params.ts";
 import type { Spec } from "./spec.ts";
 
 export const DataInputJsonSchema = z.union([
@@ -32,6 +33,7 @@ export const ViewSchema = z.object({
   summary: z.string().optional(),
   datasets: z.record(IdSchema, DataInputJsonSchema).optional(),
   queries: z.record(IdSchema, QuerySchema).optional(),
+  params: z.record(IdSchema, ParamSchema).optional(),
   sections: z.array(SectionSchema),
 });
 export type View = z.infer<typeof ViewSchema>;

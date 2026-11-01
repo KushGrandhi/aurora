@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { IdSchema } from "./base.ts";
+import { ParamSchema } from "./params.ts";
 import type { Problem } from "./problems.ts";
 import { DataInputJsonSchema, SectionSchema, ViewItemSchema, type Section, type View, type ViewItem } from "./view.ts";
 
@@ -21,6 +22,8 @@ export const PatchOpSchema = z.discriminatedUnion("op", [
   z.object({ op: z.literal("move"), id: IdSchema, section: IdSchema, after: After }),
   z.object({ op: z.literal("addQuery"), id: IdSchema, sql: z.string().min(1) }),
   z.object({ op: z.literal("addDataset"), name: IdSchema, input: DataInputJsonSchema }),
+  z.object({ op: z.literal("addParam"), name: IdSchema, param: ParamSchema }),
+  z.object({ op: z.literal("removeParam"), name: IdSchema }),
 ]);
 export type PatchOp = z.infer<typeof PatchOpSchema>;
 
@@ -159,6 +162,15 @@ export function applyOps(view: View, ops: PatchOp[]): ApplyResult {
           case "addDataset":
             v.datasets = { ...v.datasets, [op.name]: structuredClone(op.input) };
             break;
+          case "addParam":
+            v.params = { ...v.params, [op.name]: structuredClone(op.param) };
+            break;
+          case "removeParam": {
+            if (!v.params || !(op.name in v.params)) throw new OpError(`no param "${op.name}"`);
+            const { [op.name]: _gone, ...rest } = v.params;
+            v.params = rest;
+            break;
+          }
         }
       } catch (e) {
         if (e instanceof OpError) throw new OpError(`op ${n + 1} (${op.op}): ${e.message}`, "id" in op ? op.id : "item" in op ? op.item.id : undefined);

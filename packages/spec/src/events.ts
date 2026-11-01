@@ -31,11 +31,14 @@ export type ViewEvent =
   | { t: "result"; viewId: string; queryId: string; result: QueryResult }
   | { t: "problems"; viewId: string; version: number; problems: Problem[] }
   | { t: "activity"; viewId: string; text: string }
-  | { t: "list"; views: ListEntry[] };
+  | { t: "list"; views: ListEntry[] }
+  | { t: "params"; viewId: string; values: Record<string, unknown>; options: Record<string, string[]> } // values by param name
+  | { t: "media"; viewId: string; urls: Record<string, string> };
 
 /** Screen → server. */
 export type ScreenMessage =
   | { t: "rendered"; viewId: string; version: number; ok: string[]; failed: { itemId: string; message: string }[] }
   | { t: "pick"; viewId: string; version: number }
   | { t: "sync"; viewId: string }
-  | { t: "revertItem"; viewId: string; itemId: string; version: number };
+  | { t: "revertItem"; viewId: string; itemId: string; version: number }
+  | { t: "param"; viewId: string; name: string; value: unknown };

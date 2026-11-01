@@ -60,3 +60,7 @@ test("explainQuery reports bad column", async () => {
   expect(bad.ok).toBe(false);
   expect(await explainQuery(db, "SELECT region FROM data")).toEqual({ ok: true });
 });
+
+test("explainQuery binds params", async () => {
+  expect(await explainQuery(db, "SELECT sum(revenue) AS v FROM data WHERE region = $region", { region: "East", unused: 1 })).toEqual({ ok: true });
+});
