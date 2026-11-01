@@ -1,0 +1,17 @@
+{
+  "name": "@genui/server",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": "./src/server.ts",
+  "bin": {
+    "genui": "./src/cli.ts"
+  },
+  "dependencies": {
+    "@genui/engine": "*",
+    "@genui/spec": "*",
+    "ws": "^8.22.1"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.2"
+  }
+}
