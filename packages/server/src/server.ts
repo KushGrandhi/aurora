@@ -202,6 +202,12 @@ export async function startServer(opts: ServerOpts) {
       const viewId = startCompose(b.data, b.intent);
       return [202, { renderId: viewId, url: intake.url(viewId) }];
     }
+    const vm = p.match(/^\/api\/views\/([A-Za-z_]\w*)\/versions\/(\d+)$/);
+    if (vm && method === "GET") {
+      const e = store.get(vm[1], Number(vm[2]));
+      if (!e) throw new HttpError(404, `view "${vm[1]}" has no version ${vm[2]}`);
+      return [200, e];
+    }
     const m = p.match(/^\/api\/views\/([A-Za-z_]\w*)(?:\/(patch|status|history|pick|revert))?$/);
     if (m) {
       const [, id, action] = m;

@@ -10,7 +10,7 @@ export function packRows(items: Item[]): Item[] {
     let j = i;
     while (j < out.length && out[j].c.type === "kpi") j++;
     const n = j - i;
-    if (n > 0) {
+    if (n > 1) {
       const perRow = Math.min(n, 4);
       for (let k = i; k < j; k++) out[k].span = GRID / perRow === Math.floor(GRID / perRow) ? GRID / perRow : 3;
     }

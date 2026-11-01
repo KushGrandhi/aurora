@@ -1,4 +1,6 @@
 import { defineConfig } from "@playwright/test";
+import { tmpdir } from "node:os";
+import path from "node:path";
 
 const PORT = 4398;
 export default defineConfig({
@@ -8,7 +10,7 @@ export default defineConfig({
   webServer: {
     command: "npx vite build && cd ../.. && npx tsx packages/server/src/cli.ts serve",
     url: `http://localhost:${PORT}/api/health`,
-    env: { GENUI_PORT: String(PORT), GENUI_FAKE_PROVIDER: "1", GENUI_NO_OPEN: "1" },
+    env: { GENUI_PORT: String(PORT), GENUI_FAKE_PROVIDER: "1", GENUI_NO_OPEN: "1", GENUI_VIEWS_DIR: path.join(tmpdir(), `genui-e2e-${Date.now()}`) },
     reuseExistingServer: false,
     timeout: 60_000,
   },

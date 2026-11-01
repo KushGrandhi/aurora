@@ -1,7 +1,9 @@
-import type { RenderEvent } from "@genui/spec";
+import type { ScreenMessage, ViewEvent } from "@genui/spec";
 
-/** Connect to the server's event stream, reconnecting with backoff. Returns a disconnect function. */
-export function connect(onEvent: (e: RenderEvent) => void, onStatus: (up: boolean) => void): () => void {
+export type Conn = { send(m: ScreenMessage): void; close(): void };
+
+/** Connect to the server's event stream, reconnecting with backoff. */
+export function connect(onEvent: (e: ViewEvent) => void, onStatus: (up: boolean) => void): Conn {
   let ws: WebSocket | undefined;
   let stopped = false;
   let delay = 250;
@@ -16,5 +18,8 @@ export function connect(onEvent: (e: RenderEvent) => void, onStatus: (up: boolea
     };
   };
   open();
-  return () => { stopped = true; ws?.close(); };
+  return {
+    send: (m) => { if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(m)); },
+    close: () => { stopped = true; ws?.close(); },
+  };
 }

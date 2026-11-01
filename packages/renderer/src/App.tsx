@@ -1,17 +1,17 @@
-import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
-import { flushSync } from "react-dom";
-import type { RenderEvent } from "@genui/spec";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ScreenMessage, View, ViewEvent, ViewItem } from "@genui/spec";
 import { fillPlaceholders } from "./format.ts";
-import { Grid } from "./components/Grid.tsx";
-import { reduce, type RenderState } from "./store.ts";
+import { Section } from "./components/Section.tsx";
+import { VersionStrip } from "./components/VersionStrip.tsx";
+import type { RenderCtx } from "./registry.tsx";
+import { emptyState, reduce, type State } from "./store.ts";
 import type { Mode } from "./theme.ts";
-import { connect } from "./ws.ts";
+import { connect, type Conn } from "./ws.ts";
 
-const ago = (t: number) => {
-  const s = Math.round((Date.now() - t) / 1000);
-  return s < 60 ? "just now" : s < 3600 ? `${Math.round(s / 60)} min ago` : new Date(t).toLocaleTimeString();
+const ago = (at: string) => {
+  const s = Math.round((Date.now() - Date.parse(at)) / 1000);
+  return s < 60 ? "just now" : s < 3600 ? `${Math.round(s / 60)} min ago` : new Date(at).toLocaleTimeString();
 };
-const secs = (ms?: number) => (ms === undefined ? "" : ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} s`);
 
 function useMode(): [Mode, () => void] {
   const media = matchMedia("(prefers-color-scheme: dark)");
@@ -33,50 +33,97 @@ function useMode(): [Mode, () => void] {
   return [mode, toggle];
 }
 
-function statusText(r: RenderState, provider: string): string {
-  if (r.done) return r.cached ? `Ready instantly from cache` : `Composed in ${secs(r.timings?.total)}`;
-  const panels = r.items.filter((i) => !i.id.startsWith("d_")).length;
-  if (panels > 0) return `Composing with ${provider} · ${panels} panel${panels === 1 ? "" : "s"} so far`;
-  if (r.items.length > 0) return `Composing a view with ${provider}…`;
-  return "Reading and profiling your data…";
+/** Collects per-item render reports and sends one `rendered` message per view version (debounced). */
+function useReports(send: (m: ScreenMessage) => void) {
+  const pending = useRef(new Map<string, { version: number; ok: Set<string>; failed: Map<string, string>; timer?: number }>());
+  return useCallback((viewId: string, version: number, itemId: string, ok: boolean, message?: string) => {
+    let p = pending.current.get(viewId);
+    if (!p || p.version !== version) {
+      if (p?.timer) clearTimeout(p.timer);
+      p = { version, ok: new Set(), failed: new Map() };
+      pending.current.set(viewId, p);
+    }
+    if (ok && !p.failed.has(itemId)) p.ok.add(itemId);
+    else if (!ok) {
+      p.ok.delete(itemId);
+      p.failed.set(itemId, message ?? "failed");
+    }
+    const q = p;
+    if (q.timer) clearTimeout(q.timer);
+    q.timer = window.setTimeout(() => {
+      send({ t: "rendered", viewId, version: q.version, ok: [...q.ok], failed: [...q.failed].map(([itemId, message]) => ({ itemId, message })) });
+    }, 100);
+  }, [send]);
 }
 
 export function App() {
-  const [renders, rawDispatch] = useReducer(reduce, {} as Record<string, RenderState>);
+  const [state, setState] = useState<State>(emptyState);
+  const stateRef = useRef(state);
+  const conn = useRef<Conn>();
   const [up, setUp] = useState(false);
   const [picked, setPicked] = useState<string | undefined>(() => location.hash.slice(1) || undefined);
-  const [provider, setProvider] = useState("the model");
+  const [preview, setPreview] = useState<{ viewId: string; version: number; view: View }>();
   const [mode, toggleMode] = useMode();
 
-  // Layout-changing events morph via View Transitions; data-only events apply directly.
-  const dispatch = useCallback((e: RenderEvent) => {
-    const morph = (e.t === "item" || e.t === "default") && "startViewTransition" in document && !document.hidden;
-    if (morph) (document as unknown as { startViewTransition(cb: () => void): void }).startViewTransition(() => flushSync(() => rawDispatch(e)));
-    else rawDispatch(e);
-  }, []);
+  const send = useCallback((m: ScreenMessage) => conn.current?.send(m), []);
+  const report = useReports(send);
+  const onEvent = useCallback((e: ViewEvent) => {
+    const r = reduce(stateRef.current, e);
+    stateRef.current = r.state;
+    setState(r.state);
+    if (r.need) send(r.need);
+  }, [send]);
 
-  useEffect(() => connect(dispatch, setUp), [dispatch]);
   useEffect(() => {
-    fetch("/api/health").then((r) => r.json()).then((h) => setProvider(String(h.provider ?? "").replace(/^ollama:/, "") || "the model")).catch(() => {});
-    const onHash = () => setPicked(location.hash.slice(1) || undefined);
+    conn.current = connect(onEvent, setUp);
+    return () => conn.current?.close();
+  }, [onEvent]);
+  useEffect(() => {
+    const onHash = () => { setPicked(location.hash.slice(1) || undefined); setPreview(undefined); };
     addEventListener("hashchange", onHash);
     return () => removeEventListener("hashchange", onHash);
   }, []);
 
-  const list = useMemo(() => Object.values(renders).sort((a, b) => b.startedAt - a.startedAt), [renders]);
-  const current = (picked && renders[picked]) || list[0];
+  const list = state.list;
+  const currentId = (picked && state.views[picked] ? picked : undefined) ?? list.find((l) => state.views[l.id])?.id;
+  const live = currentId ? state.views[currentId] : undefined;
+  const showing = preview && preview.viewId === currentId ? preview : undefined;
+  const view = showing?.view ?? live?.view;
+  const version = showing?.version ?? live?.version ?? 0;
+  const results = (currentId && state.results[currentId]) || {};
+  const activity = currentId ? state.activity[currentId] : undefined;
+  const problems = showing ? [] : live?.problems ?? [];
+
+  const choosePreview = useCallback((v: number | undefined) => {
+    if (!currentId || v === undefined) return setPreview(undefined);
+    fetch(`/api/views/${encodeURIComponent(currentId)}/versions/${v}`).then((r) => r.json()).then((e) => setPreview({ viewId: currentId, version: v, view: e.view })).catch(() => {});
+  }, [currentId]);
+
+  const heroId = useMemo(() => {
+    const first = view?.sections[0];
+    if (!first || first.layout !== "grid") return undefined;
+    const k = first.items.find((i) => i.c.type === "kpi");
+    return k && (k.span ?? 12) >= 4 ? k.id : undefined;
+  }, [view]);
+  const ctxFor = useCallback((item: ViewItem, hero: boolean): RenderCtx => ({
+    results, mode, hero,
+    report: (ok, message) => { if (currentId && !showing) report(currentId, version, item.id, ok, message); },
+  }), [results, mode, currentId, version, showing, report]);
+
+  const viewProblems = problems.filter((p) => !p.itemId && p.severity !== "unverified");
+  const status = activity || (live ? `v${live.version} · ${live.source === "screen" ? "chosen on screen" : `from ${live.source}`}` : "");
 
   return (
     <div className="app">
       <aside className="side">
         <div className="brand"><span className="mark" />genui<span className={`conn${up ? " up" : ""}`} title={up ? "connected" : "reconnecting"} /></div>
-        {list.length > 0 && <h2>Renders</h2>}
+        {list.length > 0 && <h2>Views</h2>}
         <ul className="hist">
-          {list.map((r) => (
-            <li key={r.id}>
-              <button className={r === current ? "sel" : ""} onClick={() => { location.hash = r.id; setPicked(r.id); }}>
-                <div className="t">{r.title ?? "Rendering…"}</div>
-                <div className="s">{!r.done && <span className="live-dot" />}{r.done ? ago(r.startedAt) : "live"}{r.cached ? " · cached" : ""}</div>
+          {list.map((l) => (
+            <li key={l.id}>
+              <button className={l.id === currentId ? "sel" : ""} onClick={() => { location.hash = l.id; setPicked(l.id); setPreview(undefined); }}>
+                <div className="t">{l.title}</div>
+                <div className="s">{state.activity[l.id] && <span className="live-dot" />}{state.activity[l.id] ? "live" : ago(l.at)} · v{l.version}</div>
               </button>
             </li>
           ))}
@@ -85,25 +132,30 @@ export function App() {
       </aside>
       <main>
         <div className="page">
-          {!current ? (
+          {!view || !currentId ? (
             <div className="empty">
               <div><div className="big">Nothing on screen yet</div>
-              <p>Hand genui some data and a view will build itself here.</p>
-              <code>genui render data.csv --intent "what you want to see"</code></div>
+              <p>Ask your assistant to show something with genui, and it will build itself here.</p></div>
             </div>
           ) : (
             <>
-              <div className="status">{current.done ? <span className="ok" /> : <span className="spin" />}{statusText(current, provider)}</div>
-              <h1>{current.title ?? "Building your view…"}</h1>
-              {current.summary && <p className="summary">{fillPlaceholders(current.summary, current.results)}</p>}
-              <Grid items={current.items} results={current.results} mode={mode} />
-              {current.errors.length > 0 && <div className="errors">{current.errors.map((e, i) => <div key={i}>{e}</div>)}</div>}
-              {current.timings && (
-                <div className="footer">
-                  {Object.entries(current.timings).map(([k, v]) => <span key={k}>{k} {secs(v)}</span>)}
-                  {current.cached && <span>from cache</span>}
+              <div className="topbar">
+                <div className="status">{activity ? <span className="spin" /> : <span className="ok" />}{status}</div>
+                <VersionStrip viewId={currentId} version={live?.version ?? version} previewing={showing?.version} onPreview={choosePreview} />
+              </div>
+              {showing && (
+                <div className="preview-banner">
+                  <span>Viewing v{showing.version} (read-only)</span>
+                  <button className="primary" onClick={() => { send({ t: "pick", viewId: currentId, version: showing.version }); setPreview(undefined); }}>Use this version</button>
+                  <button onClick={() => setPreview(undefined)}>Back to current</button>
                 </div>
               )}
+              <h1>{view.title}</h1>
+              {view.summary && <p className="summary">{fillPlaceholders(view.summary, results)}</p>}
+              {view.sections.map((s) => (
+                <Section key={s.id} section={s} version={version} problems={problems} ctxFor={ctxFor} heroId={heroId} />
+              ))}
+              {viewProblems.length > 0 && <div className="errors">{viewProblems.map((p, i) => <div key={i}>{p.message}</div>)}</div>}
             </>
           )}
         </div>

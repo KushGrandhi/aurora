@@ -17,3 +17,6 @@ test("a row that does not fill the width is stretched", () => {
 test("full rows are untouched", () => {
   expect(spans([it("a", 8), it("b", 4)])).toEqual([8, 4]);
 });
+test("a lone KPI keeps its span beside other items", () => {
+  expect(spans([it("k", 4, "kpi"), it("c", 8)])).toEqual([4, 8]);
+});

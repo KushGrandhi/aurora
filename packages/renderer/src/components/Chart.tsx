@@ -6,7 +6,7 @@ import { prepareVegaLite } from "../vegaPrep.ts";
 
 type ChartC = Extract<Component, { type: "chart" }>;
 
-export function Chart({ c, result, mode }: { c: ChartC; result: QueryResult; mode: Mode }) {
+export function Chart({ c, result, mode, onDrawn }: { c: ChartC; result: QueryResult; mode: Mode; onDrawn?: (ok: boolean, message?: string) => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string>();
   const drawn = useRef(false);
@@ -20,12 +20,16 @@ export function Chart({ c, result, mode }: { c: ChartC; result: QueryResult; mod
         if (cancelled) return r.finalize();
         view = r;
         setError(undefined);
+        onDrawn?.(true);
         if (!drawn.current) {
           drawn.current = true;
           ref.current?.classList.add("reveal");
         }
       })
-      .catch((e) => setError(String(e?.message ?? e)));
+      .catch((e) => {
+        setError(String(e?.message ?? e));
+        onDrawn?.(false, `chart: ${String(e?.message ?? e)}`);
+      });
     return () => {
       cancelled = true;
       view?.finalize();

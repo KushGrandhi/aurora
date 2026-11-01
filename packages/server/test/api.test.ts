@@ -71,6 +71,9 @@ test("history and pick", async () => {
   expect((await (await fetch(srv.url + "/api/views/demo")).json()).view.title).toBe("Demo");
   const list = await (await fetch(srv.url + "/api/views")).json();
   expect(list[0]).toMatchObject({ id: "demo", version: 3 });
+  const v2 = await (await fetch(srv.url + "/api/views/demo/versions/2")).json();
+  expect(v2.view.title).toBe("Changed");
+  expect((await fetch(srv.url + "/api/views/demo/versions/99")).status).toBe(404);
   const rv = await send(srv.url, "/api/views/demo/revert", { itemId: "k", version: 1 });
   expect(rv.status).toBe(200);
 });

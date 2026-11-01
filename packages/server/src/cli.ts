@@ -24,7 +24,7 @@ async function serve() {
     ? createFakeProvider(fakeSalesDoc, { chunkSize: 24, delayMs: 5 })
     : providerFromConfig(cfg);
   const openBrowser = process.env.GENUI_NO_OPEN === "1" ? () => {} : undefined;
-  const srv = await startServer({ port: cfg.port, provider, staticDir: STATIC_DIR, openBrowser });
+  const srv = await startServer({ port: cfg.port, provider, staticDir: STATIC_DIR, openBrowser, viewsDir: process.env.GENUI_VIEWS_DIR || undefined });
   console.log(`genui screen: ${srv.url}  (provider ${provider.name})`);
   return srv;
 }
