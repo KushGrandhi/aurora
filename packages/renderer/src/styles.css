@@ -329,3 +329,16 @@ figcaption { font-size: 12px; color: var(--ink2); margin-top: 6px; }
   .diagram-svg .draw { animation: none; stroke-dasharray: none; stroke-dashoffset: 0; }
 }
 @keyframes dg-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* Architecture */
+.arch { display: flex; justify-content: center; overflow-x: auto; }
+.arch svg { display: block; height: auto; overflow: visible; }
+.arch-label { font-size: 13.5px; font-weight: 600; }
+.arch-note { font-size: 11.5px; }
+.arch-group-label { font-size: 11px; font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; }
+.arch-edge-label text { font-size: 11px; font-weight: 550; }
+.arch-edge path { transition: d 380ms var(--ease); }
+.arch-node { cursor: default; }
+.arch .flow { animation: arch-flow 1.2s linear infinite; }
+@keyframes arch-flow { to { stroke-dashoffset: -16; } }
+@media (prefers-reduced-motion: reduce) { .arch .flow { animation: none; } }

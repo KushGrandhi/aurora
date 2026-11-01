@@ -6,11 +6,11 @@ import { Json } from "./components/Json.tsx";
 import { Kpi } from "./components/Kpi.tsx";
 import { Text } from "./components/Text.tsx";
 
-export type Theme = { categorical: readonly string[]; sequential: readonly string[]; ink: string; ink2: string; muted: string; surface: string; hair: string };
+export type Theme = { categorical: readonly string[]; sequential: readonly string[]; ink: string; ink2: string; muted: string; surface: string; hair: string; axis: string };
 
 export function themeFor(mode: Mode): Theme {
   const t = TOKENS[mode];
-  return { categorical: t.series, sequential: t.ramp, ink: t.ink, ink2: t.ink2, muted: t.muted, surface: t.surface, hair: t.grid };
+  return { categorical: t.series, sequential: t.ramp, ink: t.ink, ink2: t.ink2, muted: t.muted, surface: t.surface, hair: t.grid, axis: t.axis };
 }
 
 export type RenderCtx = {
@@ -50,6 +50,7 @@ const entries: Record<string, Entry> = {
   media: { load: () => import("./components/Media.tsx") },
   code: { load: () => import("./components/Code.tsx"), selfReport: true },
   diagram: { load: () => import("./components/Diagram.tsx"), selfReport: true },
+  architecture: { load: () => import("./components/Architecture.tsx"), selfReport: true },
 };
 
 const cache = new Map<string, Renderer>();
