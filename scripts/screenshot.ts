@@ -8,7 +8,7 @@ const base = `http://localhost:${process.env.GENUI_PORT ?? 4317}`;
 const browser = await chromium.launch({ channel: "chrome" });
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 await page.goto(base);
-await page.locator(".dot.up").waitFor();
+await page.locator(".conn.up").waitFor();
 const res = await fetch(`${base}/api/render`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ data: path.resolve(file), intent }) });
 const { renderId } = await res.json();
 await page.goto(`${base}/#${renderId}`);

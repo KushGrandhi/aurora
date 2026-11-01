@@ -8,7 +8,7 @@ import { createPartsParser } from "./partsParser.ts";
 import { profileDatasets, type Profile } from "./profile.ts";
 import { buildPrompt, buildRepairPrompt } from "./prompt.ts";
 import { explainQuery, referencesData, runQuery } from "./sql.ts";
-import { checkProse, validatePart, type ValidateCtx } from "./validate.ts";
+import { checkProse, normalizeProse, validatePart, type ValidateCtx } from "./validate.ts";
 
 export type ComposeOpts = {
   renderId: string;
@@ -44,11 +44,12 @@ export async function compose(opts: ComposeOpts): Promise<void> {
   const execute = (queryId: string, sql: string) =>
     serial(async () => {
       try {
-        emit({ t: "result", queryId, result: await runQuery(db!, sql) });
-        return true;
+        const result = await runQuery(db!, sql);
+        emit({ t: "result", queryId, result });
+        return result.rows.length;
       } catch (e) {
         emit({ t: "queryError", queryId, message: (e as Error).message });
-        return false;
+        return false as const;
       }
     });
 
@@ -104,7 +105,7 @@ export async function compose(opts: ComposeOpts): Promise<void> {
   }
 
   async function streamComposed(profile: Profile, defaultDone: Promise<unknown>): Promise<void> {
-    const ctx: ValidateCtx = { knownQueries: new Set(), intent: opts.intent ?? "", queryLimits: new Map() };
+    const ctx: ValidateCtx = { knownQueries: new Set(), intent: opts.intent ?? "", queryLimits: new Map(), querySql: new Map(), queryRows: new Map() };
     const failed = new Set<string>();
     const held: { raw: unknown; waitingOn: string; order: number }[] = []; // items whose queries have not arrived yet
     const accepted: Part[] = [];
@@ -143,11 +144,13 @@ export async function compose(opts: ComposeOpts): Promise<void> {
     };
 
     const acceptQuery = async (id: string, sql: string) => {
-      const ok = await execute(id, sql);
-      if (!ok) {
+      const rows = await execute(id, sql);
+      if (rows === false) {
         failed.add(id);
       } else {
         ctx.knownQueries.add(id);
+        ctx.querySql!.set(id, sql);
+        ctx.queryRows!.set(id, rows);
         const lim = sql.match(/\bLIMIT\s+(\d+)/i);
         if (lim) ctx.queryLimits.set(id, Number(lim[1]));
         accepted.push({ kind: "query", id, sql });
@@ -221,7 +224,7 @@ export async function compose(opts: ComposeOpts): Promise<void> {
 
     if (summary !== undefined) {
       const invalid = !validatePart({ kind: "item", item: { id: "s", span: 12, c: { type: "text", md: summary } } }, ctx).ok;
-      if (invalid || checkProse(summary, ctx)) summary = undefined;
+      summary = invalid || checkProse(summary, ctx) ? undefined : normalizeProse(summary, ctx);
     }
     emit({ t: "meta", title: title || defaultSpec(profile).title, summary });
 

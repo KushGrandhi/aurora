@@ -56,3 +56,10 @@ test("default spec validates and its queries run", async () => {
     await db.close();
   }
 });
+
+test("default spec uses human titles", async () => {
+  const s = defaultSpec(await profileFixture(fx("sales.csv")));
+  const titles = s.layout.items.flatMap((i) => (i.c.type === "chart" ? [String(i.c.vegaLite.title)] : []));
+  expect(titles).toContain("Revenue by month");
+  expect(titles).toContain("Distribution of units");
+});

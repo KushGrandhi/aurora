@@ -145,3 +145,22 @@ test("rejects reserved d_ ids from the model", () => {
   expect(validatePart({ kind: "query", id: "d_data_table", sql: "SELECT 1" }, ctx()).ok).toBe(false);
   expect(validatePart({ kind: "item", item: { id: "d_x", span: 3, c: { type: "kpi", query: "t", field: "v", label: "L" } } }, ctx()).ok).toBe(false);
 });
+
+// Single-row rule: headline numbers and placeholders must read a one-row query
+test("kpi on a multi-row query is not shown", async () => {
+  const grouped = q("by_region", "SELECT region, sum(revenue) AS total_revenue FROM data GROUP BY 1");
+  const ev = await run({ title: "T", parts: [grouped, kpi("k_bad", "by_region")] });
+  expect(composed(ev)).toEqual([]);
+});
+test("prose placeholder on a multi-row query is not shown", async () => {
+  const grouped = q("by_region", "SELECT region, sum(revenue) AS total_revenue FROM data GROUP BY 1");
+  const text = { kind: "item", item: { id: "t1", span: 12, c: { type: "text", md: "Total {by_region.total_revenue|currency}" } } };
+  const ev = await run({ title: "T", parts: [grouped, text], summary: "Total {by_region.total_revenue|currency}" });
+  expect(composed(ev)).toEqual([]);
+  expect((ev.filter((e) => e.t === "meta").at(-1) as any).summary).toBeUndefined();
+});
+test("kpi on a LIMIT 1 ranking query is shown", async () => {
+  const top = q("top", "SELECT region, sum(revenue) AS region_revenue FROM data GROUP BY 1 ORDER BY 2 DESC LIMIT 1");
+  const ev = await run({ title: "T", parts: [top, { kind: "item", item: { id: "k1", span: 3, c: { type: "kpi", query: "top", field: "region_revenue", label: "Top region" } } }] });
+  expect(composed(ev).map((i) => i.id)).toEqual(["k1"]);
+});

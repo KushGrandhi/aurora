@@ -15,9 +15,25 @@ export function parsePlaceholders(text: string): PlaceholderRef[] {
   return refs;
 }
 
+const SIZE_FACTOR: Partial<Record<Format, number>> = { bytes: 1, kilobytes: 1e3, megabytes: 1e6, gigabytes: 1e9 };
+const SIZE_UNITS = ["B", "KB", "MB", "GB", "TB", "PB"];
+
+function humanBytes(bytes: number): string {
+  let i = 0;
+  let v = Math.abs(bytes);
+  while (v >= 1000 && i < SIZE_UNITS.length - 1) {
+    v /= 1000;
+    i++;
+  }
+  const n = new Intl.NumberFormat("en-US", { maximumFractionDigits: v < 100 ? 1 : 0 }).format(v);
+  return `${bytes < 0 ? "−" : ""}${n} ${SIZE_UNITS[i]}`;
+}
+
 export function formatValue(v: unknown, format?: Format): string {
   if (v === null || v === undefined) return "—";
   const n = typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" && !isNaN(Number(v)) ? Number(v) : NaN;
+  const factor = format ? SIZE_FACTOR[format] : undefined;
+  if (factor !== undefined) return isNaN(n) ? String(v) : humanBytes(n * factor);
   switch (format) {
     case "date": {
       const d = new Date(v as string);

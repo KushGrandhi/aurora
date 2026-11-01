@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const FORMATS = ["number", "integer", "percent", "currency", "date", "compact", "delta"] as const;
+export const FORMATS = ["number", "integer", "percent", "currency", "date", "compact", "delta", "bytes", "kilobytes", "megabytes", "gigabytes"] as const;
 export const FormatSchema = z.enum(FORMATS);
 export type Format = z.infer<typeof FormatSchema>;
 
@@ -25,6 +25,7 @@ export const ChartSchema = z.object({
 export const TableSchema = z.object({
   type: z.literal("table"),
   query: Id,
+  title: z.string().optional(),
   columns: z.array(z.string()).optional(),
 });
 export const TextMdSchema = z.object({ type: z.literal("text"), md: z.string() });

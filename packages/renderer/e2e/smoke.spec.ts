@@ -6,7 +6,7 @@ const sales = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../
 
 test("renders default then composed view for sales.csv", async ({ page, request }) => {
   await page.goto("/");
-  await expect(page.locator(".dot.up")).toBeVisible();
+  await expect(page.locator(".conn.up")).toBeVisible();
   const res = await request.post("/api/render", { data: { data: sales, intent: "revenue" } });
   expect(res.status()).toBe(202);
 

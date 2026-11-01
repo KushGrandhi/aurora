@@ -1,4 +1,4 @@
-import type { Item, Spec } from "@genui/spec";
+import { humanizeField as human, type Item, type Spec } from "@genui/spec";
 import { isNumericType, isTemporalType, type DatasetProfile, type Profile } from "./profile.ts";
 import { quoteIdent as q } from "./sql.ts";
 
@@ -44,14 +44,14 @@ function datasetItems(d: DatasetProfile, multi: boolean, spec: Spec): Item[] {
     const unit = rangeDays(temporal.min, temporal.max) > 90 ? "month" : "day";
     const qid = add("trend", `SELECT date_trunc('${unit}', ${q(temporal.name)}) AS x, sum(${q(num.name)}) AS y FROM ${t} GROUP BY 1 ORDER BY 1`);
     items.push({ id: id("trend"), span: 9, c: { type: "chart", query: qid, vegaLite: {
-      title: `${num.name} by ${unit}`, mark: { type: "line", point: true },
-      encoding: { x: { field: "x", type: "temporal", title: temporal.name }, y: { field: "y", type: "quantitative", title: `sum of ${num.name}` } },
+      title: `${human(num.name)} by ${unit}`, mark: { type: "line", point: true },
+      encoding: { x: { field: "x", type: "temporal", title: null }, y: { field: "y", type: "quantitative", title: human(num.name, true) } },
     } } });
   } else if (category) {
     const qid = add("cats", `SELECT ${q(category.name)} AS x, count(*) AS y FROM ${t} GROUP BY 1 ORDER BY 2 DESC LIMIT 20`);
     items.push({ id: id("cats"), span: 9, c: { type: "chart", query: qid, vegaLite: {
-      title: `Rows by ${category.name}`, mark: "bar",
-      encoding: { y: { field: "x", type: "nominal", sort: "-x", title: category.name }, x: { field: "y", type: "quantitative", title: "rows" } },
+      title: `Rows by ${human(category.name).toLowerCase()}`, mark: "bar",
+      encoding: { y: { field: "x", type: "nominal", sort: "-x", title: null }, x: { field: "y", type: "quantitative", title: "Rows", axis: { tickMinStep: 1 } } },
     } } });
   }
 
@@ -59,8 +59,8 @@ function datasetItems(d: DatasetProfile, multi: boolean, spec: Spec): Item[] {
   if (hist) {
     const qid = add("hist", `SELECT ${q(hist.name)} AS v FROM ${t} WHERE ${q(hist.name)} IS NOT NULL`);
     items.push({ id: id("hist"), span: 6, c: { type: "chart", query: qid, vegaLite: {
-      title: `Distribution of ${hist.name}`, mark: "bar",
-      encoding: { x: { field: "v", bin: true, type: "quantitative", title: hist.name }, y: { aggregate: "count", type: "quantitative" } },
+      title: `Distribution of ${human(hist.name).toLowerCase()}`, mark: "bar",
+      encoding: { x: { field: "v", bin: true, type: "quantitative", title: human(hist.name, true) }, y: { aggregate: "count", type: "quantitative", title: "Count" } },
     } } });
   }
 

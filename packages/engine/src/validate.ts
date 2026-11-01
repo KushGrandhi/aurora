@@ -1,6 +1,39 @@
-import { itemQueries, parsePlaceholders, PartSchema, PLACEHOLDER_RE, type Part } from "@genui/spec";
+import { inferFormat, isSizeFormat, itemQueries, parsePlaceholders, PartSchema, PLACEHOLDER_RE, type Format, type Part } from "@genui/spec";
 
-export type ValidateCtx = { knownQueries: Set<string>; intent: string; queryLimits: Map<string, number> };
+export type ValidateCtx = {
+  knownQueries: Set<string>;
+  intent: string;
+  queryLimits: Map<string, number>;
+  querySql?: Map<string, string>;
+  queryRows?: Map<string, number>; // row counts of executed queries
+};
+
+/** Format implied by the data behind `field`: its own name, else the columns in the SQL expression aliased to it. */
+function inferFromData(field: string, sql: string | undefined): Format | undefined {
+  const direct = inferFormat(field);
+  if (direct || !sql) return direct;
+  const esc = field.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const m = sql.match(new RegExp(`(?:select|,)\\s*((?:(?!\\bselect\\b)[^,])*?)\\s+as\\s+"?${esc}"?(?=\\s*(?:,|\\bfrom\\b|$))`, "is"));
+  if (!m) return undefined;
+  const found = (m[1].match(/[A-Za-z_]\w*/g) ?? []).map(inferFormat).filter((f): f is Format => !!f);
+  return found.find(isSizeFormat) ?? found.find((f) => f === "currency") ?? found[0] ?? (/\bcount\s*\(/i.test(m[1]) ? "integer" : undefined);
+}
+
+/** The model may suggest a format, but the data decides units, and money needs a money signal. */
+function fixFormat(field: string, format: Format | undefined, sql: string | undefined): Format | undefined {
+  const inferred = inferFromData(field, sql);
+  if (isSizeFormat(inferred)) return inferred;
+  if (format === "currency" && inferred !== "currency") return inferred ?? "number";
+  return format ?? inferred;
+}
+
+/** Rewrite placeholder formats in prose using fixFormat. */
+export function normalizeProse(text: string, ctx: ValidateCtx): string {
+  return text.replace(PLACEHOLDER_RE, (whole, q: string, field: string, fmt?: string) => {
+    const f = fixFormat(field, fmt as Format | undefined, ctx.querySql?.get(q));
+    return f ? `{${q}.${field}|${f}}` : whole;
+  });
+}
 export type ValidateResult = { ok: true; part: Part } | { ok: false; reason: string };
 
 const RESERVED_PREFIX = "d_"; // ids of the deterministic default view
@@ -64,6 +97,7 @@ function proseOf(part: Part): string[] {
     vegaStrings(c.vegaLite, out);
     return out.prose;
   }
+  if (c.type === "table" && c.title) return [c.title];
   return [];
 }
 
@@ -88,6 +122,12 @@ export function validatePart(raw: unknown, ctx: ValidateCtx): ValidateResult {
     const bad = checkProse(t, ctx);
     if (bad) return { ok: false, reason: bad };
   }
+  // Headline numbers read the first row, so their query must return exactly one row.
+  const singleRow = [...(c.type === "kpi" ? [c.query, ...(c.delta ? [c.delta.query] : [])] : []), ...proseOf(part).flatMap((t) => parsePlaceholders(t).map((r) => r.queryId))];
+  for (const q of singleRow) {
+    const n = ctx.queryRows?.get(q);
+    if (n !== undefined && n !== 1) return { ok: false, reason: `query '${q}' returns ${n} rows; a headline number needs a single-row aggregate (or ORDER BY … LIMIT 1)` };
+  }
   if (c.type === "chart") {
     const out = { prose: [] as string[], exprs: [] as string[], numericValue: false };
     vegaStrings(c.vegaLite, out);
@@ -96,6 +136,13 @@ export function validatePart(raw: unknown, ctx: ValidateCtx): ValidateResult {
       const bad = checkProse(e, ctx);
       if (bad) return { ok: false, reason: `${bad} (chart expression)` };
     }
+  }
+  if (c.type === "kpi") {
+    const format = fixFormat(c.field, c.format, ctx.querySql?.get(c.query));
+    const { format: _drop, ...rest } = c;
+    part = { ...part, item: { ...part.item, c: format ? { ...rest, format } : rest } };
+  } else if (c.type === "text" && "md" in c) {
+    part = { ...part, item: { ...part.item, c: { ...c, md: normalizeProse(c.md, ctx) } } };
   }
   return { ok: true, part };
 }
