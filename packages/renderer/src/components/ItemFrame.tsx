@@ -4,13 +4,17 @@ import { getComponent, parsePlaceholders, type Problem, type ViewItem } from "@g
 import { rendererFor, type RenderCtx } from "../registry.tsx";
 import { FallbackCard } from "./FallbackCard.tsx";
 
-class Boundary extends ReactComponent<{ onError(message: string): void; children: ReactNode }, { error?: string }> {
+/** Catches a component's crash. A new `resetKey` (the item changed) clears the error without remounting healthy components. */
+class Boundary extends ReactComponent<{ resetKey: number; onError(message: string): void; children: ReactNode }, { error?: string }> {
   state: { error?: string } = {};
   static getDerivedStateFromError(e: unknown) {
     return { error: String((e as Error)?.message ?? e) };
   }
   componentDidCatch(e: unknown) {
     this.props.onError(String((e as Error)?.message ?? e));
+  }
+  componentDidUpdate(prev: { resetKey: number }) {
+    if (prev.resetKey !== this.props.resetKey && this.state.error) this.setState({ error: undefined });
   }
   render() {
     return this.state.error ? <FallbackCard reason={this.state.error} /> : this.props.children;
@@ -32,16 +36,17 @@ export function ItemFrame({ item, version, changedAt = 0, ctx, problem, showTitl
   const R = rendererFor(item.c.type);
   const ready = useMemo(() => needs(item).every((q) => ctx.results[q]), [item, ctx.results]);
   const reason = problem?.message ?? (R ? undefined : `no renderer for "${item.c.type}" on this screen`);
-  // A self-reporting component that wasn't redrawn for this version (its content didn't change) won't report again:
-  // remember its last word and repeat it for each new version.
-  const last = useRef<{ at: number; ok: boolean; message?: string }>();
+  // A self-reporting component whose content didn't change for this version won't redraw or report again:
+  // remember its last word (and the content it was about) and repeat it for each new version.
+  const cJson = useMemo(() => JSON.stringify(item.c), [item.c]);
+  const last = useRef<{ c: string; ok: boolean; message?: string }>();
   const selfCtx = useMemo<RenderCtx>(() => ({
     ...ctx,
     report: (ok, message) => {
-      last.current = { at: changedAt, ok, message };
+      last.current = { c: cJson, ok, message };
       ctx.report(ok, message);
     },
-  }), [ctx, changedAt]);
+  }), [ctx, cJson]);
 
   // Report once per version: shown fallbacks count as rendered (the caller already has the problem); self-reporting
   // components report when their engine finishes.
@@ -49,13 +54,13 @@ export function ItemFrame({ item, version, changedAt = 0, ctx, problem, showTitl
     if (problem) ctx.report(true);
     else if (!R) ctx.report(false, reason);
     else if (ready && !R.selfReport) ctx.report(true);
-    else if (ready && last.current?.at === changedAt) ctx.report(last.current.ok, last.current.message);
+    else if (ready && last.current?.c === cJson) ctx.report(last.current.ok, last.current.message);
   }, [version, ready, problem?.message, R]);
 
   let body: ReactNode;
   if (reason) body = <FallbackCard reason={reason} />;
   else if (!ready) body = <div className="skeleton" />;
-  else if (R) body = <Boundary key={changedAt} onError={(m) => ctx.report(false, m)}><Suspense fallback={<div className="skeleton" />}><R c={item.c} ctx={selfCtx} /></Suspense></Boundary>;
+  else if (R) body = <Boundary resetKey={changedAt} onError={(m) => ctx.report(false, m)}><Suspense fallback={<div className="skeleton" />}><R c={item.c} ctx={selfCtx} /></Suspense></Boundary>;
   // A different component type (a `replace`) crossfades; the card around it morphs size via its layout animation.
   const face = reason ? "fallback" : ready ? item.c.type : "loading";
   return (
