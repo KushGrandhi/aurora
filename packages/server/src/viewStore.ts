@@ -6,7 +6,8 @@ import { applyOps, type PatchOp, type Problem, type View } from "@genui/spec";
 export type VersionSource = "caller" | "file" | "screen" | "compose";
 export type VersionEntry = { version: number; at: string; source: VersionSource; note?: string; view: View };
 export type PatchOutcome = { entry: VersionEntry; changed: string[]; rebased: boolean } | { problem: Problem };
-export type ListEntry = { id: string; title: string; version: number; at: string };
+import type { ListEntry } from "@genui/spec";
+export type { ListEntry };
 
 const SAFE_ID = /^[A-Za-z_]\w*$/;
 export const defaultViewsDir = () => path.join(homedir(), ".genui", "views");
@@ -87,19 +88,26 @@ export class ViewStore {
 
   revertItem(viewId: string, itemId: string, version: number): Promise<VersionEntry | { problem: Problem }> {
     return this.serial(viewId, async () => {
-      const cur = this.current(viewId);
-      const old = this.get(viewId, version);
-      if (!cur || !old) return { problem: { severity: "error", message: `view "${viewId}" has no version ${version}` } };
-      const was = old.view.sections.flatMap((s) => s.items).find((i) => i.id === itemId);
-      if (!was) return { problem: { itemId, severity: "error", message: `item "${itemId}" is not in v${version}` } };
-      const exists = cur.view.sections.some((s) => s.items.some((i) => i.id === itemId));
-      const home = old.view.sections.find((s) => s.items.some((i) => i.id === itemId))!.id;
-      const target = cur.view.sections.some((s) => s.id === home) ? home : cur.view.sections[0]?.id;
-      if (!exists && !target) return { problem: { itemId, severity: "error", message: "the current view has no section to restore the item into" } };
-      const r = applyOps(cur.view, exists ? [{ op: "replace", id: itemId, item: was }] : [{ op: "add", section: target!, item: was }]);
+      const ops = this.revertOps(viewId, itemId, version);
+      if ("problem" in ops) return ops;
+      const r = applyOps(this.current(viewId)!.view, ops);
       if (!r.ok) return { problem: r.problem };
       return this.append(viewId, r.view, "screen", `reverted ${itemId} to v${version}`);
     });
+  }
+
+  /** The ops that put one item back the way it was in an older version (replace it, or re-add it where it lived). */
+  revertOps(viewId: string, itemId: string, version: number): PatchOp[] | { problem: Problem } {
+    const cur = this.current(viewId);
+    const old = this.get(viewId, version);
+    if (!cur || !old) return { problem: { severity: "error", message: `view "${viewId}" has no version ${version}` } };
+    const home = old.view.sections.find((s) => s.items.some((i) => i.id === itemId));
+    if (!home) return { problem: { itemId, severity: "error", message: `item "${itemId}" is not in v${version}` } };
+    const was = home.items.find((i) => i.id === itemId)!;
+    if (cur.view.sections.some((s) => s.items.some((i) => i.id === itemId))) return [{ op: "replace", id: itemId, item: was }];
+    const target = cur.view.sections.some((s) => s.id === home.id) ? home.id : cur.view.sections[0]?.id;
+    if (!target) return { problem: { itemId, severity: "error", message: "the current view has no section to restore the item into" } };
+    return [{ op: "add", section: target, item: was }];
   }
 
   /** Retention: a view survives if it is among the `keep` most recent or younger than maxAgeDays. */

@@ -45,7 +45,7 @@ export async function compose(opts: ComposeOpts): Promise<void> {
     serial(async () => {
       try {
         const result = await runQuery(db!, sql);
-        emit({ t: "result", queryId, result });
+        emit({ t: "result", queryId, result, sql });
         return result.rows.length;
       } catch (e) {
         emit({ t: "queryError", queryId, message: (e as Error).message });
