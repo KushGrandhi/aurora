@@ -36,3 +36,16 @@ test("ollama unreachable", async () => {
   const p = createOllamaProvider({ url: "http://h:1", model: "m", fetch: fakeFetch });
   await expect(collect(p.stream(req))).rejects.toThrow("ollama unreachable at http://h:1");
 });
+
+test("strips unsupported pattern keywords from the format schema", async () => {
+  let body: any;
+  const fakeFetch = (async (_u: string, init: RequestInit) => {
+    body = JSON.parse(String(init.body));
+    return new Response(streamOf([JSON.stringify({ message: { content: "{}" }, done: true }) + "\n"]), { status: 200 });
+  }) as typeof fetch;
+  const p = createOllamaProvider({ url: "http://h:1", model: "m", fetch: fakeFetch });
+  const schema = { $schema: "x", type: "object", properties: { id: { type: "string", pattern: "^\\w+$" }, n: { type: "array", items: { type: "string", pattern: "a" } } } };
+  await collect(p.stream({ ...req, schema }));
+  expect(body.format).toEqual({ type: "object", properties: { id: { type: "string" }, n: { type: "array", items: { type: "string" } } } });
+  expect(schema.properties.id.pattern).toBe("^\\w+$");
+});

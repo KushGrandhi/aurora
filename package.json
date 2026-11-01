@@ -10,6 +10,7 @@
     "genui": "tsx packages/server/src/cli.ts"
   },
   "devDependencies": {
+    "@duckdb/node-api": "^2.0.0-r.1",
     "@types/node": "^26.6.6",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
