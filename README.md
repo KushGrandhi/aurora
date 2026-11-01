@@ -9,9 +9,9 @@ Design: `docs/specs/2026-10-31-aurora-canvas-design.md` (Plan 2) · `docs/specs/
 ## Use it from Claude Code (or any MCP harness)
 
 ```bash
-npm install && (cd packages/renderer && npx vite build)
+npm install && (cd packages/renderer && npm run build)
 claude mcp add --scope user aurora -- "$PWD/node_modules/.bin/tsx" "$PWD/packages/server/src/cli.ts" mcp
-npm run aurora -- skill        # writes ~/.claude/skills/aurora/SKILL.md, generated from the component registry
+npm run aurora -- skill        # writes the skill folder ~/.claude/skills/aurora (SKILL.md, references/, examples/)
 ```
 
 Then ask for something visual ("show an overview of projects.csv", "explain the auth flow on screen"). `aurora mcp` starts the shared server on port 4317 if it isn't running and registers the session's folder for file streaming. Tools: `render`, `patch`, `status`, `profile`, `version` (history / pick / revertItem), `variants`, `events` and `compose` (aurora's own composer, a fallback).
@@ -40,7 +40,7 @@ Requires Node 24 and the `claude` CLI logged in (the default provider composes v
 
 ```bash
 npm install
-(cd packages/renderer && npx vite build)     # build the screen once
+(cd packages/renderer && npm run build)      # build the screen and the design sandbox once
 npm run aurora -- serve                       # http://localhost:4317
 npm run aurora -- render sales.csv --intent "monthly revenue by region"
 npm run aurora -- render orders=orders.parquet docs=./notes/   # several named datasets

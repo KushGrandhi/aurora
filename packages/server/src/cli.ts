@@ -7,7 +7,7 @@ import { fakeSalesDoc } from "./fakeDoc.ts";
 import { mkdir, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { runMcp } from "./mcp.ts";
-import { generateSkill } from "./skill.ts";
+import { generateSkillFiles } from "./skill.ts";
 import { startServer } from "./server.ts";
 
 const STATIC_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../renderer/dist");
@@ -15,7 +15,7 @@ const USAGE = `usage:
   aurora serve                 start the shared server and screen
   aurora mcp                   MCP server over stdio (starts the shared server if needed; watches ./.aurora/views)
   aurora watch <dir>           stream views from <dir>/.aurora/views/*.ndjson
-  aurora skill [--out <path>]  write SKILL.md (default ~/.claude/skills/aurora/SKILL.md)
+  aurora skill [--out <dir>]   write the skill folder (default ~/.claude/skills/aurora)
   aurora gallery               show every component on the screen
   aurora render <path | name=path>... [--intent "what you want to see"]`;
 
@@ -90,10 +90,15 @@ async function gallery() {
 
 async function writeSkill(argv: string[]) {
   const i = argv.indexOf("--out");
-  const out = i >= 0 && argv[i + 1] ? path.resolve(argv[i + 1]) : path.join(homedir(), ".claude", "skills", "aurora", "SKILL.md");
-  await mkdir(path.dirname(out), { recursive: true });
-  await writeFile(out, generateSkill());
-  console.log(`wrote ${out}`);
+  // --out names the skill folder; a path ending in SKILL.md (the old form) means its folder.
+  const given = i >= 0 && argv[i + 1] ? path.resolve(argv[i + 1]) : path.join(homedir(), ".claude", "skills", "aurora");
+  const dir = path.basename(given) === "SKILL.md" ? path.dirname(given) : given;
+  for (const [rel, text] of Object.entries(generateSkillFiles())) {
+    const file = path.join(dir, rel);
+    await mkdir(path.dirname(file), { recursive: true });
+    await writeFile(file, text);
+  }
+  console.log(`wrote ${dir}`);
 }
 
 const [cmd, ...rest] = process.argv.slice(2);
