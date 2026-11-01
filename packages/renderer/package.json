@@ -12,6 +12,7 @@
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.14.24",
     "dompurify": "^3.4.17",
+    "lucide-react": "^1.66.0",
     "marked": "^18.1.2",
     "motion": "^12.43.0",
     "react": "^18.3.1",

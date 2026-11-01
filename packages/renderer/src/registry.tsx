@@ -43,6 +43,11 @@ const entries: Record<string, Entry> = {
   json: { component: JsonR },
   chart: { load: () => import("./components/Chart.tsx"), selfReport: true },
   table: { load: () => import("./components/Table.tsx") },
+  callout: { load: () => import("./components/Callout.tsx") },
+  steps: { load: () => import("./components/Steps.tsx") },
+  cards: { load: () => import("./components/Cards.tsx") },
+  timeline: { load: () => import("./components/Timeline.tsx") },
+  media: { load: () => import("./components/Media.tsx") },
 };
 
 const cache = new Map<string, Renderer>();

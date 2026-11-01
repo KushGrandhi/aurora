@@ -1,7 +1,8 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Component, Format, QueryResult } from "@genui/spec";
 import { formatValue } from "../format.ts";
 import { sparklinePath, toNumber } from "../sparkline.ts";
+import { useWidth } from "../useWidth.ts";
 
 type KpiC = Extract<Component, { type: "kpi" }>;
 
@@ -35,16 +36,7 @@ const SPARK_H = 32;
 
 /** A small trend line under the value: x sorted, no axes, the last point marked. */
 function Sparkline({ rows, x, y, color, format }: { rows: Record<string, unknown>[]; x: string; y: string; color: string; format?: Format }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [w, setW] = useState(0);
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    setW(el.clientWidth);
-    const ro = new ResizeObserver(() => setW(el.clientWidth));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+  const [ref, w] = useWidth<HTMLDivElement>();
   const pts = rows.flatMap((r) => {
     const px = toNumber(r[x]);
     const py = toNumber(r[y]);
