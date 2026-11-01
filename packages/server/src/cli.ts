@@ -4,7 +4,10 @@ import { fileURLToPath } from "node:url";
 import { createFakeProvider, type DataInput } from "@genui/engine";
 import { loadConfig, providerFromConfig } from "./config.ts";
 import { fakeSalesDoc } from "./fakeDoc.ts";
+import { mkdir, writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
 import { runMcp } from "./mcp.ts";
+import { generateSkill } from "./skill.ts";
 import { startServer } from "./server.ts";
 
 const STATIC_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../renderer/dist");
@@ -12,6 +15,7 @@ const USAGE = `usage:
   genui serve                 start the shared server and screen
   genui mcp                   MCP server over stdio (starts the shared server if needed; watches ./.genui/views)
   genui watch <dir>           stream views from <dir>/.genui/views/*.ndjson
+  genui skill [--out <path>]  write SKILL.md (default ~/.claude/skills/genui/SKILL.md)
   genui render <path | name=path>... [--intent "what you want to see"]`;
 
 async function serve() {
@@ -74,12 +78,21 @@ async function watchDir(dir: string | undefined) {
   console.log(`watching: ${body.watching.join(", ")}`);
 }
 
+async function writeSkill(argv: string[]) {
+  const i = argv.indexOf("--out");
+  const out = i >= 0 && argv[i + 1] ? path.resolve(argv[i + 1]) : path.join(homedir(), ".claude", "skills", "genui", "SKILL.md");
+  await mkdir(path.dirname(out), { recursive: true });
+  await writeFile(out, generateSkill());
+  console.log(`wrote ${out}`);
+}
+
 const [cmd, ...rest] = process.argv.slice(2);
 try {
   if (cmd === "serve") await serve();
   else if (cmd === "render") await render(rest);
   else if (cmd === "mcp") await runMcp({ baseUrl: `http://localhost:${loadConfig().port}`, cwd: process.cwd() });
   else if (cmd === "watch") await watchDir(rest[0]);
+  else if (cmd === "skill") await writeSkill(rest);
   else console.log(USAGE);
 } catch (e) {
   console.error((e as Error).message);
