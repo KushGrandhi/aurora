@@ -24,6 +24,8 @@ export const PatchOpSchema = z.discriminatedUnion("op", [
   z.object({ op: z.literal("addDataset"), name: IdSchema, input: DataInputJsonSchema }),
   z.object({ op: z.literal("addParam"), name: IdSchema, param: ParamSchema }),
   z.object({ op: z.literal("removeParam"), name: IdSchema }),
+  z.object({ op: z.literal("editFile"), id: IdSchema, path: z.string().min(1), content: z.string().optional(), edits: z.array(z.object({ find: z.string().min(1), replace: z.string() })).optional() }),
+  z.object({ op: z.literal("deleteFile"), id: IdSchema, path: z.string().min(1) }),
 ]);
 export type PatchOp = z.infer<typeof PatchOpSchema>;
 
@@ -60,6 +62,37 @@ function insert<T extends { id: string }>(list: T[], value: T, after: string | n
     if (i < 0) throw new OpError(`no "${after}" in ${where} to place after`);
     list.splice(i + 1, 0, value);
   }
+}
+
+const count = (hay: string, needle: string) => hay.split(needle).length - 1;
+
+/** File edits on a design (files) or custom (its one file, index.html) item. */
+function editFiles(c: ViewItem["c"], op: Extract<PatchOp, { op: "editFile" | "deleteFile" }>): ViewItem["c"] {
+  const isCustom = c.type === "custom";
+  if (c.type !== "design" && !isCustom) throw new OpError(`item "${op.id}" is a ${c.type}; file edits apply to design and custom items`);
+  const files: Record<string, string> = isCustom ? { "index.html": String(c.html ?? "") } : { ...(c.files as Record<string, string>) };
+  const entry = isCustom ? "index.html" : (c.entry as string | undefined) ?? (c.framework === "react" ? "App.tsx" : "index.html");
+  if (op.op === "deleteFile") {
+    if (!(op.path in files)) throw new OpError(`no file "${op.path}" in "${op.id}"`);
+    if (op.path === entry) throw new OpError(`"${op.path}" is the entry file and can't be deleted`);
+    delete files[op.path];
+  } else if (op.content !== undefined) {
+    files[op.path] = op.content;
+  } else if (op.edits) {
+    if (!(op.path in files)) throw new OpError(`no file "${op.path}" in "${op.id}"`);
+    let text = files[op.path];
+    for (const e of op.edits) {
+      const n = count(text, e.find);
+      if (n !== 1) throw new OpError(`edit in ${op.path}: find text occurs ${n} times (it must occur exactly once; include more surrounding text)`);
+      text = text.replace(e.find, () => e.replace);
+    }
+    files[op.path] = text;
+  } else throw new OpError("editFile needs content or edits");
+  if (isCustom) {
+    if (Object.keys(files).some((p) => p !== "index.html")) throw new OpError("a custom item has one file, index.html; use a design for more");
+    return { ...c, html: files["index.html"] };
+  }
+  return { ...c, files };
 }
 
 /** Applies ops atomically: every op succeeds or the original view is returned untouched with the first problem. */
@@ -162,6 +195,13 @@ export function applyOps(view: View, ops: PatchOp[]): ApplyResult {
           case "addDataset":
             v.datasets = { ...v.datasets, [op.name]: structuredClone(op.input) };
             break;
+          case "editFile":
+          case "deleteFile": {
+            const { s, i } = locate(op.id);
+            s.items[i] = { ...s.items[i], c: editFiles(s.items[i].c, op) };
+            changed.add(op.id);
+            break;
+          }
           case "addParam":
             v.params = { ...v.params, [op.name]: structuredClone(op.param) };
             break;

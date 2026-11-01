@@ -74,6 +74,8 @@ export function reduce(state: State, e: ViewEvent): { state: State; need?: Scree
       return { state: { ...state, activity: { ...state.activity, [e.viewId]: e.text } } };
     case "list":
       return { state: { ...state, list: e.views } };
+    case "variants":
+      return { state }; // shown by the variants overlay (Plan 2c Task 7)
     case "hello":
       if (state.build && state.build !== e.build) return { state, reload: true };
       return { state: { ...state, build: e.build } };

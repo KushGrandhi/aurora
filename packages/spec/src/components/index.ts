@@ -14,8 +14,9 @@ import { media } from "./media.ts";
 import { code } from "./code.ts";
 import { callout } from "./callout.ts";
 import { steps } from "./steps.ts";
+import { design, custom } from "./design.ts";
 
-for (const def of [kpi, chart, table, text, json, diagram, architecture, graph, map, timeline, cards, media, code, callout, steps] as ComponentDef[]) if (!getComponent(def.type)) registerComponent(def);
+for (const def of [kpi, chart, table, text, json, diagram, architecture, graph, map, timeline, cards, media, code, callout, steps, design, custom] as ComponentDef[]) if (!getComponent(def.type)) registerComponent(def);
 
 export * from "./kpi.ts";
 export * from "./chart.ts";
@@ -32,3 +33,4 @@ export * from "./media.ts";
 export * from "./code.ts";
 export * from "./callout.ts";
 export * from "./steps.ts";
+export * from "./design.ts";

@@ -32,6 +32,7 @@ export type ViewEvent =
   | { t: "problems"; viewId: string; version: number; problems: Problem[] }
   | { t: "activity"; viewId: string; text: string }
   | { t: "list"; views: ListEntry[] }
+  | { t: "variants"; viewId: string; baseVersion: number; variants: { label: string; view: View }[] } // [] = none pending
   | { t: "hello"; build: string } // first message on connect: the screen build the server is serving now
   | { t: "params"; viewId: string; values: Record<string, unknown>; options: Record<string, string[]> } // values by param name
   | { t: "media"; viewId: string; urls: Record<string, string> };
@@ -42,4 +43,9 @@ export type ScreenMessage =
   | { t: "pick"; viewId: string; version: number }
   | { t: "sync"; viewId: string }
   | { t: "revertItem"; viewId: string; itemId: string; version: number }
-  | { t: "param"; viewId: string; name: string; value: unknown };
+  | { t: "param"; viewId: string; name: string; value: unknown }
+  | { t: "event"; viewId: string; itemId: string; name: string; payload: unknown } // genui.send from a design
+  | { t: "pickVariant"; viewId: string; index: number };
+
+/** Something the person did on screen, kept for the caller (not versioned). */
+export type GenuiEvent = { seq: number; at: string; itemId?: string; name: string; payload: unknown };
