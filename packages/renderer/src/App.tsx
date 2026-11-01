@@ -115,6 +115,7 @@ export function App() {
   const ctxFor = useCallback((item: ViewItem, hero: boolean): RenderCtx => ({
     results, mode, theme, hero, motion: { spring: SPRING, reduced },
     media: (src) => media?.[src],
+    send: (name, payload) => { if (currentId && !showing) send({ t: "event", viewId: currentId, itemId: item.id, name, payload }); },
     report: (ok, message) => { if (currentId && !showing) report(currentId, version, item.id, ok, message); },
   }), [results, mode, theme, media, currentId, version, showing, report, reduced]);
   const params = currentId ? state.params[currentId] : undefined;

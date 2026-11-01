@@ -77,7 +77,7 @@ export const custom: ComponentDef<Custom> = {
   schema: CustomSchema,
   doc: {
     summary: "One self-contained HTML document (with inline CSS and JS) in the same sandbox as `design`: the quickest way to show something bespoke.",
-    example: { type: "custom", height: 240, html: "<div class=\"grid h-full place-items-center bg-gradient-to-br from-indigo-500 to-fuchsia-500 p-10 text-white\"><h2 class=\"text-3xl font-semibold\">Hello from custom HTML</h2></div>" },
+    example: { type: "custom", height: 240, html: "<div class=\"grid min-h-screen place-items-center bg-gradient-to-br from-indigo-500 to-fuchsia-500 p-10 text-white\"><h2 class=\"text-3xl font-semibold\">Hello from custom HTML</h2></div>" },
     guidance: `Same sandbox, bridge and libraries as \`design\` (module scripts can \`import\` ${LIBS}). Use \`design\` once it grows past one file. \`editFile\` with path \`index.html\` edits it.`,
   },
   dataBound: (c) => c.data ?? [],

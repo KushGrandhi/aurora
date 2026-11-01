@@ -21,6 +21,8 @@ export type RenderCtx = {
   motion: MotionApi;
   /** URL to load a media src from (a local file's token URL, or the URL itself); undefined while unknown. */
   media(src: string): string | undefined;
+  /** Tell the caller what the person did (genui.send from a design). */
+  send(name: string, payload: unknown): void;
   /** Tell the server whether this item drew. Components marked selfReport must call it; others are reported on mount. */
   report(ok: boolean, message?: string): void;
 };
@@ -53,6 +55,8 @@ const entries: Record<string, Entry> = {
   architecture: { load: () => import("./components/Architecture.tsx"), selfReport: true },
   graph: { load: () => import("./components/Graph.tsx"), selfReport: true },
   map: { load: () => import("./components/MapView.tsx"), selfReport: true },
+  design: { load: () => import("./components/Design.tsx"), selfReport: true },
+  custom: { load: () => import("./components/Design.tsx"), selfReport: true },
 };
 
 const cache = new Map<string, Renderer>();
