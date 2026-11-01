@@ -123,3 +123,12 @@ test("a different build after reconnecting asks for a reload", () => {
   expect(reduce(a.state, { t: "hello", build: "aaa" }).reload).toBeUndefined();
   expect(reduce(a.state, { t: "hello", build: "bbb" }).reload).toBe(true);
 });
+
+test("variants events stored and cleared", () => {
+  const v = view();
+  const a = run([{ t: "variants", viewId: "v", baseVersion: 2, variants: [{ label: "A", view: v }, { label: "B", view: v }] }]).s;
+  expect(a.variants.v.baseVersion).toBe(2);
+  expect(a.variants.v.items.map((i) => i.label)).toEqual(["A", "B"]);
+  const b = run([{ t: "variants", viewId: "v", baseVersion: 3, variants: [] }], a).s;
+  expect(b.variants.v).toBeUndefined();
+});

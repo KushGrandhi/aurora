@@ -16,9 +16,10 @@ export type State = {
   media: Record<string, Record<string, string>>; // view id → src → URL
   params: Record<string, { values: Record<string, unknown>; options: Record<string, string[]> }>;
   build?: string; // the screen build this page was loaded with (first hello)
+  variants: Record<string, { baseVersion: number; items: { label: string; view: View }[] }>; // pending alternatives per view
 };
 
-export const emptyState = (): State => ({ views: {}, results: {}, activity: {}, list: [], media: {}, params: {} });
+export const emptyState = (): State => ({ views: {}, results: {}, activity: {}, list: [], media: {}, params: {}, variants: {} });
 
 const itemsById = (v: View) => new Map(v.sections.flatMap((s) => s.items.map((i) => [i.id, JSON.stringify(i)] as const)));
 
@@ -74,8 +75,12 @@ export function reduce(state: State, e: ViewEvent): { state: State; need?: Scree
       return { state: { ...state, activity: { ...state.activity, [e.viewId]: e.text } } };
     case "list":
       return { state: { ...state, list: e.views } };
-    case "variants":
-      return { state }; // shown by the variants overlay (Plan 2c Task 7)
+    case "variants": {
+      const variants = { ...state.variants };
+      if (e.variants.length) variants[e.viewId] = { baseVersion: e.baseVersion, items: e.variants };
+      else delete variants[e.viewId];
+      return { state: { ...state, variants } };
+    }
     case "hello":
       if (state.build && state.build !== e.build) return { state, reload: true };
       return { state: { ...state, build: e.build } };

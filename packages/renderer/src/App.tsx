@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ScreenMessage, View, ViewEvent, ViewItem } from "@genui/spec";
 import { fillPlaceholders } from "./format.ts";
-import { useReducedMotion } from "motion/react";
+import { AnimatePresence, useReducedMotion } from "motion/react";
 import { Section } from "./components/Section.tsx";
 import { MotionRoot, SPRING } from "./motion.tsx";
 import { VersionStrip } from "./components/VersionStrip.tsx";
 import { FilterBar } from "./components/FilterBar.tsx";
 import { PageView } from "./components/PageView.tsx";
+import { ItemFrame } from "./components/ItemFrame.tsx";
+import { Variants } from "./components/Variants.tsx";
 import { itemProblem } from "./components/Section.tsx";
 import { themeFor, type RenderCtx } from "./registry.tsx";
 import { mergeReport, type Pending } from "./reports.ts";
@@ -64,6 +66,8 @@ export function App() {
   const [picked, setPicked] = useState<string | undefined>(() => location.hash.slice(1) || undefined);
   const [preview, setPreview] = useState<{ viewId: string; version: number; view: View }>();
   const [opened, setOpened] = useState<string>(); // design item opened as the whole screen
+  const [variantsClosed, setVariantsClosed] = useState<string>(); // key of the variants set the person dismissed
+  const [compare, setCompare] = useState<{ viewId: string; items: { label: string; view: View; version: number }[] }>();
   const [mode, toggleMode] = useMode();
   const reduced = useReducedMotion() ?? false;
 
@@ -130,6 +134,27 @@ export function App() {
   const only = allItems.length === 1 ? allItems[0] : undefined;
   const pageItem = (opened && allItems.find((i) => i.id === opened)) || (only && (only.c.type === "design" || only.c.type === "custom") && only.c.display === "page" ? only : undefined);
   useEffect(() => setOpened(undefined), [currentId]);
+
+  // Variants: caller-sent alternatives (pick one) or versions to compare (use one). Items inside never report.
+  const pending = currentId ? state.variants[currentId] : undefined;
+  const pendingKey = pending ? `${currentId}:${pending.baseVersion}:${pending.items.map((i) => i.label).join("|")}` : undefined;
+  const showVariants = !!pending && variantsClosed !== pendingKey;
+  const quietCtx = (item: ViewItem, hero: boolean): RenderCtx => ({ ...ctxFor(item, hero), report: () => {}, send: () => {}, openPage: undefined });
+  const renderVariant = (v: View, i: number) => {
+    const items = v.sections.flatMap((s) => s.items);
+    const one = items.length === 1 ? items[0] : undefined;
+    if (one && (one.c.type === "design" || one.c.type === "custom") && one.c.display === "page")
+      return { page: true, body: <div className="variant-page"><ItemFrame item={one} version={version} ctx={{ ...quietCtx(one, false), page: { viewport: "desktop" } }} showTitle={false} /></div> };
+    return { page: false, body: <div className="view-body">{v.sections.map((s) => <Section key={s.id} section={s} version={version} problems={[]} ctxFor={quietCtx} heroId={undefined} viewId={`variant${i}:${currentId}`} changed={{}} />)}</div> };
+  };
+  const openCompare = (vs: number[]) => {
+    if (!currentId) return;
+    const id = currentId;
+    Promise.all(vs.map((v) => fetch(`/api/views/${encodeURIComponent(id)}/versions/${v}`).then((r) => r.json()).then((e) => ({ label: `v${v}`, view: e.view as View, version: v }))))
+      .then((items) => setCompare({ viewId: id, items }))
+      .catch(() => {});
+  };
+  const reopen = pending && !showVariants ? <button className="variants-open" onClick={() => setVariantsClosed(undefined)}>{pending.items.length} options</button> : null;
   const status = activity || (live ? `v${live.version} · ${live.source === "screen" ? "chosen on screen" : `from ${live.source}`}` : "");
 
   return (
@@ -160,7 +185,7 @@ export function App() {
             ctx={ctxFor(pageItem, false)}
             problem={itemProblem(problems, pageItem.id)}
             title={view.title}
-            versions={<VersionStrip viewId={currentId} version={live?.version ?? version} previewing={showing?.version} onPreview={choosePreview} />}
+            versions={<>{reopen}<VersionStrip viewId={currentId} version={live?.version ?? version} previewing={showing?.version} onPreview={choosePreview} onCompare={openCompare} /></>}
             onExit={opened ? () => setOpened(undefined) : undefined}
           />
         ) : (
@@ -174,7 +199,7 @@ export function App() {
             <>
               <div className="topbar">
                 <div className="status">{activity ? <span className="spin" /> : <span className="ok" />}{status}</div>
-                <VersionStrip viewId={currentId} version={live?.version ?? version} previewing={showing?.version} onPreview={choosePreview} />
+                <div className="topbar-right">{reopen}<VersionStrip viewId={currentId} version={live?.version ?? version} previewing={showing?.version} onPreview={choosePreview} onCompare={openCompare} /></div>
               </div>
               {showing && (
                 <div className="preview-banner">
@@ -200,6 +225,16 @@ export function App() {
         )}
       </main>
     </div>
+    <AnimatePresence>
+      {showVariants && pending && currentId && (
+        <Variants key={pendingKey} title="Choose an option" items={pending.items} chooseLabel="Choose" render={renderVariant}
+          onChoose={(index) => send({ t: "pickVariant", viewId: currentId, index })} onClose={() => setVariantsClosed(pendingKey)} />
+      )}
+      {compare && compare.viewId === currentId && !showVariants && (
+        <Variants key="compare" title="Compare versions" items={compare.items} chooseLabel="Use this version" render={renderVariant}
+          onChoose={(i) => { send({ t: "pick", viewId: compare.viewId, version: compare.items[i].version }); setCompare(undefined); }} onClose={() => setCompare(undefined)} />
+      )}
+    </AnimatePresence>
     </MotionRoot>
   );
 }
