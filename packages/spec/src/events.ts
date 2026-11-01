@@ -32,6 +32,7 @@ export type ViewEvent =
   | { t: "problems"; viewId: string; version: number; problems: Problem[] }
   | { t: "activity"; viewId: string; text: string }
   | { t: "list"; views: ListEntry[] }
+  | { t: "hello"; build: string } // first message on connect: the screen build the server is serving now
   | { t: "params"; viewId: string; values: Record<string, unknown>; options: Record<string, string[]> } // values by param name
   | { t: "media"; viewId: string; urls: Record<string, string> };
 

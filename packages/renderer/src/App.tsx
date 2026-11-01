@@ -70,6 +70,7 @@ export function App() {
     const r = reduce(stateRef.current, e);
     stateRef.current = r.state;
     setState(r.state);
+    if (r.reload) return location.reload(); // the server now serves a newer screen
     if (r.need) send(r.need);
     if (r.follow) {
       location.hash = r.follow;

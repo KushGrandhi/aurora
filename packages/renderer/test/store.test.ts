@@ -116,3 +116,10 @@ test("media and params events stored per view", () => {
   expect(s.params.v).toEqual({ values: { region: "East" }, options: { region: ["East", "West"] } });
   expect(s.params.w).toBeUndefined();
 });
+
+test("a different build after reconnecting asks for a reload", () => {
+  const a = reduce(emptyState(), { t: "hello", build: "aaa" });
+  expect(a.reload).toBeUndefined();
+  expect(reduce(a.state, { t: "hello", build: "aaa" }).reload).toBeUndefined();
+  expect(reduce(a.state, { t: "hello", build: "bbb" }).reload).toBe(true);
+});

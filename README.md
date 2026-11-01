@@ -1,10 +1,10 @@
 # genui
 
-A universal screen for LLMs: whichever model you are working with composes a view (KPIs, charts, tables, prose, JSON; diagrams and designs next), and genui validates it, draws it with spring motion, keeps every version and reports problems back. Views are built up part by part and refined in place with patches by id. Numbers in data-bound panels always come from DuckDB queries; the model never types data.
+A universal screen for LLMs: whichever model you are working with composes a view (KPIs with sparklines, charts, tables and filters; architecture and Mermaid diagrams; network graphs, maps, timelines; code, images, video, cards, steps, callouts, prose, JSON), and genui validates it, draws it with spring motion, keeps every version and reports problems back. Views are built up part by part and refined in place with patches by id. Numbers in data-bound panels always come from DuckDB queries; the model never types data.
 
 Design: `docs/specs/2026-10-31-genui-canvas-design.md` (Plan 2) · `docs/specs/2026-10-31-genui-design.md` (Plan 1) · Plans: `docs/superpowers/plans/`
 
-![Canvas](docs/screenshots/canvas-after.png)
+![Component gallery](docs/screenshots/gallery-light.png)
 
 ## Use it from Claude Code (or any MCP harness)
 
@@ -18,7 +18,13 @@ Then ask for something visual ("show an overview of projects.csv", "explain the 
 
 **File streaming** works from any harness that can write files: append JSON lines to `<project>/.genui/views/<name>.ndjson` (line 1 a view, later lines `{"ops": [...], "baseVersion": N}`); genui applies each line as it lands and writes `<name>.problems.json` beside it. The folder must be registered: by an MCP session started there, or `npm run genui -- watch <project>`.
 
-**HTTP**: `POST /api/views {view}` · `POST /api/views/:id/patch {ops, baseVersion?}` · `GET /api/views/:id` · `GET /api/views/:id/status` · `GET /api/views/:id/history` · `GET /api/views/:id/versions/:n` · `POST /api/views/:id/pick {version}` · `POST /api/views/:id/revert {itemId, version}` · `POST /api/profile {data}` · `POST /api/watch {dir}`. The screen picks up everything over `GET /ws`.
+**Components.** `kpi` (optional `sparkline`), `chart` (Vega-Lite), `table`, `text`, `json`, `diagram` (Mermaid), `architecture` (ELK-laid-out system picture with icons and animated edges), `graph` (Cytoscape network, 1,000+ nodes), `map` (MapLibre with bundled country shapes: points, routes, choropleth; OSM street tiles optional, works offline), `timeline`, `cards`, `media`, `code` (Shiki, diffs), `callout`, `steps`. The skill documents each one from the registry; `npm run genui -- gallery` (or `POST /api/gallery`) puts every component's example on the screen. Heavy engines load only when a view uses them.
+
+**Filters.** A view's `params` (`select`, `range`, `daterange`, `search`) become a filter row above its sections. Queries read them as DuckDB-bound variables (`$region`, `$price_min`/`$price_max`, `$when_from`/`$when_to`) — values are never pasted into SQL. Changing a filter re-runs only the queries that use it; `status` shows the current values and `POST /api/views/:id/params {name, value}` sets one.
+
+**Media** is displayed, never generated: `media` and `cards` show existing images and videos by absolute path or URL. A local file is served only because an accepted view references it, at an unguessable `/media/<token>` URL (Range requests for video, SVG sandboxed); everything else is a 404.
+
+**HTTP**: `POST /api/views {view}` · `POST /api/views/:id/patch {ops, baseVersion?}` · `GET /api/views/:id` · `GET /api/views/:id/status` · `GET /api/views/:id/history` · `GET /api/views/:id/versions/:n` · `POST /api/views/:id/pick {version}` · `POST /api/views/:id/revert {itemId, version}` · `POST /api/views/:id/params {name, value}` · `POST /api/profile {data}` · `POST /api/watch {dir}` · `POST /api/gallery` · `GET /media/<token>`. The screen picks up everything over `GET /ws`.
 
 On the screen, the version chip lists every version; choosing one previews it and **Use this version** makes it current (a new version, so nothing is lost). A caller's next patch builds on it and its result says `rebased: true`.
 

@@ -90,7 +90,7 @@ test("ws gets list and views on connect", async () => {
   await send(srv.url, "/api/views", { view: view() });
   const l = listen(srv.url);
   await until(() => l.events.some((e) => e.t === "problems"));
-  expect(l.events[0]).toMatchObject({ t: "list" });
+  expect(l.events.map((e) => e.t).slice(0, 2)).toEqual(["hello", "list"]);
   expect(l.events.some((e) => e.t === "view" && e.viewId === "demo")).toBe(true);
   expect(l.events.some((e) => e.t === "result" && e.viewId === "demo")).toBe(true);
   l.ws.close();
@@ -219,4 +219,23 @@ test("static .mjs files are served as javascript (module workers need it)", asyn
   srv = await startServer({ port: 0, provider: createFakeProvider(doc), openBrowser: () => {}, viewsDir: path.join(dir, "views"), waitMs: 20, staticDir, secretFile: path.join(dir, "secret") });
   const r = await fetch(srv.url + "/assets/worker.mjs");
   expect(r.headers.get("content-type")).toBe("text/javascript");
+});
+
+test("a screen is told the build it should be running", async () => {
+  const { mkdir, writeFile } = await import("node:fs/promises");
+  const staticDir = path.join(dir, "static");
+  await mkdir(staticDir, { recursive: true });
+  await writeFile(path.join(staticDir, "index.html"), "<!doctype html><script src=/assets/a.js></script>");
+  srv = await startServer({ port: 0, provider: createFakeProvider(doc), openBrowser: () => {}, viewsDir: path.join(dir, "views"), waitMs: 20, staticDir, secretFile: path.join(dir, "secret") });
+  const a = listen(srv.url);
+  await until(() => a.events.length > 0);
+  expect(a.events[0]).toMatchObject({ t: "hello" });
+  const first = (a.events[0] as { build: string }).build;
+  expect(first).toMatch(/^[0-9a-f]{12}$/);
+  a.ws.close();
+  await writeFile(path.join(staticDir, "index.html"), "<!doctype html><script src=/assets/b.js></script>");
+  const b = listen(srv.url);
+  await until(() => b.events.length > 0);
+  expect((b.events[0] as { build: string }).build).not.toBe(first);
+  b.ws.close();
 });

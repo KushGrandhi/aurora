@@ -15,6 +15,7 @@ export type State = {
   list: ListEntry[];
   media: Record<string, Record<string, string>>; // view id → src → URL
   params: Record<string, { values: Record<string, unknown>; options: Record<string, string[]> }>;
+  build?: string; // the screen build this page was loaded with (first hello)
 };
 
 export const emptyState = (): State => ({ views: {}, results: {}, activity: {}, list: [], media: {}, params: {} });
@@ -38,7 +39,7 @@ function keepIdentity(prev: View, next: View): View {
 
 /** Pure reducer. A patch that doesn't follow the version we hold asks the server for a fresh snapshot (`need`). */
 /** `follow` names a view the screen has never heard of, so the screen can switch to what a caller just created. */
-export function reduce(state: State, e: ViewEvent): { state: State; need?: ScreenMessage; follow?: string } {
+export function reduce(state: State, e: ViewEvent): { state: State; need?: ScreenMessage; follow?: string; reload?: true } {
   switch (e.t) {
     case "view": {
       const prev = state.views[e.viewId];
@@ -73,6 +74,9 @@ export function reduce(state: State, e: ViewEvent): { state: State; need?: Scree
       return { state: { ...state, activity: { ...state.activity, [e.viewId]: e.text } } };
     case "list":
       return { state: { ...state, list: e.views } };
+    case "hello":
+      if (state.build && state.build !== e.build) return { state, reload: true };
+      return { state: { ...state, build: e.build } };
     case "media":
       return { state: { ...state, media: { ...state.media, [e.viewId]: e.urls } } };
     case "params":

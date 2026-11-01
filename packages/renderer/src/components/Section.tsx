@@ -16,7 +16,11 @@ export type SectionProps = {
   changed: Record<string, number>;
 };
 
-export const itemProblem = (problems: Problem[], id: string) => problems.find((p) => p.itemId === id && p.severity === "error");
+/**
+ * The static problem that makes an item a fallback card. "render failed" problems are some screen's own drawing
+ * result (maybe an older build's): this screen draws the item itself and reports what happened here.
+ */
+export const itemProblem = (problems: Problem[], id: string) => problems.find((p) => p.itemId === id && p.severity === "error" && !p.message.startsWith("render failed: "));
 
 function Grid({ section, version, problems, ctxFor, heroId, viewId, changed }: SectionProps) {
   const packed = packRows(section.items.map((i) => ({ ...i, span: i.span ?? 12 })) as Item[]) as (ViewItem & { span: number })[];

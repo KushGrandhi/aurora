@@ -58,7 +58,7 @@ test("replays recent views to late client", async () => {
   first.ws.close();
   const l = listen(srv.url);
   await until(() => l.events.some((e) => e.t === "view" && e.viewId === renderId && e.view.sections[0].items.some((i) => i.id === "k_rows")));
-  expect(l.events[0]).toMatchObject({ t: "list" });
+  expect(l.events.map((e) => e.t).slice(0, 2)).toEqual(["hello", "list"]);
   l.ws.close();
 });
 

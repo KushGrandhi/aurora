@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -153,6 +154,14 @@ export async function startServer(opts: ServerOpts) {
     return viewId;
   }
 
+  function screenBuild(): string {
+    try {
+      return createHash("sha256").update(readFileSync(path.join(opts.staticDir ?? "", "index.html"))).digest("hex").slice(0, 12);
+    } catch {
+      return "dev";
+    }
+  }
+
   async function serveStatic(req: IncomingMessage, res: ServerResponse) {
     if (!opts.staticDir) return json(res, 404, { error: "renderer not built" });
     const urlPath = decodeURIComponent(new URL(req.url ?? "/", base).pathname);
@@ -289,6 +298,8 @@ export async function startServer(opts: ServerOpts) {
       }
       intake.screenMessage(msg).catch(() => {}); // e.g. a pick of a version that doesn't exist: nothing to do
     });
+    // A screen loaded from an older build (the server was restarted on a new one) reloads when it sees this change.
+    send(ws, { t: "hello", build: screenBuild() });
     const list = store.list();
     send(ws, { t: "list", views: list });
     void (async () => {
