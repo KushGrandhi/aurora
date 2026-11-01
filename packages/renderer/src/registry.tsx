@@ -1,18 +1,26 @@
-import type { FC } from "react";
+import { lazy, type FC } from "react";
 import type { Component, QueryResult } from "@genui/spec";
 import type { MotionApi } from "./motion.tsx";
-import type { Mode } from "./theme.ts";
-import { Chart } from "./components/Chart.tsx";
+import { TOKENS, type Mode } from "./theme.ts";
 import { Json } from "./components/Json.tsx";
 import { Kpi } from "./components/Kpi.tsx";
-import { Table } from "./components/Table.tsx";
 import { Text } from "./components/Text.tsx";
+
+export type Theme = { categorical: readonly string[]; sequential: readonly string[]; ink: string; ink2: string; muted: string; surface: string; hair: string };
+
+export function themeFor(mode: Mode): Theme {
+  const t = TOKENS[mode];
+  return { categorical: t.series, sequential: t.ramp, ink: t.ink, ink2: t.ink2, muted: t.muted, surface: t.surface, hair: t.grid };
+}
 
 export type RenderCtx = {
   results: Record<string, QueryResult>;
   mode: Mode;
+  theme: Theme;
   hero?: boolean;
   motion: MotionApi;
+  /** URL to load a media src from (a local file's token URL, or the URL itself); undefined while unknown. */
+  media(src: string): string | undefined;
   /** Tell the server whether this item drew. Components marked selfReport must call it; others are reported on mount. */
   report(ok: boolean, message?: string): void;
 };
@@ -20,16 +28,34 @@ export type Renderer = FC<{ c: any; ctx: RenderCtx }> & { selfReport?: boolean }
 
 type C<T extends Component["type"]> = Extract<Component, { type: T }>;
 
-const KpiR: Renderer = ({ c, ctx }: { c: C<"kpi">; ctx: RenderCtx }) => <Kpi c={c} results={ctx.results} hero={ctx.hero} />;
-const ChartR: Renderer = ({ c, ctx }: { c: C<"chart">; ctx: RenderCtx }) => <Chart c={c} result={ctx.results[c.query]} mode={ctx.mode} onDrawn={ctx.report} />;
-ChartR.selfReport = true;
-const TableR: Renderer = ({ c, ctx }: { c: C<"table">; ctx: RenderCtx }) => <Table c={c} result={ctx.results[c.query]} />;
+const KpiR: Renderer = ({ c, ctx }: { c: C<"kpi">; ctx: RenderCtx }) => <Kpi c={c} results={ctx.results} hero={ctx.hero} color={ctx.theme.categorical[0]} />;
 const TextR: Renderer = ({ c, ctx }: { c: C<"text">; ctx: RenderCtx }) => <Text c={c} results={ctx.results} />;
 const JsonR: Renderer = ({ c, ctx }: { c: { value?: unknown; query?: string }; ctx: RenderCtx }) => <Json value={c.query ? ctx.results[c.query]?.rows : c.value} />;
 
-// One entry per component type; replacing a component or its engine touches only its line here.
-const renderers: Record<string, Renderer> = { kpi: KpiR, chart: ChartR, table: TableR, text: TextR, json: JsonR };
+/**
+ * One entry per component type; replacing a component or its engine touches only its line here. Light components
+ * are eager; anything with an engine is `load`ed on first use, so a view downloads only the engines it shows.
+ */
+type Entry = { component: Renderer } | { load: () => Promise<{ default: FC<any> }>; selfReport?: boolean };
+const entries: Record<string, Entry> = {
+  kpi: { component: KpiR },
+  text: { component: TextR },
+  json: { component: JsonR },
+  chart: { load: () => import("./components/Chart.tsx"), selfReport: true },
+  table: { load: () => import("./components/Table.tsx") },
+};
+
+const cache = new Map<string, Renderer>();
 
 export function rendererFor(type: string): Renderer | undefined {
-  return renderers[type];
+  const e = entries[type];
+  if (!e) return undefined;
+  if ("component" in e) return e.component;
+  let R = cache.get(type);
+  if (!R) {
+    R = lazy(e.load) as unknown as Renderer;
+    R.selfReport = e.selfReport;
+    cache.set(type, R);
+  }
+  return R;
 }

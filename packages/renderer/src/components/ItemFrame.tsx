@@ -1,4 +1,4 @@
-import { Component as ReactComponent, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { Component as ReactComponent, Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { getComponent, parsePlaceholders, type Problem, type ViewItem } from "@genui/spec";
 import { rendererFor, type RenderCtx } from "../registry.tsx";
@@ -55,7 +55,7 @@ export function ItemFrame({ item, version, changedAt = 0, ctx, problem, showTitl
   let body: ReactNode;
   if (reason) body = <FallbackCard reason={reason} />;
   else if (!ready) body = <div className="skeleton" />;
-  else if (R) body = <Boundary key={changedAt} onError={(m) => ctx.report(false, m)}><R c={item.c} ctx={selfCtx} /></Boundary>;
+  else if (R) body = <Boundary key={changedAt} onError={(m) => ctx.report(false, m)}><Suspense fallback={<div className="skeleton" />}><R c={item.c} ctx={selfCtx} /></Suspense></Boundary>;
   // A different component type (a `replace`) crossfades; the card around it morphs size via its layout animation.
   const face = reason ? "fallback" : ready ? item.c.type : "loading";
   return (

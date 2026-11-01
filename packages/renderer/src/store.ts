@@ -13,9 +13,11 @@ export type State = {
   results: Record<string, Record<string, QueryResult>>; // view id → query id → result (results can precede their view)
   activity: Record<string, string>;
   list: ListEntry[];
+  media: Record<string, Record<string, string>>; // view id → src → URL
+  params: Record<string, { values: Record<string, unknown>; options: Record<string, string[]> }>;
 };
 
-export const emptyState = (): State => ({ views: {}, results: {}, activity: {}, list: [] });
+export const emptyState = (): State => ({ views: {}, results: {}, activity: {}, list: [], media: {}, params: {} });
 
 const itemsById = (v: View) => new Map(v.sections.flatMap((s) => s.items.map((i) => [i.id, JSON.stringify(i)] as const)));
 
@@ -71,5 +73,9 @@ export function reduce(state: State, e: ViewEvent): { state: State; need?: Scree
       return { state: { ...state, activity: { ...state.activity, [e.viewId]: e.text } } };
     case "list":
       return { state: { ...state, list: e.views } };
+    case "media":
+      return { state: { ...state, media: { ...state.media, [e.viewId]: e.urls } } };
+    case "params":
+      return { state: { ...state, params: { ...state.params, [e.viewId]: { values: e.values, options: e.options } } } };
   }
 }

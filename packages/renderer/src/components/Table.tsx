@@ -83,3 +83,7 @@ export function Table({ c, result }: { c: TableC; result: QueryResult }) {
     </>
   );
 }
+
+export default function TableRenderer({ c, ctx }: { c: TableC; ctx: import("../registry.tsx").RenderCtx }) {
+  return <Table c={c} result={ctx.results[c.query]} />;
+}

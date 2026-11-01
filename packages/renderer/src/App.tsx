@@ -5,7 +5,8 @@ import { useReducedMotion } from "motion/react";
 import { Section } from "./components/Section.tsx";
 import { MotionRoot, SPRING } from "./motion.tsx";
 import { VersionStrip } from "./components/VersionStrip.tsx";
-import type { RenderCtx } from "./registry.tsx";
+import { FilterBar } from "./components/FilterBar.tsx";
+import { themeFor, type RenderCtx } from "./registry.tsx";
 import { emptyState, reduce, type State } from "./store.ts";
 import type { Mode } from "./theme.ts";
 import { connect, type Conn } from "./ws.ts";
@@ -113,10 +114,14 @@ export function App() {
     const k = first.items.find((i) => i.c.type === "kpi");
     return k && (k.span ?? 12) >= 4 ? k.id : undefined;
   }, [view]);
+  const media = (currentId && state.media[currentId]) || undefined;
+  const theme = useMemo(() => themeFor(mode), [mode]);
   const ctxFor = useCallback((item: ViewItem, hero: boolean): RenderCtx => ({
-    results, mode, hero, motion: { spring: SPRING, reduced },
+    results, mode, theme, hero, motion: { spring: SPRING, reduced },
+    media: (src) => media?.[src],
     report: (ok, message) => { if (currentId && !showing) report(currentId, version, item.id, ok, message); },
-  }), [results, mode, currentId, version, showing, report, reduced]);
+  }), [results, mode, theme, media, currentId, version, showing, report, reduced]);
+  const params = currentId ? state.params[currentId] : undefined;
 
   const viewProblems = problems.filter((p) => !p.itemId && p.severity !== "unverified");
   const status = activity || (live ? `v${live.version} · ${live.source === "screen" ? "chosen on screen" : `from ${live.source}`}` : "");
@@ -161,6 +166,9 @@ export function App() {
               )}
               <h1>{view.title}</h1>
               {view.summary && <p className="summary">{fillPlaceholders(view.summary, results)}</p>}
+              {view.params && Object.keys(view.params).length > 0 && (
+                <FilterBar params={view.params} values={params?.values ?? {}} options={params?.options ?? {}} onChange={(name, value) => send({ t: "param", viewId: currentId, name, value })} />
+              )}
               <div key={currentId} className="view-body">{/* a different view is a fresh mount, even when ids repeat */}
                 {view.sections.map((s) => (
                   <Section key={s.id} section={s} version={version} problems={problems} ctxFor={ctxFor} heroId={heroId} viewId={currentId} changed={showing ? {} : live?.changed ?? {}} />

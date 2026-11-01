@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Component, Format, QueryResult } from "@genui/spec";
 import { formatValue } from "../format.ts";
+import { sparklinePath, toNumber } from "../sparkline.ts";
 
 type KpiC = Extract<Component, { type: "kpi" }>;
 
@@ -30,7 +31,41 @@ function useCountUp(target: unknown, ms = 1100): unknown {
   return shown;
 }
 
-export function Kpi({ c, results, hero }: { c: KpiC; results: Record<string, QueryResult>; hero?: boolean }) {
+const SPARK_H = 32;
+
+/** A small trend line under the value: x sorted, no axes, the last point marked. */
+function Sparkline({ rows, x, y, color, format }: { rows: Record<string, unknown>[]; x: string; y: string; color: string; format?: Format }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [w, setW] = useState(0);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    setW(el.clientWidth);
+    const ro = new ResizeObserver(() => setW(el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const pts = rows.flatMap((r) => {
+    const px = toNumber(r[x]);
+    const py = toNumber(r[y]);
+    return px === undefined || py === undefined ? [] : [{ x: px, y: py }];
+  }).sort((a, b) => a.x - b.x);
+  const d = w > 0 ? sparklinePath(pts, w, SPARK_H, 4) : "";
+  const end = d.match(/([\d.]+),([\d.]+)$/);
+  return (
+    <div className="spark-wrap" ref={ref}>
+      {d && (
+        <svg className="spark" width={w} height={SPARK_H} viewBox={`0 0 ${w} ${SPARK_H}`} role="img" aria-label={`trend of ${y}`}>
+          <title>{`latest ${formatValue(pts[pts.length - 1].y, format)}`}</title>
+          <path d={d} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+          {end && <circle cx={end[1]} cy={end[2]} r={3} fill={color} />}
+        </svg>
+      )}
+    </div>
+  );
+}
+
+export function Kpi({ c, results, hero, color }: { c: KpiC; results: Record<string, QueryResult>; hero?: boolean; color: string }) {
   const raw = results[c.query]?.rows[0]?.[c.field];
   const target = typeof raw === "string" && raw.trim() !== "" && !isNaN(Number(raw)) ? Number(raw) : raw;
   const shown = useCountUp(target);
@@ -46,6 +81,7 @@ export function Kpi({ c, results, hero }: { c: KpiC; results: Record<string, Que
       {delta !== undefined && !isNaN(d) && (
         <div className={`delta ${d > 0 ? "up" : d < 0 ? "down" : ""}`}>{d > 0 ? "▲" : d < 0 ? "▼" : "•"} {formatValue(d, "delta")}</div>
       )}
+      {c.sparkline && results[c.sparkline.query] && <Sparkline rows={results[c.sparkline.query].rows} x={c.sparkline.x} y={c.sparkline.y} color={color} format={c.format} />}
     </div>
   );
 }

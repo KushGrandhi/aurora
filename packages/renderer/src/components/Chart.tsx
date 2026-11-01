@@ -37,3 +37,7 @@ export function Chart({ c, result, mode, onDrawn }: { c: ChartC; result: QueryRe
   }, [c, result, mode]);
   return error ? <div className="note">Couldn't draw this chart: {error}</div> : <div className="chart" ref={ref} />;
 }
+
+export default function ChartRenderer({ c, ctx }: { c: ChartC; ctx: import("../registry.tsx").RenderCtx }) {
+  return <Chart c={c} result={ctx.results[c.query]} mode={ctx.mode} onDrawn={ctx.report} />;
+}

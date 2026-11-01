@@ -104,3 +104,15 @@ test("a view the screen has never seen is followed", () => {
   expect(reduce(s, { t: "view", viewId: "old", version: 2, view: { ...view(), id: "old" }, source: "caller" }).follow).toBeUndefined();
   expect(reduce(s, { t: "view", viewId: "fresh", version: 1, view: { ...view(), id: "fresh" }, source: "caller" }).follow).toBe("fresh");
 });
+
+test("media and params events stored per view", () => {
+  const { s } = run([
+    { t: "media", viewId: "v", urls: { "/a.png": "/media/abc" } },
+    { t: "params", viewId: "v", values: { region: "East" }, options: { region: ["East", "West"] } },
+    { t: "media", viewId: "w", urls: {} },
+  ]);
+  expect(s.media.v).toEqual({ "/a.png": "/media/abc" });
+  expect(s.media.w).toEqual({});
+  expect(s.params.v).toEqual({ values: { region: "East" }, options: { region: ["East", "West"] } });
+  expect(s.params.w).toBeUndefined();
+});
