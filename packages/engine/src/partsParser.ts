@@ -16,6 +16,7 @@ export function createPartsParser(h: { onMeta(m: Meta): void; onPart(raw: unknow
   let buf = "";
   let pos = 0;
   let depth = 0;
+  const stack: string[] = []; // open containers, to skip closers that don't match (models occasionally emit a stray brace)
   let inString = false;
   let escape = false;
   let stringStart = -1;
@@ -25,6 +26,20 @@ export function createPartsParser(h: { onMeta(m: Meta): void; onPart(raw: unknow
   let partsStarted = false;
   let metaDeferred = false;
   let closed = false;
+  let ended = false;
+  const PART_START = /^\{\s*"kind"\s*:/;
+  const CLOSER: Record<string, string> = { "{": "}", "[": "]" };
+
+  function emitElement(text: string) {
+    let value: unknown;
+    try {
+      value = JSON.parse(text);
+    } catch {
+      h.onBadPart?.(text);
+      return;
+    }
+    h.onPart(value);
+  }
   const meta: Meta = {};
 
   function onStringClosed(end: number) {
@@ -42,7 +57,7 @@ export function createPartsParser(h: { onMeta(m: Meta): void; onPart(raw: unknow
   }
 
   function scan() {
-    for (; pos < buf.length; pos++) {
+    for (; pos < buf.length && !closed; pos++) {
       const ch = buf[pos];
       if (inString) {
         if (escape) escape = false;
@@ -60,25 +75,31 @@ export function createPartsParser(h: { onMeta(m: Meta): void; onPart(raw: unknow
           break;
         case "{":
         case "[":
+          // A new part starting inside an unfinished one means the model dropped closers: close it for them.
+          if (ch === "{" && key === "parts" && depth > 2 && elementStart >= 0) {
+            const rest = buf.slice(pos, pos + 16);
+            if (rest.length < 16 && !ended && !rest.includes(":")) return; // wait for enough text to decide
+            if (PART_START.test(rest)) {
+              const text = buf.slice(elementStart, pos).replace(/[\s,]+$/, "") + stack.slice(2).reverse().map((c) => CLOSER[c]).join("");
+              emitElement(text);
+              stack.length = 2;
+              depth = 2;
+              elementStart = -1;
+            }
+          }
           if (depth === 2 && key === "parts" && ch === "{") elementStart = pos;
           if (depth === 1 && key === "parts") partsStarted = true;
+          stack.push(ch);
           depth++;
           if (depth === 1) expectKey = true;
           break;
         case "}":
         case "]":
+          if (stack[stack.length - 1] !== (ch === "}" ? "{" : "[")) break; // stray closer: ignore it
+          stack.pop();
           depth--;
           if (depth === 2 && key === "parts" && elementStart >= 0 && ch === "}") {
-            const text = buf.slice(elementStart, pos + 1);
-            let value: unknown;
-            try {
-              value = JSON.parse(text);
-            } catch {
-              h.onBadPart?.(text);
-              elementStart = -1;
-              break;
-            }
-            h.onPart(value);
+            emitElement(buf.slice(elementStart, pos + 1));
             elementStart = -1;
           }
           if (depth === 0) closed = true;
@@ -96,6 +117,8 @@ export function createPartsParser(h: { onMeta(m: Meta): void; onPart(raw: unknow
       scan();
     },
     end(): { complete: boolean } {
+      ended = true;
+      scan();
       if (metaDeferred) h.onMeta({ ...meta });
       return { complete: closed };
     },

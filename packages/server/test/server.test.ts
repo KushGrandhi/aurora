@@ -86,10 +86,13 @@ test("health endpoint", async () => {
   expect((await fetch(srv.url + "/api/health")).status).toBe(200);
 });
 
-test("loadConfig defaults and env overrides", () => {
+test("loadConfig defaults to the Claude Code subscription, with env overrides", async () => {
+  const { providerFromConfig } = await import("../src/config.ts");
   const c = loadConfig({ HOME: "/nonexistent" });
-  expect(c).toEqual({ port: 4317, provider: "ollama", model: "qwen3:8b", ollamaUrl: "http://127.0.0.1:11434" });
+  expect(c).toEqual({ port: 4317, provider: "claude", ollamaUrl: "http://127.0.0.1:11434" });
+  expect(providerFromConfig(c).name).toBe("claude:sonnet");
   expect(loadConfig({ HOME: "/nonexistent", GENUI_MODEL: "x", GENUI_PORT: "9" })).toMatchObject({ model: "x", port: 9 });
+  expect(providerFromConfig(loadConfig({ HOME: "/nonexistent", GENUI_PROVIDER: "ollama" })).name).toBe("ollama:qwen3:8b");
 });
 
 // C2: cross-site protection
@@ -134,7 +137,6 @@ test("config selects an OpenAI-compatible router", async () => {
   const c = loadConfig({ HOME: "/nonexistent", GENUI_PROVIDER: "openai", GENUI_BASE_URL: "http://localhost:8000/v1", GENUI_MODEL: "auto", GENUI_API_KEY: "k" });
   expect(c).toMatchObject({ provider: "openai", baseUrl: "http://localhost:8000/v1", model: "auto", apiKey: "k" });
   expect(providerFromConfig(c).name).toBe("auto");
-  expect(providerFromConfig(loadConfig({ HOME: "/nonexistent" })).name).toBe("ollama:qwen3:8b");
 });
 
 test("openai provider requires a base URL", async () => {

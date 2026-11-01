@@ -215,9 +215,18 @@ export async function compose(opts: ComposeOpts): Promise<void> {
 
     const { system, user } = buildPrompt(profile, opts.intent);
     let complete = false;
+    let raw = "";
     try {
-      for await (const chunk of provider.stream({ system, user, schema: llmDocJsonSchema(), signal, task: "compose" })) parser.push(chunk);
+      for await (const chunk of provider.stream({ system, user, schema: llmDocJsonSchema(), signal, task: "compose" })) {
+        parser.push(chunk);
+        raw += chunk;
+      }
       complete = parser.end().complete;
+      if (!complete) console.warn(`[genui] ${provider.name} output incomplete (${raw.length} chars); tail: ${JSON.stringify(raw.slice(-300))}`);
+      if (!complete && process.env.GENUI_DEBUG_DIR) {
+        const { writeFile } = await import("node:fs/promises");
+        await writeFile(`${process.env.GENUI_DEBUG_DIR}/incomplete-${renderId}.txt`, raw);
+      }
     } finally {
       while (inflight.size) await Promise.all([...inflight]);
     }

@@ -6,7 +6,7 @@ Design: `docs/specs/2026-10-31-genui-design.md` · Plan 1: `docs/superpowers/pla
 
 ## Run
 
-Requires Node 24 and [Ollama](https://ollama.com) with a model pulled (default `qwen3:8b`).
+Requires Node 24 and the `claude` CLI logged in (the default provider composes views on your Claude Code subscription: Sonnet at low effort, ~2 s to the first panel). For offline use, set `provider` to `ollama` and pull a model (default `qwen3:8b`).
 
 ```bash
 npm install
@@ -29,15 +29,17 @@ HTTP: `POST /api/render {"data": "<path>" | {"name": "<path>", ...} | {"inline":
 | key | env | default |
 |---|---|---|
 | `port` | `GENUI_PORT` | `4317` |
-| `model` | `GENUI_MODEL` | `qwen3:8b` |
+| `model` | `GENUI_MODEL` | `sonnet` for claude, `qwen3:8b` for ollama |
 | `ollamaUrl` | `GENUI_OLLAMA_URL` | `http://127.0.0.1:11434` |
-| `provider` | `GENUI_PROVIDER` | `ollama` (or `openai` for any OpenAI-compatible server, e.g. the LLM routing server) |
+| `provider` | `GENUI_PROVIDER` | `claude` (Claude Code subscription), `ollama` (local, offline), or `openai` (any OpenAI-compatible server, e.g. the LLM routing server) |
+| `effort` | | `low` (claude provider; higher effort thinks first and is slower) |
 | `baseUrl` | `GENUI_BASE_URL` | — (required for `openai`, e.g. `http://localhost:8000/v1`) |
 | `apiKey` | `GENUI_API_KEY` | — |
 | `models` | | per-task model names, e.g. `{"compose": "auto", "repair": "fast"}` |
 | `jsonMode` | | `schema` (default), `object`, or `none` if the backend lacks JSON-schema output |
 | | `GENUI_FAKE_PROVIDER=1` | canned composition, no model |
 | | `GENUI_NO_OPEN=1` | never open a browser |
+| | `GENUI_DEBUG_DIR=<dir>` | save the raw model output of any incomplete composition there |
 
 ### Using the LLM routing server
 

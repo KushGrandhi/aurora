@@ -60,3 +60,28 @@ test("meta before and after parts", () => {
   expect(metas[0]).toEqual({ title: "Sales" });
   expect(metas.at(-1)).toEqual({ title: "Sales", summary: "Done {q1.b}" });
 });
+
+test("ignores anything after the document closes", () => {
+  const { p, parts } = collect();
+  p.push(JSON.stringify({ title: "T", parts: [{ kind: "query", id: "q", sql: "SELECT 1" }] }) + '\n\nNote: {"parts":[{"kind":"query","id":"x","sql":"SELECT 2"}]}');
+  expect(p.end().complete).toBe(true);
+  expect(parts).toHaveLength(1);
+});
+
+test("recovers from a stray closing brace between parts (seen from Claude)", () => {
+  const { p, parts } = collect();
+  p.push('{"title":"T","parts":[\n{"kind":"query","id":"a","sql":"SELECT 1"}},\n{"kind":"query","id":"b","sql":"SELECT 2"}\n],"summary":"S"}');
+  expect(p.end().complete).toBe(true);
+  expect(parts.map((x: any) => x.id)).toEqual(["a", "b"]);
+});
+
+test("recovers from a missing closing brace inside a part (seen from Claude)", () => {
+  const { p, parts } = collect();
+  const doc = '{"title":"T","parts":[\n' +
+    '{"kind":"item","item":{"id":"c1","span":12,"c":{"type":"chart","query":"q","vegaLite":{"mark":"circle","encoding":{"color":{"field":"s","scale":{"domain":["A"]}}}}}},\n' +
+    '{"kind":"item","item":{"id":"t1","span":12,"c":{"type":"table","query":"q"}}}\n],"summary":"S"}';
+  for (const ch of doc) p.push(ch); // streamed one char at a time
+  expect(p.end().complete).toBe(true);
+  expect(parts.map((x: any) => x.item.id)).toEqual(["c1", "t1"]);
+  expect((parts[0] as any).item.c.vegaLite.encoding.color.scale.domain).toEqual(["A"]);
+});
