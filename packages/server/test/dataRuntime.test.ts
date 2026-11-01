@@ -25,7 +25,8 @@ test("inline data persisted and reloaded after close", async () => {
   rt = new DataRuntime({ inlineDir: dir });
   const v = view({ pts: { inline: [{ x: 1 }, { x: 2 }, { x: 3 }] } });
   await rt.ensure(v);
-  const saved = await readFile(path.join(dir, "v", "pts.ndjson"), "utf8");
+  const { readdir } = await import("node:fs/promises");
+  const saved = await readFile(path.join(dir, "v", (await readdir(path.join(dir, "v")))[0]), "utf8");
   expect(saved.trim().split("\n")).toHaveLength(3);
   await rt.close("v");
   await rt.ensure(v);
@@ -81,4 +82,17 @@ test("profile without a view", async () => {
   const p = await rt.profile({ sales: fx("sales.csv") });
   expect(p.datasets[0].name).toBe("sales");
   expect(p.datasets[0].columns.length).toBeGreaterThan(1);
+});
+
+test("a dataset that failed keeps reporting and loads once it exists", async () => {
+  rt = new DataRuntime({ inlineDir: dir });
+  const csv = path.join(dir, "later.csv");
+  const v = view({ later: csv });
+  expect((await rt.ensure(v)).problems).toHaveLength(1);
+  expect((await rt.ensure(v)).problems).toHaveLength(1);
+  const { writeFile } = await import("node:fs/promises");
+  await writeFile(csv, "a\n1\n2\n");
+  expect((await rt.ensure(v)).problems).toEqual([]);
+  const r = await rt.run("v", "q", "SELECT count(*) AS n FROM later");
+  expect("rows" in r && Number(r.rows[0].n)).toBe(2);
 });

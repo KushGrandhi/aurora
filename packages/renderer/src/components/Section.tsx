@@ -34,7 +34,7 @@ function Grid({ section, version, problems, ctxFor, heroId, viewId, changed }: S
               animate={{ opacity: 1, y: 0, scale: 1, transition: { ...SPRING_SOFT, delay: Math.min(i, 10) * STAGGER_S } }}
               exit={{ opacity: 0, scale: 0.98, transition: SPRING }}>
               {glow && <span key={version} className="glow" aria-hidden />}
-              <ItemFrame item={item} version={version} ctx={ctxFor(item, item.id === heroId)} problem={itemProblem(problems, item.id)} showTitle />
+              <ItemFrame item={item} version={version} changedAt={changed[item.id]} ctx={ctxFor(item, item.id === heroId)} problem={itemProblem(problems, item.id)} showTitle />
             </motion.section>
           );
         })}

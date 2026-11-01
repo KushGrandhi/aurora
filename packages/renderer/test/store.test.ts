@@ -90,3 +90,17 @@ test("problems, activity and list", () => {
   expect(s.views.v.problems).toHaveLength(1);
   expect(s.list[0].id).toBe("v");
 });
+
+test("unchanged items keep their object identity across a patch", () => {
+  const { s } = run([{ t: "view", viewId: "v", version: 1, view: view(), source: "caller" }]);
+  const a1 = s.views.v.view.sections[0].items[0];
+  const r = reduce(s, { t: "patch", viewId: "v", version: 2, baseVersion: 1, ops: [{ op: "update", id: "b", item: { c: { md: "B2" } } }], changed: ["b"], source: "caller" });
+  expect(r.state.views.v.view.sections[0].items[0]).toBe(a1);
+  expect(r.state.views.v.view.sections[0].items[1].c.md).toBe("B2");
+});
+
+test("a view the screen has never seen is followed", () => {
+  const { s } = run([{ t: "list", views: [{ id: "old", title: "Old", version: 1, at: "x" }] }, { t: "view", viewId: "old", version: 1, view: { ...view(), id: "old" }, source: "caller" }]);
+  expect(reduce(s, { t: "view", viewId: "old", version: 2, view: { ...view(), id: "old" }, source: "caller" }).follow).toBeUndefined();
+  expect(reduce(s, { t: "view", viewId: "fresh", version: 1, view: { ...view(), id: "fresh" }, source: "caller" }).follow).toBe("fresh");
+});

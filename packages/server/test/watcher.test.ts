@@ -93,3 +93,21 @@ test("watch is idempotent", async () => {
   await new Promise((r) => setTimeout(r, 100));
   expect(store.current("demo")!.version).toBe(1);
 });
+
+test("a restarted watcher resumes instead of replaying the file", async () => {
+  watcher.watch(path.join(dir, "proj"));
+  await writeFile(file(), line(frame) + line({ ops: [{ op: "set", title: "Two" }] }));
+  await until(() => store.current("demo")?.version === 2);
+  await until(async () => (await problemsOf().catch(() => null))?.version === 2);
+  watcher.close();
+  const store2 = new ViewStore(path.join(dir, "store"));
+  await store2.load();
+  const intake2 = new Intake({ store: store2, data, emit: () => {}, baseUrl: () => "http://x", screens: () => 1, openScreen: () => {}, waitMs: 10 });
+  watcher = new ViewFileWatcher(intake2, { pollMs: 25 });
+  watcher.watch(path.join(dir, "proj"));
+  await new Promise((r) => setTimeout(r, 200));
+  expect(store2.current("demo")!.version).toBe(2);
+  await appendFile(file(), line({ ops: [{ op: "set", title: "Three" }] }));
+  await until(() => store2.current("demo")?.view.title === "Three");
+  expect(store2.current("demo")!.version).toBe(3);
+});

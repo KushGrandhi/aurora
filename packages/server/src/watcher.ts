@@ -1,5 +1,5 @@
 import { mkdirSync, watch, type FSWatcher } from "node:fs";
-import { open, readdir, stat, writeFile } from "node:fs/promises";
+import { open, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import { PatchOpSchema, type Problem } from "@genui/spec";
@@ -12,6 +12,7 @@ type FileState = {
   ino: number;
   partial: string;
   line: number;
+  done: number; // byte offset just past the last line applied (what a restart resumes from)
   viewId: string;
   lineProblems: Problem[];
   last?: IntakeResult;
@@ -76,7 +77,7 @@ export class ViewFileWatcher {
   private scan(file: string): Promise<unknown> {
     let st = this.files.get(file);
     if (!st) {
-      st = { offset: 0, ino: -1, partial: "", line: 0, viewId: path.basename(file, ".ndjson"), lineProblems: [], queue: Promise.resolve() };
+      st = { offset: 0, ino: -1, partial: "", line: 0, done: 0, viewId: path.basename(file, ".ndjson"), lineProblems: [], queue: Promise.resolve() };
       this.files.set(file, st);
     }
     const s = st;
@@ -87,9 +88,10 @@ export class ViewFileWatcher {
   private async read(file: string, s: FileState): Promise<void> {
     const info = await stat(file).catch(() => undefined);
     if (!info) return;
+    if (s.ino === -1) await this.resume(file, s, info.ino, info.size);
     if (info.ino !== s.ino || info.size < s.offset) {
       // New or truncated/replaced file: start over.
-      Object.assign(s, { offset: 0, ino: info.ino, partial: "", line: 0, viewId: path.basename(file, ".ndjson"), lineProblems: [], last: undefined });
+      Object.assign(s, { offset: 0, ino: info.ino, partial: "", line: 0, done: 0, viewId: path.basename(file, ".ndjson"), lineProblems: [], last: undefined });
     }
     if (info.size === s.offset) return;
     const fh = await open(file, "r");
@@ -102,10 +104,14 @@ export class ViewFileWatcher {
     } finally {
       await fh.close();
     }
-    const lines = (s.partial + chunk).split("\n");
+    const text0 = s.partial + chunk;
+    let done = s.offset - Buffer.byteLength(text0); // byte offset of the first unprocessed line
+    const lines = text0.split("\n");
     s.partial = lines.pop()!;
     for (const [i, text] of lines.entries()) {
       s.line++;
+      done += Buffer.byteLength(text) + 1;
+      s.done = done;
       if (!text.trim()) continue;
       await this.apply(s, text, s.line, i === lines.length - 1);
       await this.writeProblems(file, s);
@@ -140,8 +146,28 @@ export class ViewFileWatcher {
     }
   }
 
+  /** After a restart, continue where the last server stopped (recorded in problems.json) instead of replaying the file. */
+  private async resume(file: string, s: FileState, ino: number, size: number): Promise<void> {
+    try {
+      const saved = JSON.parse(await readFile(problemsFile(file), "utf8"));
+      const r = saved?.resume;
+      if (r && r.ino === ino && typeof r.offset === "number" && r.offset <= size && typeof saved.viewId === "string") {
+        Object.assign(s, { ino, offset: r.offset, done: r.offset, line: r.line ?? 0, viewId: saved.viewId });
+      }
+    } catch {
+      // no record: read from the start
+    }
+  }
+
   private async writeProblems(file: string, s: FileState): Promise<void> {
-    const out = { viewId: s.viewId, version: s.last?.version ?? 0, problems: [...s.lineProblems, ...(s.last?.problems ?? [])] };
-    await writeFile(file.replace(/\.ndjson$/, ".problems.json"), JSON.stringify(out, null, 2) + "\n").catch(() => {});
+    const out = {
+      viewId: s.viewId,
+      version: s.last?.version ?? 0,
+      problems: [...s.lineProblems, ...(s.last?.problems ?? [])],
+      resume: { ino: s.ino, offset: s.done, line: s.line },
+    };
+    await writeFile(problemsFile(file), JSON.stringify(out, null, 2) + "\n").catch(() => {});
   }
 }
+
+const problemsFile = (file: string) => file.replace(/\.ndjson$/, ".problems.json");

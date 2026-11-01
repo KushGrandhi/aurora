@@ -1,6 +1,6 @@
 import { validateView } from "@genui/engine";
 import {
-  applyOps, fromPlan1, getComponent, SpecSchema, ViewSchema,
+  allIds, applyOps, fromPlan1, getComponent, IdSchema, SpecSchema, ViewSchema,
   type PatchOp, type Problem, type QueryResult, type ScreenMessage, type Spec, type View, type ViewEvent,
 } from "@genui/spec";
 import { randomUUID } from "node:crypto";
@@ -60,11 +60,18 @@ export class Intake {
     if ((input as { v?: unknown }).v === 1) {
       const p = SpecSchema.safeParse(input);
       if (!p.success) throw new IntakeError(`invalid plan 1 spec: ${issue(p.error)}`);
-      view = fromPlan1(p.data, opts.id ?? `v_${randomUUID().slice(0, 8)}`);
+      const id = opts.id ?? `v_${randomUUID().slice(0, 8)}`;
+      if (!IdSchema.safeParse(id).success) throw new IntakeError(`view id "${id}" must match ^[A-Za-z_]\\w*$ (for a streamed file, rename it, e.g. my_view.ndjson)`);
+      view = fromPlan1(p.data, id);
     } else {
       const p = ViewSchema.safeParse(input);
       if (!p.success) throw new IntakeError(`invalid view: ${issue(p.error)}`);
       view = p.data;
+    }
+    const seen = new Set<string>();
+    for (const id of allIds(view)) {
+      if (seen.has(id)) throw new IntakeError(`id "${id}" is used more than once (section and item ids must be unique across the view)`);
+      seen.add(id);
     }
     const r = this.runtime(view.id);
     r.extra = [];
@@ -199,7 +206,9 @@ export class Intake {
   private async evaluate(view: View): Promise<{ checked: ReturnType<typeof validateView>; fresh: string[] }> {
     const { data } = this.deps;
     const r = this.runtime(view.id);
-    const dataProblems = (await data.ensure(view)).problems;
+    const loaded = await data.ensure(view);
+    const dataProblems = loaded.problems;
+    if (view.datasets) view = { ...view, datasets: loaded.datasets }; // inline rows live in a file beside the view, not in every version
     if (dataProblems.length) r.results.clear();
 
     const queries = view.queries ?? {};

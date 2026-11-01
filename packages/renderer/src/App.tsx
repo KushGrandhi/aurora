@@ -75,6 +75,11 @@ export function App() {
     stateRef.current = r.state;
     setState(r.state);
     if (r.need) send(r.need);
+    if (r.follow) {
+      location.hash = r.follow;
+      setPicked(r.follow);
+      setPreview(undefined);
+    }
   }, [send]);
 
   useEffect(() => {
@@ -156,9 +161,11 @@ export function App() {
               )}
               <h1>{view.title}</h1>
               {view.summary && <p className="summary">{fillPlaceholders(view.summary, results)}</p>}
-              {view.sections.map((s) => (
-                <Section key={s.id} section={s} version={version} problems={problems} ctxFor={ctxFor} heroId={heroId} viewId={currentId} changed={showing ? {} : live?.changed ?? {}} />
-              ))}
+              <div key={currentId} className="view-body">{/* a different view is a fresh mount, even when ids repeat */}
+                {view.sections.map((s) => (
+                  <Section key={s.id} section={s} version={version} problems={problems} ctxFor={ctxFor} heroId={heroId} viewId={currentId} changed={showing ? {} : live?.changed ?? {}} />
+                ))}
+              </div>
               {viewProblems.length > 0 && <div className="errors">{viewProblems.map((p, i) => <div key={i}>{p.message}</div>)}</div>}
             </>
           )}

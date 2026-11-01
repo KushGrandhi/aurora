@@ -19,8 +19,24 @@ export const emptyState = (): State => ({ views: {}, results: {}, activity: {}, 
 
 const itemsById = (v: View) => new Map(v.sections.flatMap((s) => s.items.map((i) => [i.id, JSON.stringify(i)] as const)));
 
+/** Reuse the previous item objects whose content didn't change, so unchanged components don't redraw. */
+function keepIdentity(prev: View, next: View): View {
+  const old = new Map(prev.sections.flatMap((s) => s.items.map((i) => [i.id, i] as const)));
+  return {
+    ...next,
+    sections: next.sections.map((s) => ({
+      ...s,
+      items: s.items.map((i) => {
+        const o = old.get(i.id);
+        return o && JSON.stringify(o) === JSON.stringify(i) ? o : i;
+      }),
+    })),
+  };
+}
+
 /** Pure reducer. A patch that doesn't follow the version we hold asks the server for a fresh snapshot (`need`). */
-export function reduce(state: State, e: ViewEvent): { state: State; need?: ScreenMessage } {
+/** `follow` names a view the screen has never heard of, so the screen can switch to what a caller just created. */
+export function reduce(state: State, e: ViewEvent): { state: State; need?: ScreenMessage; follow?: string } {
   switch (e.t) {
     case "view": {
       const prev = state.views[e.viewId];
@@ -30,8 +46,9 @@ export function reduce(state: State, e: ViewEvent): { state: State; need?: Scree
         const before = itemsById(prev.view);
         for (const [id, json] of itemsById(e.view)) if (before.get(id) !== json) changed[id] = e.version;
       }
-      const next: ViewState = { view: e.view, version: e.version, problems: prev?.problems ?? [], changed, source: e.source };
-      return { state: { ...state, views: { ...state.views, [e.viewId]: next } } };
+      const next: ViewState = { view: prev ? keepIdentity(prev.view, e.view) : e.view, version: e.version, problems: prev?.problems ?? [], changed, source: e.source };
+      const fresh = !prev && !state.list.some((l) => l.id === e.viewId);
+      return { state: { ...state, views: { ...state.views, [e.viewId]: next } }, ...(fresh ? { follow: e.viewId } : {}) };
     }
     case "patch": {
       const prev = state.views[e.viewId];
@@ -41,7 +58,7 @@ export function reduce(state: State, e: ViewEvent): { state: State; need?: Scree
       if (!r.ok) return { state, need: { t: "sync", viewId: e.viewId } };
       const changed = { ...prev.changed };
       for (const id of e.changed) changed[id] = e.version;
-      return { state: { ...state, views: { ...state.views, [e.viewId]: { ...prev, view: r.view, version: e.version, changed, source: e.source } } } };
+      return { state: { ...state, views: { ...state.views, [e.viewId]: { ...prev, view: keepIdentity(prev.view, r.view), version: e.version, changed, source: e.source } } } };
     }
     case "result":
       return { state: { ...state, results: { ...state.results, [e.viewId]: { ...state.results[e.viewId], [e.queryId]: e.result } } } };

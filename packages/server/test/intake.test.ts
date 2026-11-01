@@ -159,3 +159,35 @@ test("snapshot replays view, results and problems", async () => {
   const snap = intake.snapshot("sales");
   expect(snap.map((e) => e.t)).toEqual(["view", "result", "problems"]);
 });
+
+test("render rejects duplicate ids", async () => {
+  const { intake, store } = setup();
+  const v = salesView();
+  v.sections.push({ id: "k", layout: "grid", items: [] });
+  await expect(intake.render(v, "caller")).rejects.toThrow(/"k".*more than once/);
+  const w = salesView();
+  w.sections[0].items.push({ id: "t", c: { type: "text", md: "dup" } });
+  await expect(intake.render(w, "caller")).rejects.toThrow(/"t"/);
+  expect(store.current("sales")).toBeUndefined();
+});
+
+test("plan 1 spec with an invalid id is a clear error", async () => {
+  const { intake } = setup();
+  const spec: Spec = { v: 1, title: "P1", queries: {}, layout: { type: "grid", cols: 12, items: [] } };
+  const err = await intake.render(spec, "file", { id: "my-view" }).catch((e) => e);
+  expect(err.constructor.name).toBe("IntakeError");
+  expect(err.message).toMatch(/my-view/);
+});
+
+test("inline datasets are stored as a file reference, not copied into each version", async () => {
+  const { intake, store } = setup();
+  const v: View = { v: 2, id: "inl", title: "I", datasets: { pts: { inline: [{ x: 1 }, { x: 2 }] } }, queries: { s: { sql: "SELECT sum(x) AS total FROM pts" } },
+    sections: [{ id: "m", layout: "grid", items: [{ id: "k", c: { type: "kpi", query: "s", field: "total", label: "Sum" } }] }] };
+  const r = await intake.render(v, "caller");
+  expect(r.problems.filter((p) => p.severity === "error")).toEqual([]);
+  const ds = store.current("inl")!.view.datasets!.pts as { path: string };
+  expect(typeof ds.path).toBe("string");
+  expect(JSON.stringify(store.current("inl")!.view)).not.toContain('"inline"');
+  await intake.patch("inl", [{ op: "set", title: "I2" }], "caller");
+  expect(store.current("inl")!.view.datasets).toEqual({ pts: ds });
+});

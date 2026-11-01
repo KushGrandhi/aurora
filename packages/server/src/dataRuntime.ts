@@ -1,10 +1,11 @@
+import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { explainQuery, ingest, lockDb, openDb, profileDatasets, referencesData, runQuery, type Db, type Profile } from "@genui/engine";
 import type { DataInput } from "@genui/engine";
 import type { DataInputJson, Problem, QueryResult, View } from "@genui/spec";
 
-type Open = { db: Db; key: string; tables: string[]; timer?: NodeJS.Timeout; queue: Promise<unknown> };
+type Open = { db: Db; key: string; tables: string[]; failed: number; timer?: NodeJS.Timeout; queue: Promise<unknown> };
 
 /** One DuckDB per view, opened on demand from the view's datasets and closed after `idleMs` without use. */
 export class DataRuntime {
@@ -22,18 +23,22 @@ export class DataRuntime {
     return this.open.has(viewId);
   }
 
-  /** Loads (or reloads, when they changed) the view's datasets. A dataset that fails to load is a problem; the rest load. */
-  async ensure(view: View): Promise<{ problems: Problem[] }> {
-    const datasets = view.datasets ?? {};
+  /**
+   * Loads (or reloads, when they changed or some failed last time) the view's datasets. A dataset that fails to load
+   * is a problem; the rest load. Returns the datasets with inline rows replaced by the file they were saved to.
+   */
+  async ensure(view: View): Promise<{ problems: Problem[]; datasets: Record<string, DataInputJson> }> {
+    const datasets: Record<string, DataInputJson> = {};
+    for (const [name, input] of Object.entries(view.datasets ?? {})) datasets[name] = await this.resolve(view.id, name, input);
     this.known.set(view.id, datasets);
     const key = JSON.stringify(datasets);
     const cur = this.open.get(view.id);
-    if (cur && cur.key === key) {
+    if (cur && cur.key === key && cur.failed === 0) {
       this.touch(view.id);
-      return { problems: [] };
+      return { problems: [], datasets };
     }
     if (cur) await this.close(view.id);
-    return this.load(view.id, datasets);
+    return { ...(await this.load(view.id, datasets)), datasets };
   }
 
   async run(viewId: string, queryId: string, sql: string): Promise<QueryResult | { problem: Problem }> {
@@ -89,25 +94,26 @@ export class DataRuntime {
     const tables: string[] = [];
     for (const [name, input] of Object.entries(datasets)) {
       try {
-        await ingest(db, { [name]: await this.resolve(viewId, name, input) }, { lock: false });
+        await ingest(db, { [name]: input as DataInput }, { lock: false });
         tables.push(name);
       } catch (e) {
         problems.push({ severity: "error", message: `dataset "${name}" failed to load: ${(e as Error).message}`, hint: "check the path exists and is readable; items reading it can't render" });
       }
     }
     await lockDb(db);
-    this.open.set(viewId, { db, key: JSON.stringify(datasets), tables, queue: Promise.resolve() });
+    this.open.set(viewId, { db, key: JSON.stringify(datasets), tables, failed: problems.length, queue: Promise.resolve() });
     this.touch(viewId);
     return { problems };
   }
 
-  /** Inline rows are saved beside the view so the data survives restarts. */
-  private async resolve(viewId: string, name: string, input: DataInputJson): Promise<DataInput> {
-    if (typeof input === "string" || !("inline" in input)) return input as DataInput;
+  /** Inline rows are saved beside the view (named by content, so older versions keep their data) and referenced by path. */
+  private async resolve(viewId: string, name: string, input: DataInputJson): Promise<DataInputJson> {
+    if (typeof input === "string" || !("inline" in input)) return input;
+    const body = input.inline.map((r) => JSON.stringify(r)).join("\n") + "\n";
     const folder = path.join(this.inlineDir, viewId);
     await mkdir(folder, { recursive: true });
-    const file = path.join(folder, `${name}.ndjson`);
-    await writeFile(file, input.inline.map((r) => JSON.stringify(r)).join("\n") + "\n");
+    const file = path.join(folder, `${name}-${createHash("sha256").update(body).digest("hex").slice(0, 10)}.ndjson`);
+    await writeFile(file, body);
     return { path: file, format: "ndjson" };
   }
 

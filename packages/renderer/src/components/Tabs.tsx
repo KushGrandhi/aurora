@@ -24,7 +24,7 @@ export function Tabs({ section, version, problems, ctxFor, viewId, changed }: Se
           <motion.div key={item.id} role="tabpanel" data-item={item.id} data-type={item.c.type} className="tab-panel" aria-hidden={item.id !== current}
             data-glow={shouldGlow(changed, item.id, version) ? "true" : undefined}
             animate={{ opacity: item.id === current ? 1 : 0 }}>
-            <ItemFrame item={item} version={version} ctx={ctxFor(item, false)} problem={itemProblem(problems, item.id)} showTitle={false} />
+            <ItemFrame item={item} version={version} changedAt={changed[item.id]} ctx={ctxFor(item, false)} problem={itemProblem(problems, item.id)} showTitle={false} />
           </motion.div>
         ))}
       </div>
