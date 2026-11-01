@@ -13,6 +13,8 @@ export function themeFor(mode: Mode): Theme {
   return { categorical: t.series, sequential: t.ramp, ink: t.ink, ink2: t.ink2, muted: t.muted, surface: t.surface, hair: t.grid, axis: t.axis };
 }
 
+export type Viewport = "desktop" | "tablet" | "phone";
+
 export type RenderCtx = {
   results: Record<string, QueryResult>;
   mode: Mode;
@@ -21,6 +23,10 @@ export type RenderCtx = {
   motion: MotionApi;
   /** URL to load a media src from (a local file's token URL, or the URL itself); undefined while unknown. */
   media(src: string): string | undefined;
+  /** Set when the item is shown as the whole screen (page display). */
+  page?: { viewport: Viewport };
+  /** Opens a design item as the whole screen. */
+  openPage?(): void;
   /** Tell the caller what the person did (genui.send from a design). */
   send(name: string, payload: unknown): void;
   /** Tell the server whether this item drew. Components marked selfReport must call it; others are reported on mount. */

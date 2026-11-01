@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Monitor, Smartphone, Tablet } from "lucide-react";
+import { Maximize2, Monitor, Smartphone, Tablet } from "lucide-react";
 import type { Custom, Design as DesignC } from "@genui/spec";
 import { mountFrame } from "../design/bridge.ts";
 import { compileProject } from "../design/compile.ts";
 import { buildSrcdoc } from "../design/srcdoc.ts";
-import type { RenderCtx } from "../registry.tsx";
+import type { RenderCtx, Viewport } from "../registry.tsx";
 
-type Viewport = "desktop" | "tablet" | "phone";
 type Controller = ReturnType<typeof mountFrame>;
 type FrameSpec = { id: number; srcdoc: string };
 
@@ -60,8 +59,8 @@ export default function Design({ c, ctx }: { c: DesignC | Custom; ctx: RenderCtx
   const [viewport, setViewport] = useState<Viewport>(c.type === "design" ? c.viewport ?? "desktop" : "desktop");
   const seq = useRef(0);
   const controllers = useRef(new Map<number, Controller>());
-  const latest = useRef({ ctx, data, mode: ctx.mode, assets, fixedHeight: c.height });
-  latest.current = { ctx, data, mode: ctx.mode, assets, fixedHeight: c.height };
+  const latest = useRef({ ctx, data, mode: ctx.mode, assets, fixedHeight: ctx.page ? 0 : c.height });
+  latest.current = { ctx, data, mode: ctx.mode, assets, fixedHeight: ctx.page ? 0 : c.height };
 
   // Compile and start a new frame whenever the files change; the old frame stays until the new one is ready.
   useEffect(() => {
@@ -118,21 +117,23 @@ export default function Design({ c, ctx }: { c: DesignC | Custom; ctx: RenderCtx
   useEffect(() => { for (const ctl of controllers.current.values()) ctl.setTheme(ctx.mode); }, [ctx.mode]);
   useEffect(() => { if (c.height !== undefined) setHeight(c.height); }, [c.height]);
 
-  const width = WIDTHS[viewport];
+  const vp = ctx.page?.viewport ?? viewport;
+  const width = WIDTHS[vp];
   return (
-    <div className={`design viewport-${viewport}`}>
-      <div className="design-bar">
+    <div className={`design viewport-${vp}${ctx.page ? " in-page" : ""}`}>
+      {!ctx.page && <div className="design-bar">
         <div className="viewports" role="group" aria-label="Viewport">
           {([["desktop", Monitor], ["tablet", Tablet], ["phone", Smartphone]] as const).map(([v, Icon]) => (
             <button key={v} data-viewport={v} className={viewport === v ? "sel" : ""} onClick={() => setViewport(v)} aria-label={v} title={v}><Icon size={14} /></button>
           ))}
         </div>
         {(c.data?.length ?? 0) > 0 && <span className="custom-badge" title="Custom code showing data from this view's queries">custom</span>}
-      </div>
+        {ctx.openPage && <button className="open-page" onClick={ctx.openPage} aria-label="Open full screen" title="Open full screen"><Maximize2 size={14} /></button>}
+      </div>}
       {compileError ? (
         <pre className="design-compile-error">{compileError}</pre>
       ) : (
-        <div className="design-stage" style={{ height }}>
+        <div className="design-stage" style={ctx.page ? undefined : { height }}>
           <div className="design-device" style={{ width: width ?? "100%" }}>
             {frames.map((f) => <Frame key={f.id} spec={f} ready={readyIds.has(f.id)} on={on} />)}
           </div>

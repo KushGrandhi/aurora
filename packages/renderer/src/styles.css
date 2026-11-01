@@ -379,3 +379,33 @@ figcaption { font-size: 12px; color: var(--ink2); margin-top: 6px; }
 .design-frame.ready { opacity: 1; }
 .design-error { position: absolute; right: 8px; bottom: 8px; max-width: 70%; font-size: 12px; color: #fff; background: var(--bad); border-radius: 8px; padding: 6px 10px; box-shadow: var(--shadow-hover); white-space: pre-wrap; }
 .design-compile-error { margin: 0; padding: 14px; border-radius: 10px; background: color-mix(in srgb, var(--bad) 8%, transparent); color: var(--bad); font: 12.5px/1.5 ui-monospace, Menlo, monospace; white-space: pre-wrap; }
+
+/* Page display: a design as the whole screen */
+.app.page-mode { grid-template-columns: 56px minmax(0, 1fr); }
+.app.page-mode .side { padding-left: 10px; padding-right: 10px; overflow: hidden; }
+.app.page-mode .side > *:not(.brand) { display: none; }
+.app.page-mode .brand { font-size: 0; gap: 0; }
+.app.page-mode main { padding: 0; }
+.page-view { position: relative; height: 100vh; overflow: hidden; background: var(--page); }
+.page-stage { position: absolute; inset: 0; }
+.page-stage > .face, .page-stage .face { height: 100%; }
+.design.in-page { height: 100%; display: flex; flex-direction: column; }
+.design.in-page .design-stage { flex: 1; border-radius: 0; }
+.design.in-page.viewport-tablet .design-stage, .design.in-page.viewport-phone .design-stage { padding: 64px 0 24px; background: color-mix(in srgb, var(--ink) 4%, var(--page)); }
+.page-bar {
+  position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 20; display: flex; align-items: center; gap: 12px;
+  padding: 6px 8px 6px 14px; border-radius: 14px; background: color-mix(in srgb, var(--raised) 72%, transparent);
+  backdrop-filter: saturate(180%) blur(18px); -webkit-backdrop-filter: saturate(180%) blur(18px);
+  border: 1px solid var(--hair); box-shadow: var(--shadow-hover); transition: opacity 300ms var(--ease), transform 300ms var(--ease);
+}
+.page-hot { position: absolute; top: 0; left: 0; right: 0; height: 28px; z-index: 19; pointer-events: none; }
+.page-hot.live { pointer-events: auto; }
+.page-bar.idle { opacity: 0; transform: translate(-50%, -8px); pointer-events: none; }
+.page-bar .page-title { font-size: 13px; font-weight: 600; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.page-bar .viewports { display: inline-flex; gap: 2px; padding: 2px; border-radius: 8px; background: var(--skeleton-a); }
+.page-bar .viewports button { all: unset; display: grid; place-items: center; width: 28px; height: 24px; border-radius: 6px; color: var(--muted); cursor: pointer; }
+.page-bar .viewports button.sel { background: var(--raised); color: var(--ink); box-shadow: var(--shadow); }
+.page-bar .page-exit, .design .open-page { all: unset; display: grid; place-items: center; width: 28px; height: 26px; border-radius: 7px; color: var(--ink2); cursor: pointer; }
+.page-bar .page-exit:hover, .design .open-page:hover { background: var(--skeleton-a); color: var(--ink); }
+.design .open-page { margin-left: auto; }
+@media (prefers-reduced-motion: reduce) { .page-bar { transition: opacity 200ms; } .page-bar.idle { transform: translateX(-50%); } }

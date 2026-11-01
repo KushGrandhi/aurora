@@ -6,6 +6,8 @@ import { Section } from "./components/Section.tsx";
 import { MotionRoot, SPRING } from "./motion.tsx";
 import { VersionStrip } from "./components/VersionStrip.tsx";
 import { FilterBar } from "./components/FilterBar.tsx";
+import { PageView } from "./components/PageView.tsx";
+import { itemProblem } from "./components/Section.tsx";
 import { themeFor, type RenderCtx } from "./registry.tsx";
 import { mergeReport, type Pending } from "./reports.ts";
 import { emptyState, reduce, type State } from "./store.ts";
@@ -61,6 +63,7 @@ export function App() {
   const [up, setUp] = useState(false);
   const [picked, setPicked] = useState<string | undefined>(() => location.hash.slice(1) || undefined);
   const [preview, setPreview] = useState<{ viewId: string; version: number; view: View }>();
+  const [opened, setOpened] = useState<string>(); // design item opened as the whole screen
   const [mode, toggleMode] = useMode();
   const reduced = useReducedMotion() ?? false;
 
@@ -116,16 +119,22 @@ export function App() {
     results, mode, theme, hero, motion: { spring: SPRING, reduced },
     media: (src) => media?.[src],
     send: (name, payload) => { if (currentId && !showing) send({ t: "event", viewId: currentId, itemId: item.id, name, payload }); },
+    ...(item.c.type === "design" || item.c.type === "custom" ? { openPage: () => setOpened(item.id) } : {}),
     report: (ok, message) => { if (currentId && !showing) report(currentId, version, item.id, ok, message); },
   }), [results, mode, theme, media, currentId, version, showing, report, reduced]);
   const params = currentId ? state.params[currentId] : undefined;
 
   const viewProblems = problems.filter((p) => !p.itemId && p.severity !== "unverified");
+  // Page display: a view whose only item is a design with display "page", or a design opened full screen.
+  const allItems = view ? view.sections.flatMap((s) => s.items) : [];
+  const only = allItems.length === 1 ? allItems[0] : undefined;
+  const pageItem = (opened && allItems.find((i) => i.id === opened)) || (only && (only.c.type === "design" || only.c.type === "custom") && only.c.display === "page" ? only : undefined);
+  useEffect(() => setOpened(undefined), [currentId]);
   const status = activity || (live ? `v${live.version} · ${live.source === "screen" ? "chosen on screen" : `from ${live.source}`}` : "");
 
   return (
     <MotionRoot>
-    <div className="app">
+    <div className={`app${pageItem ? " page-mode" : ""}`}>
       <aside className="side">
         <div className="brand"><span className="mark" />genui<span className={`conn${up ? " up" : ""}`} title={up ? "connected" : "reconnecting"} /></div>
         {list.length > 0 && <h2>Views</h2>}
@@ -142,6 +151,19 @@ export function App() {
         <button className="theme-toggle" onClick={toggleMode}>{mode === "dark" ? "☀︎ Light" : "☾ Dark"}</button>
       </aside>
       <main>
+        {pageItem && view && currentId ? (
+          <PageView
+            key={`${currentId}:${pageItem.id}`}
+            item={pageItem}
+            version={version}
+            changedAt={(showing ? {} : live?.changed ?? {})[pageItem.id]}
+            ctx={ctxFor(pageItem, false)}
+            problem={itemProblem(problems, pageItem.id)}
+            title={view.title}
+            versions={<VersionStrip viewId={currentId} version={live?.version ?? version} previewing={showing?.version} onPreview={choosePreview} />}
+            onExit={opened ? () => setOpened(undefined) : undefined}
+          />
+        ) : (
         <div className="page">
           {!view || !currentId ? (
             <div className="empty">
@@ -175,6 +197,7 @@ export function App() {
             </>
           )}
         </div>
+        )}
       </main>
     </div>
     </MotionRoot>
