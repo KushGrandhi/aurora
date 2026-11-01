@@ -17,6 +17,10 @@ async function show(page: Page, request: APIRequestContext, scheme: "light" | "d
   const s = await status(request);
   expect(s.problems.filter((p: { severity: string }) => p.severity === "error")).toEqual([]);
   await page.waitForTimeout(1500); // entrances and count-ups settle
+  // Design frames outside the viewport aren't painted in a full-page capture: make the viewport the whole page first.
+  const h = await page.evaluate(() => document.documentElement.scrollHeight);
+  await page.setViewportSize({ width: 1360, height: h });
+  await page.waitForTimeout(1200);
 }
 
 test("gallery renders every component in light and dark", async ({ page, request }) => {

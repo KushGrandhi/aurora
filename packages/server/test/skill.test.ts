@@ -28,3 +28,10 @@ test("skill mentions params and every component", () => {
   expect(md).toMatch(/displayed, never generated/i);
   for (const def of allComponents()) expect(md).toContain(`\`${def.type}\``);
 });
+
+test("skill covers the design canvas", () => {
+  const md = generateSkill();
+  expect(md).toContain("## The design canvas: build anything");
+  for (const s of ['display: "page"', "editFile", "mcp__genui__variants", "genui.send", "mcp__genui__events", "waitMs"]) expect(md).toContain(s);
+  for (const lib of ["react", "motion", "lucide-react", "three", "d3", "gsap"]) expect(md).toContain(lib);
+});

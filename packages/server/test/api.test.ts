@@ -284,3 +284,17 @@ test("variants over HTTP and pick from the screen", async () => {
   expect((await (await fetch(srv.url + "/api/views/demo")).json()).view.sections[0].items[0].span).toBe(3);
   l.ws.close();
 });
+
+test("connected screens hear about a rebuilt screen", async () => {
+  const { mkdir, writeFile } = await import("node:fs/promises");
+  const staticDir = path.join(dir, "static");
+  await mkdir(staticDir, { recursive: true });
+  await writeFile(path.join(staticDir, "index.html"), "<!doctype html><script src=/assets/a.js></script>");
+  srv = await startServer({ port: 0, provider: createFakeProvider(doc), openBrowser: () => {}, viewsDir: path.join(dir, "views"), waitMs: 20, staticDir, secretFile: path.join(dir, "secret") });
+  const l = listen(srv.url);
+  await until(() => l.events.some((e) => e.t === "hello"));
+  const first = (l.events.find((e) => e.t === "hello") as { build: string }).build;
+  await writeFile(path.join(staticDir, "index.html"), "<!doctype html><script src=/assets/b.js></script>");
+  await until(() => l.events.some((e) => e.t === "hello" && (e as { build: string }).build !== first), 5000);
+  l.ws.close();
+});

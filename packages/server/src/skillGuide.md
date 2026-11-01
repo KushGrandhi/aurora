@@ -1,6 +1,6 @@
 # genui — show anything as a live interface
 
-genui is a local screen that shows whatever you compose: analyses with KPIs, charts, tables and filters over data files; architecture and Mermaid diagrams; network graphs, maps and timelines; code, images, video, cards, steps and callouts; prose and JSON. **You compose the view; genui validates it, renders it with motion, keeps every version and tells you what went wrong.** Use it instead of dumping tables or long explanations in the terminal whenever seeing beats reading.
+genui is a local screen that shows whatever you compose — including **anything you can build as a web page** (sites, interactive explainers, games, 3D, mockups) on its design canvas, plus ready-made components: analyses with KPIs, charts, tables and filters over data files; architecture and Mermaid diagrams; network graphs, maps and timelines; code, images, video, cards, steps and callouts; prose and JSON. **You compose the view; genui validates it, renders it with motion, keeps every version and tells you what went wrong.** Use it instead of dumping tables or long explanations in the terminal whenever seeing beats reading.
 
 ## When to use
 
@@ -10,10 +10,30 @@ genui is a local screen that shows whatever you compose: analyses with KPIs, cha
 
 Tell the user the URL in one line; don't also print the content in the terminal.
 
+## The design canvas: build anything
+
+When the components below can't express it, or the result should feel like a real product, build it yourself with a `design` item: a React + Tailwind (or plain HTML/JS) project that runs in a sandbox on the screen. You have full freedom over layout, type, motion and interaction.
+
+```json
+{ "id": "landing", "c": { "type": "design", "framework": "react", "display": "page",
+  "files": { "App.tsx": "import Hero from './Hero';\nexport default function App() { return <Hero />; }",
+             "Hero.tsx": "import { motion } from 'motion/react';\nexport default function Hero() { return <motion.h1 initial={{opacity:0}} animate={{opacity:1}} className='text-6xl font-semibold'>Hello</motion.h1>; }" } } }
+```
+
+- **Files:** `App.tsx` (or `entry`) default-exports the root component; files import each other with relative paths (`./Hero`, `../lib/util`), plus `.css`, `.json`, `.svg`. `framework: "html"` runs `index.html` instead. `custom` is a single HTML document.
+- **Libraries** (bundled, offline): `react`, `react-dom`, `motion` / `motion/react`, `lucide-react`, `three`, `d3`, `gsap`. Tailwind classes work everywhere, including `dark:` (it follows the screen's theme). Nothing else can be imported.
+- **No network.** `fetch`, external images and CDNs are blocked and come back as problems. Pass data with `data: ["queryId"]` (rows arrive as `window.genui.data.queryId`, updated live when filters change via `genui.onData`) and local images/video with `assets: {"logo": "/abs/path/logo.png"}` (`genui.asset("logo")` gives its URL).
+- **Show it big.** `display: "page"` on a view's only item shows it as the whole screen, like a real site. Cards have a desktop/tablet/phone switcher (`viewport`) and an "open full screen" button.
+- **Iterate cheaply** with `editFile`: `{"op":"editFile","id":"landing","path":"Hero.tsx","edits":[{"find":"text-6xl","replace":"text-7xl"}]}` (each `find` must occur exactly once), `content` to replace or create a file, `deleteFile` to remove one. Don't resend the whole project.
+- **Offer options:** `mcp__genui__variants` with 2–3 `{label, ops}` alternatives shows them side by side; the person picks one and it becomes the current version. Then call `mcp__genui__events` with `waitMs` (up to 60000) to wait for the `genui:variant-picked` event and continue from their choice.
+- **Hear clicks:** inside the page, `window.genui.send("chose", {plan: "pro"})` reports what the person did; read it with `mcp__genui__events` (`after` = last seq seen, `waitMs` to wait). Use it for choices, forms and games.
+- **Problems** come back on the item: compile errors with `file:line:col`, runtime errors, blocked network requests, and "did not finish loading" (an infinite loop or a promise that never settles). Fix them with `editFile`.
+
 ## Pick the right component
 
 - **Analysis of data:** `kpi` tiles (with a `sparkline` for the trend) on top, `chart` for the shape, `table` for the rows, and view `params` as filters when the reader will want to slice it.
 - **Explaining a project or system:** `architecture` for the parts and what talks to what (polished, auto-laid-out); `diagram` (Mermaid) for flows, sequences and state machines; `steps` for processes and setup; `callout` for decisions, risks and tips; `code` for the excerpt that matters; `text` for the narrative.
+- **A website, landing page, product mockup, interactive explainer, game or anything bespoke:** `design` (often with `display: "page"`), and offer `variants` when there's a choice to make.
 - **Showing work:** `code` (or a diff), `media` for screenshots and recordings that already exist, `cards` for collections (projects, people, files).
 - **Places:** `map`. **Relationships with many nodes:** `graph`. **History, schedules, milestones:** `timeline`. **Raw structures:** `json`.
 - Wide components (`architecture`, `diagram`, `chart`, `table`, `map`, `graph`, `timeline`, `code`, `cards`, `media`) read best at `span` 12; `kpi` at 3–4; `callout`, `steps`, `text` at 6–12. A left-to-right flowchart in a half-width card gets small: give it 12.

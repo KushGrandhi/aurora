@@ -135,6 +135,14 @@ export async function startServer(opts: ServerOpts) {
   });
 
   const watcher = new ViewFileWatcher(intake);
+  // A rebuilt screen (vite build) replaces the dist folder: tell open screens, so ones on the old build reload.
+  let lastBuild = screenBuild();
+  const buildCheck = setInterval(() => {
+    const b = screenBuild();
+    if (b !== lastBuild) broadcast({ t: "hello", build: b });
+    lastBuild = b;
+  }, 1000);
+  buildCheck.unref();
 
   /** Plan 1 entry: the built-in composer streams into a v2 view through the same intake. */
   function startCompose(input: DataInput | Record<string, DataInput>, intent: string | undefined): string {
@@ -359,6 +367,7 @@ export async function startServer(opts: ServerOpts) {
     store,
     async close() {
       watcher.close();
+      clearInterval(buildCheck);
       for (const c of clients) c.terminate();
       wss.close();
       await new Promise<void>((r) => server.close(() => r()));
