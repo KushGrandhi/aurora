@@ -59,3 +59,11 @@ test("graph and timeline need data", () => {
   expect(getComponent("graph")!.check!({ type: "graph" })).not.toBeNull();
   expect(getComponent("timeline")!.check!({ type: "timeline", events: [{ date: "soon", title: "Launch" }] })).toContain("soon");
 });
+
+test("query.id is documented as the query's name, not a column", () => {
+  for (const t of ["timeline", "cards"]) {
+    const g = getComponent(t)!.doc.guidance;
+    expect(g, t).toContain("`query.id` is the name of a query in the view");
+    expect(g, t).toMatch(/"query":\s*\{\s*"id":/);
+  }
+});

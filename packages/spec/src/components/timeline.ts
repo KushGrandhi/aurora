@@ -31,7 +31,7 @@ export const timeline: ComponentDef<Timeline> = {
         { date: "2026-05-05", end: "2026-06-01", title: "Hardening", group: "Engineering" },
       ],
     },
-    guidance: "Pick it for history, schedules and milestones. Dates are ISO strings; `end` makes a span. `group` puts events in lanes. From data, map query columns with `query: {id, date, title, end?, group?}`.",
+    guidance: "Pick it for history, schedules and milestones. Dates are ISO strings; `end` makes a span. `group` puts events in lanes. From data: `query.id` is the name of a query in the view; the other fields name its columns, e.g. `\"query\": {\"id\": \"activity\", \"date\": \"last_modified\", \"title\": \"project\", \"group\": \"language\"}` (one event per row).",
   },
   dataBound: (c) => (c.query ? [c.query.id] : []),
   check: checkTimeline,

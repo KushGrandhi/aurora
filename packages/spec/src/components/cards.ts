@@ -23,7 +23,7 @@ export const cards: ComponentDef<Cards> = {
         { title: "ideaverse", subtitle: "Notes vault", tags: ["markdown"], fields: { status: "daily" } },
       ],
     },
-    guidance: "Pick it for collections of things: projects, people, products, files. Images are absolute local paths or URLs. From data use `query: {id, title, subtitle?, image?, tags?, fields?}` naming columns. Prefer a table when readers compare numbers across many rows.",
+    guidance: "Pick it for collections of things: projects, people, products, files. Images are absolute local paths or URLs. From data: `query.id` is the name of a query in the view; the other fields name its columns, e.g. `\"query\": {\"id\": \"people\", \"title\": \"name\", \"subtitle\": \"role\", \"fields\": [\"team\", \"joined\"]}` (one card per row). Prefer a table when readers compare numbers across many rows.",
   },
   dataBound: (c) => (c.query ? [c.query.id] : []),
   media: (c) => (c.items ?? []).flatMap((i) => (i.image ? [i.image] : [])),

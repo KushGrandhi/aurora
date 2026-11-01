@@ -24,6 +24,8 @@ Then ask for something visual ("show an overview of projects.csv", "explain the 
 
 **Media** is displayed, never generated: `media` and `cards` show existing images and videos by absolute path or URL. A local file is served only because an accepted view references it, at an unguessable `/media/<token>` URL (Range requests for video, SVG sandboxed); everything else is a 404.
 
+Real runs (`claude -p` over MCP): explaining this repo built an architecture diagram, a Mermaid sequence of a render call, build steps and a code excerpt ([screenshot](docs/screenshots/2b-explain.png)); a `projects.csv` analysis built a language filter, KPIs with sparklines, a timeline, a chart and a table that all follow the filter ([all](docs/screenshots/2b-analysis.png), [TypeScript only](docs/screenshots/2b-analysis-filtered.png)).
+
 **HTTP**: `POST /api/views {view}` · `POST /api/views/:id/patch {ops, baseVersion?}` · `GET /api/views/:id` · `GET /api/views/:id/status` · `GET /api/views/:id/history` · `GET /api/views/:id/versions/:n` · `POST /api/views/:id/pick {version}` · `POST /api/views/:id/revert {itemId, version}` · `POST /api/views/:id/params {name, value}` · `POST /api/profile {data}` · `POST /api/watch {dir}` · `POST /api/gallery` · `GET /media/<token>`. The screen picks up everything over `GET /ws`.
 
 On the screen, the version chip lists every version; choosing one previews it and **Use this version** makes it current (a new version, so nothing is lost). A caller's next patch builds on it and its result says `rebased: true`.
