@@ -1,5 +1,6 @@
 import type { FC } from "react";
 import type { Component, QueryResult } from "@genui/spec";
+import type { MotionApi } from "./motion.tsx";
 import type { Mode } from "./theme.ts";
 import { Chart } from "./components/Chart.tsx";
 import { Json } from "./components/Json.tsx";
@@ -11,6 +12,7 @@ export type RenderCtx = {
   results: Record<string, QueryResult>;
   mode: Mode;
   hero?: boolean;
+  motion: MotionApi;
   /** Tell the server whether this item drew. Components marked selfReport must call it; others are reported on mount. */
   report(ok: boolean, message?: string): void;
 };

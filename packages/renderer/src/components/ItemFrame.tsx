@@ -1,4 +1,5 @@
 import { Component as ReactComponent, useEffect, useMemo, type ReactNode } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { getComponent, parsePlaceholders, type Problem, type ViewItem } from "@genui/spec";
 import { rendererFor, type RenderCtx } from "../registry.tsx";
 import { FallbackCard } from "./FallbackCard.tsx";
@@ -44,10 +45,16 @@ export function ItemFrame({ item, version, ctx, problem, showTitle }: {
   if (reason) body = <FallbackCard reason={reason} />;
   else if (!ready) body = <div className="skeleton" />;
   else if (R) body = <Boundary key={version} onError={(m) => ctx.report(false, m)}><R c={item.c} ctx={ctx} /></Boundary>;
+  // A different component type (a `replace`) crossfades; the card around it morphs size via its layout animation.
+  const face = reason ? "fallback" : ready ? item.c.type : "loading";
   return (
     <>
       {showTitle && item.title && <div className="card-title">{item.title}</div>}
-      {body}
+      <AnimatePresence mode="popLayout" initial={false}>
+        <motion.div key={face} className="face" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          {body}
+        </motion.div>
+      </AnimatePresence>
     </>
   );
 }

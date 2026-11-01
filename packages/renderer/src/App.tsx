@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ScreenMessage, View, ViewEvent, ViewItem } from "@genui/spec";
 import { fillPlaceholders } from "./format.ts";
+import { useReducedMotion } from "motion/react";
 import { Section } from "./components/Section.tsx";
+import { MotionRoot, SPRING } from "./motion.tsx";
 import { VersionStrip } from "./components/VersionStrip.tsx";
 import type { RenderCtx } from "./registry.tsx";
 import { emptyState, reduce, type State } from "./store.ts";
@@ -64,6 +66,7 @@ export function App() {
   const [picked, setPicked] = useState<string | undefined>(() => location.hash.slice(1) || undefined);
   const [preview, setPreview] = useState<{ viewId: string; version: number; view: View }>();
   const [mode, toggleMode] = useMode();
+  const reduced = useReducedMotion() ?? false;
 
   const send = useCallback((m: ScreenMessage) => conn.current?.send(m), []);
   const report = useReports(send);
@@ -106,14 +109,15 @@ export function App() {
     return k && (k.span ?? 12) >= 4 ? k.id : undefined;
   }, [view]);
   const ctxFor = useCallback((item: ViewItem, hero: boolean): RenderCtx => ({
-    results, mode, hero,
+    results, mode, hero, motion: { spring: SPRING, reduced },
     report: (ok, message) => { if (currentId && !showing) report(currentId, version, item.id, ok, message); },
-  }), [results, mode, currentId, version, showing, report]);
+  }), [results, mode, currentId, version, showing, report, reduced]);
 
   const viewProblems = problems.filter((p) => !p.itemId && p.severity !== "unverified");
   const status = activity || (live ? `v${live.version} · ${live.source === "screen" ? "chosen on screen" : `from ${live.source}`}` : "");
 
   return (
+    <MotionRoot>
     <div className="app">
       <aside className="side">
         <div className="brand"><span className="mark" />genui<span className={`conn${up ? " up" : ""}`} title={up ? "connected" : "reconnecting"} /></div>
@@ -153,7 +157,7 @@ export function App() {
               <h1>{view.title}</h1>
               {view.summary && <p className="summary">{fillPlaceholders(view.summary, results)}</p>}
               {view.sections.map((s) => (
-                <Section key={s.id} section={s} version={version} problems={problems} ctxFor={ctxFor} heroId={heroId} />
+                <Section key={s.id} section={s} version={version} problems={problems} ctxFor={ctxFor} heroId={heroId} viewId={currentId} changed={showing ? {} : live?.changed ?? {}} />
               ))}
               {viewProblems.length > 0 && <div className="errors">{viewProblems.map((p, i) => <div key={i}>{p.message}</div>)}</div>}
             </>
@@ -161,5 +165,6 @@ export function App() {
         </div>
       </main>
     </div>
+    </MotionRoot>
   );
 }
