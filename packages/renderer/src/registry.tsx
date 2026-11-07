@@ -20,6 +20,8 @@ export type RenderCtx = {
   mode: Mode;
   theme: Theme;
   hero?: boolean;
+  /** A design shown as the view's full-width hero: no frame, no viewport bar. */
+  bleed?: boolean;
   motion: MotionApi;
   /** URL to load a media src from (a local file's token URL, or the URL itself); undefined while unknown. */
   media(src: string): string | undefined;

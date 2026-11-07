@@ -14,6 +14,8 @@ export type SectionProps = {
   heroId?: string;
   viewId: string;
   changed: Record<string, number>;
+  /** This is the view's first section: its first item may be a full-width hero. */
+  leads?: boolean;
 };
 
 /**
@@ -22,7 +24,10 @@ export type SectionProps = {
  */
 export const itemProblem = (problems: Problem[], id: string) => problems.find((p) => p.itemId === id && p.severity === "error" && !p.message.startsWith("render failed: "));
 
-function Grid({ section, version, problems, ctxFor, heroId, viewId, changed }: SectionProps) {
+const isBleed = (item: ViewItem) => (item.c.type === "design" || item.c.type === "custom") && item.c.display === "hero";
+
+function Grid({ section, version, problems, ctxFor, heroId, viewId, changed, leads }: SectionProps) {
+  const bleedId = leads && section.items[0] && isBleed(section.items[0]) ? section.items[0].id : undefined;
   const packed = packRows(section.items.map((i) => ({ ...i, span: i.span ?? 12 })) as Item[]) as (ViewItem & { span: number })[];
   return (
     <div className="grid">
@@ -32,13 +37,13 @@ function Grid({ section, version, problems, ctxFor, heroId, viewId, changed }: S
           return (
             <motion.section key={item.id} layout layoutId={`${viewId}:${item.id}`} data-item={item.id} data-type={item.c.type}
               data-glow={glow ? "true" : undefined}
-              className={`card${item.id.startsWith("d_") ? " default" : ""}`}
-              style={{ gridColumn: `span ${item.span}` }}
+              className={item.id === bleedId ? "bleed" : `card${item.id.startsWith("d_") ? " default" : ""}`}
+              style={{ gridColumn: item.id === bleedId ? "1 / -1" : `span ${item.span}` }}
               initial={{ opacity: 0, y: 12, scale: 0.985 }}
               animate={{ opacity: 1, y: 0, scale: 1, transition: { ...SPRING_SOFT, delay: Math.min(i, 10) * STAGGER_S } }}
               exit={{ opacity: 0, scale: 0.98, transition: SPRING }}>
               {glow && <span key={version} className="glow" aria-hidden />}
-              <ItemFrame item={item} version={version} changedAt={changed[item.id]} ctx={ctxFor(item, item.id === heroId)} problem={itemProblem(problems, item.id)} showTitle />
+              <ItemFrame item={item} version={version} changedAt={changed[item.id]} ctx={item.id === bleedId ? { ...ctxFor(item, false), bleed: true } : ctxFor(item, item.id === heroId)} problem={itemProblem(problems, item.id)} showTitle={item.id !== bleedId} />
             </motion.section>
           );
         })}

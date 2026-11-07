@@ -10,7 +10,7 @@ const PathSchema = z.string().regex(/^[\w./-]+\.(tsx|ts|jsx|js|css|json|html|svg
 
 const shared = {
   height: z.number().int().min(200).max(2400).optional(),
-  display: z.enum(["card", "page"]).optional(),
+  display: z.enum(["card", "page", "hero"]).optional(),
   data: z.array(IdSchema).optional(),
   assets: z.record(z.string().regex(/^[\w.-]+$/), z.string().min(1)).optional(),
 };
@@ -63,7 +63,7 @@ export const design: ComponentDef<Design> = {
       "Style with aurora's tokens so the design matches the screen and follows its theme on its own: Tailwind colors `page`, `surface`, `raised`, `ink`, `ink-2`, `muted`, `hair`, `line`, `accent`, `good`, `bad`, `warn` and `s1`…`s8` (as `bg-*`, `text-*`, `ring-*`, `border-*`, `fill-*`, `stroke-*`), `shadow-card`, and the same names as CSS variables (`var(--accent)`) for SVG, canvas and inline styles.",
       `Tailwind classes work everywhere. Importable libraries (bundled, offline): ${LIBS}; also \`motion/react\` and the Inter font. Nothing else can be imported and there is no network: fetch, external images and CDNs are blocked and reported as problems.`,
       `Bridge: ${BRIDGE}.`,
-      "`display: \"page\"` on a view's only item shows it full screen like a real site; cards get a desktop/tablet/phone switcher (`viewport`). A card fits its content and follows it as it grows and shrinks; leave out `height` unless the design needs a fixed stage (a full-bleed canvas or 3D scene).",
+      "`display: \"hero\"` on the first item of the first section shows it full width with no card frame, with the rest of the view below it: use it for a 3D scene or a striking visual that leads an explainer. `display: \"page\"` on a view's only item shows it full screen like a real site; cards get a desktop/tablet/phone switcher (`viewport`). A card fits its content and follows it as it grows and shrinks; leave out `height` unless the design needs a fixed stage (a full-bleed canvas or 3D scene).",
       "Iterate with `editFile` ops (`edits: [{find, replace}]` for small changes, `content` to replace a file, `deleteFile`), never by resending everything. Offer options with the `variants` tool and wait for the pick with `events`.",
       "Compile errors (file:line), runtime errors and blocked requests come back as problems on the item: fix them with `editFile`.",
     ].join(" "),

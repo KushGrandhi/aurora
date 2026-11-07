@@ -411,9 +411,12 @@ export class Intake {
     const problems = [...r.dataProblems, ...checked.problems];
     for (const [, q] of r.results) if (q.problem) problems.push(q.problem);
     const media: Record<string, string> = {};
+    const lead = checked.view.sections[0]?.items[0]?.id;
     for (const s of checked.view.sections)
       for (const item of s.items) {
         if (checked.invalid.has(item.id)) continue;
+        if ((item.c.type === "design" || item.c.type === "custom") && item.c.display === "hero" && item.id !== lead)
+          problems.push({ itemId: item.id, severity: "warning", message: "hero only applies to the first item of the first section; shown as a card", hint: "move it to the top of the view, or use display \"card\"" });
         const def = getComponent(item.c.type);
         const failed = (def?.dataBound?.(item.c) ?? []).find((q) => r.results.get(q)?.problem);
         if (failed) problems.push({ itemId: item.id, severity: "error", message: `query "${failed}" failed; see its problem`, hint: "fix the query with addQuery" });

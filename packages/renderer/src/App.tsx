@@ -214,8 +214,8 @@ export function App() {
                 <FilterBar params={view.params} values={params?.values ?? {}} options={params?.options ?? {}} onChange={(name, value) => send({ t: "param", viewId: currentId, name, value })} />
               )}
               <div key={currentId} className="view-body">{/* a different view is a fresh mount, even when ids repeat */}
-                {view.sections.map((s) => (
-                  <Section key={s.id} section={s} version={version} problems={problems} ctxFor={ctxFor} heroId={heroId} viewId={currentId} changed={showing ? {} : live?.changed ?? {}} />
+                {view.sections.map((s, i) => (
+                  <Section key={s.id} leads={i === 0} section={s} version={version} problems={problems} ctxFor={ctxFor} heroId={heroId} viewId={currentId} changed={showing ? {} : live?.changed ?? {}} />
                 ))}
               </div>
               {viewProblems.length > 0 && <div className="errors">{viewProblems.map((p, i) => <div key={i}>{p.message}</div>)}</div>}

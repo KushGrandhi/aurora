@@ -12,6 +12,7 @@ type FrameSpec = { id: number; srcdoc: string };
 const WIDTHS: Record<Viewport, number | undefined> = { desktop: undefined, tablet: 820, phone: 390 };
 const STUCK_MS = 8000;
 const clamp = (n: number) => Math.min(2400, Math.max(200, n));
+const heroHeight = () => Math.round(Math.min(900, Math.max(420, window.innerHeight * 0.88)));
 
 /** One sandboxed iframe; reports through `on` (always the latest handlers) and hands its controller back. */
 function Frame({ spec, ready, on }: {
@@ -56,13 +57,13 @@ export default function Design({ c, ctx }: { c: DesignC | Custom; ctx: RenderCtx
   const [readyIds, setReadyIds] = useState<Set<number>>(new Set());
   const [compileError, setCompileError] = useState<string>();
   const [error, setError] = useState<string>();
-  const [height, setHeight] = useState(c.height ?? 480);
+  const [height, setHeight] = useState(c.height ?? (ctx.bleed ? heroHeight() : 480));
   const [viewport, setViewport] = useState<Viewport>(c.type === "design" ? c.viewport ?? "desktop" : "desktop");
   const seq = useRef(0);
   const stuckIds = useRef(new Set<number>());
   const controllers = useRef(new Map<number, Controller>());
-  const latest = useRef({ ctx, data, mode: ctx.mode, assets, fixedHeight: ctx.page ? 0 : c.height });
-  latest.current = { ctx, data, mode: ctx.mode, assets, fixedHeight: ctx.page ? 0 : c.height };
+  const latest = useRef({ ctx, data, mode: ctx.mode, assets, fixedHeight: ctx.page ? 0 : c.height ?? (ctx.bleed ? heroHeight() : undefined) });
+  latest.current = { ctx, data, mode: ctx.mode, assets, fixedHeight: ctx.page ? 0 : c.height ?? (ctx.bleed ? heroHeight() : undefined) };
 
   // Compile and start a new frame whenever the files change; the old frame stays until the new one is ready.
   useEffect(() => {
@@ -133,8 +134,9 @@ export default function Design({ c, ctx }: { c: DesignC | Custom; ctx: RenderCtx
   const vp = ctx.page?.viewport ?? viewport;
   const width = WIDTHS[vp];
   return (
-    <div className={`design viewport-${vp}${ctx.page ? " in-page" : ""}`}>
-      {!ctx.page && <div className="design-bar">
+    <div className={`design viewport-${vp}${ctx.page ? " in-page" : ""}${ctx.bleed ? " in-hero" : ""}`}>
+      {ctx.bleed && !ctx.page && ctx.openPage && <button className="open-page floating" onClick={ctx.openPage} aria-label="Open full screen" title="Open full screen"><Maximize2 size={14} /></button>}
+      {!ctx.page && !ctx.bleed && <div className="design-bar">
         <div className="viewports" role="group" aria-label="Viewport">
           {([["desktop", Monitor], ["tablet", Tablet], ["phone", Smartphone]] as const).map(([v, Icon]) => (
             <button key={v} data-viewport={v} className={viewport === v ? "sel" : ""} onClick={() => setViewport(v)} aria-label={v} title={v}><Icon size={14} /></button>

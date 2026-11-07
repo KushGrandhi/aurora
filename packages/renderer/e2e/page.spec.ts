@@ -45,3 +45,41 @@ test("the bar comes back when the pointer reaches the top edge", async ({ page, 
   await page.mouse.move(640, 10);
   await expect(page.locator(".page-bar")).not.toHaveClass(/idle/);
 });
+
+const heroView = (id: string, heroFirst: boolean, title = "Full page") => {
+  const hero = { id: "d", span: 12, c: { type: "design", framework: "react", display: "hero", files: { "App.tsx": app.replace("Full page", title) } } };
+  const text = { id: "t", span: 12, c: { type: "text", md: "below the hero" } };
+  return { v: 2, id, title: "Hero", sections: [{ id: "s", layout: "grid", items: heroFirst ? [hero] : [text, hero] }, { id: "more", title: "More", layout: "grid", items: heroFirst ? [text] : [] }].filter((s) => s.items.length) };
+};
+
+test("a hero design spans the page with sections below", async ({ page, request }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/#hero1");
+  await expect(page.locator(".conn.up")).toBeVisible();
+  expect((await request.post("/api/views", { data: { view: heroView("hero1", true) } })).status()).toBe(200);
+  const hero = page.locator('[data-item="d"]');
+  await expect(page.frameLocator('[data-item="d"] iframe').locator("h1")).toHaveText("Full page");
+  await expect(hero).not.toHaveClass(/\bcard\b/);
+  await expect(hero.locator(".design-bar")).toHaveCount(0);
+  const h = (await hero.boundingBox())!, t = (await page.locator('[data-item="t"]').boundingBox())!;
+  expect(h.width).toBeGreaterThanOrEqual(t.width - 1);
+  expect(h.height).toBeGreaterThanOrEqual(800 * 0.6);
+  expect(t.y).toBeGreaterThan(h.y + h.height - 1);
+  await expect.poll(async () => (await (await request.get("/api/views/hero1/status")).json()).unverified).toEqual([]);
+  expect((await (await request.get("/api/views/hero1/status")).json()).problems).toEqual([]);
+  // still versioned: a new version of the hero, then back to v1
+  expect((await request.post("/api/views", { data: { view: heroView("hero1", true, "Second") } })).status()).toBe(200);
+  await expect(page.frameLocator('[data-item="d"] iframe').locator("h1")).toHaveText("Second");
+  await hero.locator("button.open-page").click();
+  await expect(page.locator(".page-view")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".page-view")).toHaveCount(0);
+});
+
+test("a hero that is not first renders as a card with a warning", async ({ page, request }) => {
+  await page.goto("/#hero2");
+  await expect(page.locator(".conn.up")).toBeVisible();
+  expect((await request.post("/api/views", { data: { view: heroView("hero2", false) } })).status()).toBe(200);
+  await expect(page.locator('[data-item="d"]')).toHaveClass(/\bcard\b/);
+  await expect.poll(async () => JSON.stringify((await (await request.get("/api/views/hero2/status")).json()).problems)).toContain("hero only applies");
+});

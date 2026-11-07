@@ -67,3 +67,8 @@ test("editFile content replaces, edits apply in order, deleteFile removes, entry
   const notDesign = applyOps({ ...view(), sections: [{ id: "s", layout: "grid", items: [{ id: "t", c: { type: "text", md: "x" } }] }] }, [{ op: "editFile", id: "t", path: "a", content: "b" }]);
   expect(notDesign.ok).toBe(false);
 });
+
+test("design display accepts hero", () => {
+  expect(ok({ type: "design", framework: "react", display: "hero", files: { "App.tsx": "x" } })).toBe(true);
+  expect(design.doc.guidance).toContain('"hero"');
+});
