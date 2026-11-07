@@ -168,11 +168,13 @@ export function App() {
       .catch(() => {});
   };
   const reopen = pending && !showVariants ? <button className="variants-open" onClick={() => setVariantsClosed(undefined)}>{pending.items.length} options</button> : null;
+  // A first section that held only the hero has nothing left to show once the hero leads the page.
+  const heroOnly = (i: number) => i === 0 && !!heroItem && view!.sections[0].items.length <= 1;
   // Titled sections are numbered in reading order (01, 02, …).
   const numbers = useMemo(() => {
     let n = 0;
-    return (view?.sections ?? []).map((s) => (s.title ? ++n : undefined));
-  }, [view]);
+    return (view?.sections ?? []).map((s, i) => (s.title && !heroOnly(i) ? ++n : undefined));
+  }, [view, heroItem]);
   const filters = (variant?: "pill") => view?.params && Object.keys(view.params).length > 0 && currentId ? (
     <FilterBar variant={variant} params={view.params} values={params?.values ?? {}} options={params?.options ?? {}} onChange={(name, value) => send({ t: "param", viewId: currentId, name, value })} />
   ) : undefined;
@@ -242,7 +244,7 @@ export function App() {
               </motion.div>}
               {!heroItem && filters()}
               <div key={currentId} className="view-body">{/* a different view is a fresh mount, even when ids repeat */}
-                {view.sections.map((s, i) => i === 0 && heroItem ? (s.items.length > 1 || s.title ? <Section key={s.id} leads={false} order={i} number={numbers[i]} section={{ ...s, items: s.items.slice(1) }} version={version} problems={problems} ctxFor={ctxFor} heroId={heroId} viewId={currentId} changed={showing ? {} : live?.changed ?? {}} /> : null) : (
+                {view.sections.map((s, i) => i === 0 && heroItem ? (!heroOnly(0) ? <Section key={s.id} leads={false} order={i} number={numbers[i]} section={{ ...s, items: s.items.slice(1) }} version={version} problems={problems} ctxFor={ctxFor} heroId={heroId} viewId={currentId} changed={showing ? {} : live?.changed ?? {}} /> : null) : (
                   <Section key={s.id} leads={i === 0} order={i} number={numbers[i]} section={s} version={version} problems={problems} ctxFor={ctxFor} heroId={heroId} viewId={currentId} changed={showing ? {} : live?.changed ?? {}} />
                 ))}
               </div>
