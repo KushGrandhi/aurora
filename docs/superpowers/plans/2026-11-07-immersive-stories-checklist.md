@@ -12,14 +12,18 @@ patches, queries and linked focus keep working; a story can drop aurora's chrome
 
 ## Quick wins (skill and config, days)
 
-- [ ] 1. Art direction instead of rules: rewrite `design-language.md` so the model picks mood, type pairing, palette
+- [x] 1. Art direction instead of rules: rewrite `design-language.md` so the model picks mood, type pairing, palette
   and motion personality from the subject; keep only real guardrails (contrast, legibility, honest data, no motion over
   text). Remove the fixed type scale, the one entrance, the bans, the section-by-section landing script.
-- [ ] 2. A story-shaping step: before any component, the model writes a short outline that covers the 5 Ws and H
+  Done in `5648fb5`. Skill tests pass; a before/after model eval is still to run (after item 4).
+- [x] 2. A story-shaping step: before any component, the model writes a short outline that covers the 5 Ws and H
   silently, picks an opening hook, one signature moment, pacing and an ending.
-- [ ] 3. Palette sets the whole stage: background, ink and surfaces, not just accent and series (dark cinematic,
+  Done in `5648fb5` (`references/story.md`, loop step 1). Same eval pending.
+- [x] 3. Palette sets the whole stage: background, ink and surfaces, not just accent and series (dark cinematic,
   paper editorial…).
-- [ ] 4. More fonts: about 12 free, offline fonts (display serifs, condensed, mono, a couple of characterful faces).
+  Done in `a329fd9`: `palette.page`/`ink`, contrast-solved stage in OKLab, reaches screen, charts, Mermaid, maps,
+  code, designs and variants; unit and browser tests pass.
+- [ ] 4. More fonts (Kush wants more than 12; options to discuss): about 12 free, offline fonts (display serifs, condensed, mono, a couple of characterful faces).
 
 ## Core capability (a week or two each)
 
