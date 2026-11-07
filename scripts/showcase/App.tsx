@@ -30,7 +30,7 @@ export default function App() {
   const sel = rows.find((r) => r.region === selected);
 
   return (
-    <Stage scene={<Scene camera={[5.5, 3.6, 7.5]} target={[0, 0.2, 0]}><Bars rows={rows} selected={selected} onPick={pick} clock={clock} /></Scene>}>
+    <Stage scene={<Scene camera={[7, 4.2, 10.5]} target={[0, 0.4, 0]}><Bars rows={rows} selected={selected} onPick={pick} clock={clock} /></Scene>}>
       <Panel at="top-left">
         <Stagger>
           <div className="text-xs font-medium uppercase tracking-wider text-accent">aurora · showcase</div>
