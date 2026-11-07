@@ -42,6 +42,7 @@ export function ItemFrame({ item, version, changedAt = 0, ctx, problem, showTitl
   // version arrived): route every report through the latest ctx so it counts for the version on screen.
   const cJson = useMemo(() => JSON.stringify(item.c), [item.c]);
   const last = useRef<{ c: string; ok: boolean; message?: string }>();
+  const lastWarn = useRef<{ c: string; messages: string[] }>();
   const latest = useRef({ ctx, cJson });
   latest.current = { ctx, cJson };
   const selfCtx = useMemo<RenderCtx>(() => ({
@@ -49,6 +50,10 @@ export function ItemFrame({ item, version, changedAt = 0, ctx, problem, showTitl
     report: (ok, message, retract) => {
       last.current = { c: latest.current.cJson, ok, message };
       latest.current.ctx.report(ok, message, retract);
+    },
+    warn: (messages) => {
+      lastWarn.current = { c: latest.current.cJson, messages };
+      latest.current.ctx.warn?.(messages);
     },
   }), [ctx]);
 
@@ -59,6 +64,7 @@ export function ItemFrame({ item, version, changedAt = 0, ctx, problem, showTitl
     else if (!R) ctx.report(false, reason);
     else if (ready && !R.selfReport) ctx.report(true);
     else if (ready && last.current?.c === cJson) ctx.report(last.current.ok, last.current.message);
+    if (ready && lastWarn.current?.c === cJson && lastWarn.current.messages.length) ctx.warn?.(lastWarn.current.messages);
   }, [version, ready, problem?.message, R]);
 
   let body: ReactNode;

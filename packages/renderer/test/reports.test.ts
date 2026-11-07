@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { mergeReport, type Pending } from "../src/reports.ts";
+import { mergeReport, mergeWarnings, type Pending } from "../src/reports.ts";
 
 test("reports for one version accumulate; failures win", () => {
   let p: Pending | undefined;
@@ -28,4 +28,14 @@ test("a retracting ok report clears the item's earlier failure", () => {
   p = mergeReport(p, 1, "d", true, undefined, true)!;
   expect([...p.failed]).toEqual([]);
   expect([...p.ok]).toEqual(["d"]);
+});
+
+test("design warnings ride along with a version and never fail the item", () => {
+  let p = mergeReport(undefined, 3, "d", true)!;
+  p = mergeWarnings(p, 3, "d", ["text overflows"])!;
+  expect([...p.ok]).toEqual(["d"]);
+  expect([...p.warnings]).toEqual([["d", ["text overflows"]]]);
+  const v4 = mergeReport(p, 4, "d", true)!;
+  expect([...v4.warnings]).toEqual([]);
+  expect(mergeWarnings(v4, 3, "d", ["late"])).toBeUndefined();
 });

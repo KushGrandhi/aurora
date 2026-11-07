@@ -88,7 +88,7 @@ const RevertBody = z.object({ itemId: z.string(), version: z.number().int().min(
 const ParamBody = z.object({ name: z.string(), value: z.unknown() });
 const VariantsBody = z.object({ variants: z.array(z.object({ label: z.string(), ops: z.array(PatchOpSchema) })), baseVersion: z.number().int().optional() });
 const ScreenMessageSchema = z.discriminatedUnion("t", [
-  z.object({ t: z.literal("rendered"), viewId: z.string(), version: z.number(), ok: z.array(z.string()), failed: z.array(z.object({ itemId: z.string(), message: z.string() })) }),
+  z.object({ t: z.literal("rendered"), viewId: z.string(), version: z.number(), ok: z.array(z.string()), failed: z.array(z.object({ itemId: z.string(), message: z.string() })), warnings: z.array(z.object({ itemId: z.string(), message: z.string().max(400) })).max(200).optional() }),
   z.object({ t: z.literal("pick"), viewId: z.string(), version: z.number() }),
   z.object({ t: z.literal("sync"), viewId: z.string() }),
   z.object({ t: z.literal("revertItem"), viewId: z.string(), itemId: z.string(), version: z.number() }),

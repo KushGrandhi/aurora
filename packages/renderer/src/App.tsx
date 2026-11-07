@@ -11,7 +11,7 @@ import { ItemFrame } from "./components/ItemFrame.tsx";
 import { Variants } from "./components/Variants.tsx";
 import { itemProblem } from "./components/Section.tsx";
 import { themeFor, type RenderCtx } from "./registry.tsx";
-import { mergeReport, type Pending } from "./reports.ts";
+import { mergeReport, mergeWarnings, type Pending } from "./reports.ts";
 import { emptyState, reduce, type State } from "./store.ts";
 import type { Mode } from "./theme.ts";
 import { connect, type Conn } from "./ws.ts";
@@ -41,21 +41,29 @@ function useMode(): [Mode, () => void] {
   return [mode, toggle];
 }
 
-/** Collects per-item render reports and sends one `rendered` message per view version (debounced). */
+/** Collects per-item render reports and design warnings, and sends one `rendered` message per view version (debounced). */
 function useReports(send: (m: ScreenMessage) => void) {
   const pending = useRef(new Map<string, Pending & { timer?: number }>());
-  return useCallback((viewId: string, version: number, itemId: string, ok: boolean, message?: string, retract?: boolean) => {
-    const prev = pending.current.get(viewId);
-    const merged = mergeReport(prev, version, itemId, ok, message, retract);
+  const flush = useCallback((viewId: string, merged: Pending | undefined) => {
     if (!merged) return; // late report for an older version
+    const prev = pending.current.get(viewId);
     if (prev && merged !== prev && prev.timer) clearTimeout(prev.timer);
     const q: Pending & { timer?: number } = merged;
     pending.current.set(viewId, q);
     if (q.timer) clearTimeout(q.timer);
     q.timer = window.setTimeout(() => {
-      send({ t: "rendered", viewId, version: q.version, ok: [...q.ok], failed: [...q.failed].map(([itemId, message]) => ({ itemId, message })) });
+      send({
+        t: "rendered", viewId, version: q.version, ok: [...q.ok],
+        failed: [...q.failed].map(([itemId, message]) => ({ itemId, message })),
+        warnings: [...q.warnings].flatMap(([itemId, ms]) => ms.map((message) => ({ itemId, message }))),
+      });
     }, 100);
   }, [send]);
+  const report = useCallback((viewId: string, version: number, itemId: string, ok: boolean, message?: string, retract?: boolean) =>
+    flush(viewId, mergeReport(pending.current.get(viewId), version, itemId, ok, message, retract)), [flush]);
+  const warn = useCallback((viewId: string, version: number, itemId: string, messages: string[]) =>
+    flush(viewId, mergeWarnings(pending.current.get(viewId), version, itemId, messages)), [flush]);
+  return { report, warn };
 }
 
 export function App() {
@@ -72,7 +80,7 @@ export function App() {
   const reduced = useReducedMotion() ?? false;
 
   const send = useCallback((m: ScreenMessage) => conn.current?.send(m), []);
-  const report = useReports(send);
+  const { report, warn } = useReports(send);
   const onEvent = useCallback((e: ViewEvent) => {
     const r = reduce(stateRef.current, e);
     stateRef.current = r.state;
@@ -125,7 +133,8 @@ export function App() {
     send: (name, payload) => { if (currentId && !showing) send({ t: "event", viewId: currentId, itemId: item.id, name, payload }); },
     ...(item.c.type === "design" || item.c.type === "custom" ? { openPage: () => setOpened(item.id) } : {}),
     report: (ok, message, retract) => { if (currentId && !showing) report(currentId, version, item.id, ok, message, retract); },
-  }), [results, mode, theme, media, currentId, version, showing, report, reduced]);
+    warn: (messages) => { if (currentId && !showing) warn(currentId, version, item.id, messages); },
+  }), [results, mode, theme, media, currentId, version, showing, report, warn, reduced]);
   const params = currentId ? state.params[currentId] : undefined;
 
   const viewProblems = problems.filter((p) => !p.itemId && p.severity !== "unverified");

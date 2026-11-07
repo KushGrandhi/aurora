@@ -4,6 +4,7 @@ export type FrameHandlers = {
   onHeight(px: number): void;
   onSend(name: string, payload: unknown): void;
   onNavigate(): void;
+  onLint?(warnings: string[]): void;
 };
 
 const SEND_PER_SECOND = 20;
@@ -24,7 +25,7 @@ export function mountFrame(iframe: HTMLIFrameElement, srcdoc: string, h: FrameHa
 
   const onMessage = (e: MessageEvent) => {
     if (dead || e.source !== iframe.contentWindow) return;
-    const m = e.data as { __aurora?: boolean; type?: string; message?: string; px?: number; name?: string; payload?: unknown };
+    const m = e.data as { __aurora?: boolean; type?: string; message?: string; px?: number; name?: string; payload?: unknown; warnings?: unknown };
     if (!m || m.__aurora !== true) return;
     if (m.type === "ready") {
       // Data or theme sent while the frame was still loading may have missed it: repeat the latest of each.
@@ -33,6 +34,7 @@ export function mountFrame(iframe: HTMLIFrameElement, srcdoc: string, h: FrameHa
       h.onReady();
     } else if (m.type === "error") h.onError(String(m.message ?? "error"));
     else if (m.type === "height" && typeof m.px === "number") h.onHeight(m.px);
+    else if (m.type === "lint" && Array.isArray(m.warnings)) h.onLint?.(m.warnings.filter((w): w is string => typeof w === "string").slice(0, 8).map((w) => w.slice(0, 300)));
     else if (m.type === "send" && typeof m.name === "string") {
       // The frame's aurora.send limits itself; raw postMessage calls are limited here.
       const now = Date.now();

@@ -28,5 +28,7 @@ test("gallery renders every component in light and dark", async ({ page, request
   await show(page, request, "light");
   await page.screenshot({ path: path.join(shots, "gallery-light.png"), fullPage: true });
   await show(page, request, "dark");
-  await page.screenshot({ path: path.join(shots, "gallery-dark.png"), fullPage: true });
+  await page.screenshot({ path: path.join(shots, "gallery-dark.png"), fullPage: true });  // The catalog's own examples are what the skill teaches: they must pass aurora's design checks.
+  await page.waitForTimeout(2000);
+  expect((await status(request)).problems.filter((p: { severity: string; message: string }) => p.severity === "warning" && p.message.startsWith("design: "))).toEqual([]);
 });

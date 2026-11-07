@@ -20,7 +20,7 @@ export class IntakeError extends Error {
   }
 }
 
-type Report = { version: number; ok: Set<string>; failed: { itemId: string; message: string }[] };
+type Report = { version: number; ok: Set<string>; failed: { itemId: string; message: string }[]; warnings: { itemId: string; message: string }[] };
 type Runtime = {
   results: Map<string, { sql: string; key: string; result?: QueryResult; problem?: Problem }>; // key = sql + the var values it ran with
   dataProblems: Problem[];
@@ -128,7 +128,7 @@ export class Intake {
       case "rendered": {
         const r = this.runtime(msg.viewId);
         if (r.report && r.report.version > msg.version) return;
-        r.report = { version: msg.version, ok: new Set(msg.ok), failed: msg.failed };
+        r.report = { version: msg.version, ok: new Set(msg.ok), failed: msg.failed, warnings: msg.warnings ?? [] };
         for (const w of r.waiters.filter((w) => w.version <= msg.version)) w.resolve();
         r.waiters = r.waiters.filter((w) => w.version > msg.version);
         return;
@@ -459,7 +459,10 @@ export class Intake {
     const r = this.runtime(viewId);
     const cur = this.deps.store.current(viewId);
     const rendered = r.report && cur && r.report.version === cur.version
-      ? r.report.failed.map((f): Problem => ({ itemId: f.itemId, severity: "error", message: `render failed: ${f.message}` }))
+      ? [
+          ...r.report.failed.map((f): Problem => ({ itemId: f.itemId, severity: "error", message: `render failed: ${f.message}` })),
+          ...r.report.warnings.map((w): Problem => ({ itemId: w.itemId, severity: "warning", message: `design: ${w.message}` })),
+        ]
       : [];
     return [...r.problems, ...rendered, ...r.extra];
   }

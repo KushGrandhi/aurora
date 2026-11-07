@@ -18,7 +18,7 @@ const heroHeight = () => Math.round(Math.min(900, Math.max(420, window.innerHeig
 function Frame({ spec, ready, on }: {
   spec: FrameSpec;
   ready: boolean;
-  on: React.RefObject<{ ready(id: number): void; error(id: number, m: string): void; navigate(id: number): void; height(id: number, px: number): void; send(name: string, p: unknown): void; stuck(id: number): void; register(id: number, c: Controller | undefined): void }>;
+  on: React.RefObject<{ ready(id: number): void; error(id: number, m: string): void; navigate(id: number): void; height(id: number, px: number): void; send(name: string, p: unknown): void; stuck(id: number): void; lint(id: number, w: string[]): void; register(id: number, c: Controller | undefined): void }>;
 }) {
   const ref = useRef<HTMLIFrameElement>(null);
   useEffect(() => {
@@ -29,6 +29,7 @@ function Frame({ spec, ready, on }: {
       onHeight: (px) => h().height(spec.id, px),
       onSend: (name, payload) => h().send(name, payload),
       onNavigate: () => h().navigate(spec.id),
+      onLint: (w) => h().lint(spec.id, w),
     });
     h().register(spec.id, ctl);
     const timer = setTimeout(() => h().stuck(spec.id), STUCK_MS);
@@ -78,7 +79,8 @@ export default function Design({ c, ctx }: { c: DesignC | Custom; ctx: RenderCtx
       setCompileError(undefined);
       setError(undefined);
       const { mode, data: d, assets: a } = latest.current;
-      const srcdoc = buildSrcdoc(r, { origin: location.origin, framework: input.framework, mode, data: d, assets: a });
+      const display = latest.current.ctx.page ? "page" : latest.current.ctx.bleed ? "hero" : "card";
+      const srcdoc = buildSrcdoc(r, { origin: location.origin, framework: input.framework, mode, data: d, assets: a, display });
       const id = ++seq.current;
       setFrames((f) => [...f.slice(-1), { id, srcdoc }]);
     });
@@ -120,6 +122,9 @@ export default function Design({ c, ctx }: { c: DesignC | Custom; ctx: RenderCtx
         }
         return s;
       });
+    },
+    lint(id: number, w: string[]) {
+      if (id === newest()) latest.current.ctx.warn?.(w);
     },
     register(id: number, ctl: Controller | undefined) {
       if (ctl) controllers.current.set(id, ctl);

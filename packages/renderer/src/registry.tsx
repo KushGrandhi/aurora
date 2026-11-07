@@ -22,6 +22,8 @@ export type RenderCtx = {
   hero?: boolean;
   /** A design shown as the view's full-width hero: no frame, no viewport bar. */
   bleed?: boolean;
+  /** Design-check findings for this item (warnings: the item still rendered). */
+  warn?(messages: string[]): void;
   motion: MotionApi;
   /** URL to load a media src from (a local file's token URL, or the URL itself); undefined while unknown. */
   media(src: string): string | undefined;

@@ -39,7 +39,7 @@ export type ViewEvent =
 
 /** Screen → server. */
 export type ScreenMessage =
-  | { t: "rendered"; viewId: string; version: number; ok: string[]; failed: { itemId: string; message: string }[] }
+  | { t: "rendered"; viewId: string; version: number; ok: string[]; failed: { itemId: string; message: string }[]; warnings?: { itemId: string; message: string }[] }
   | { t: "pick"; viewId: string; version: number }
   | { t: "sync"; viewId: string }
   | { t: "revertItem"; viewId: string; itemId: string; version: number }

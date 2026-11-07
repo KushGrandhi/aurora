@@ -8,8 +8,9 @@ type Project = {
   data: Record<string, unknown[]>;
   assets: Record<string, string>;
   mode: "light" | "dark";
+  display?: "card" | "page" | "hero";
 };
-export {};
+import { lintDocument } from "./lint.ts";
 type Boot = { project: Project; post(msg: Record<string, unknown>): void; reportError(message: unknown): void };
 
 const DEP = "__aurora__/";
@@ -53,7 +54,23 @@ function link(): Record<string, string> {
   return urls;
 }
 
-const ready = () => post({ type: "ready" });
+const LINT_AFTER_MS = 1500;
+const SETTLE_MS = 700;
+/**
+ * Measures the design as a person sees it: after entrances settle, and only once the frame is actually painted
+ * (animation frames are paused while it is off screen, and some content, like a 3D canvas, only starts then).
+ */
+function lintWhenSeen() {
+  setTimeout(() => requestAnimationFrame(() => setTimeout(() => {
+    try {
+      post({ type: "lint", warnings: lintDocument(document, { display: project.display ?? "card" }) });
+    } catch { /* checks never break a design */ }
+  }, SETTLE_MS)), LINT_AFTER_MS);
+}
+const ready = () => {
+  post({ type: "ready" });
+  lintWhenSeen();
+};
 
 async function main() {
   watchHeight();

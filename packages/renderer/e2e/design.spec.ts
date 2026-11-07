@@ -220,3 +220,23 @@ test("react three fiber and drei render a lit scene offline", async ({ page, req
   await expect.poll(async () => (await status(request, "ds3d")).unverified).toEqual([]);
   expect((await status(request, "ds3d")).problems).toEqual([]);
 });
+
+test("design checks warn about overflow, flat drawings and 3D in a card", async ({ page, request }) => {
+  const rects = Array.from({ length: 8 }, (_, i) => `<rect x='${20 + (i % 4) * 90}' y='${20 + Math.floor(i / 4) * 130}' width='70' height='110' fill='none' stroke='gray' />`).join("");
+  const items = [
+    { id: "o", span: 12, c: react({ "App.tsx": "export default () => <div className='p-4'><button className='w-24 whitespace-nowrap overflow-visible'>This label is much too long for its button</button></div>;" }) },
+    { id: "f", span: 12, c: react({ "App.tsx": `export default () => <svg width='400' height='300' viewBox='0 0 400 300'>${rects}</svg>;` }) },
+    { id: "g", span: 12, c: react({ "App.tsx": "import { Scene, Metal } from 'aurora/kit';\nexport default () => <div style={{ height: 400 }}><Scene><mesh><boxGeometry /><Metal /></mesh></Scene></div>;" }, { height: 420 }) },
+  ];
+  await page.goto("/#dslint");
+  await expect(page.locator(".conn.up")).toBeVisible();
+  expect((await request.post("/api/views", { data: { view: { v: 2, id: "dslint", title: "Lint", sections: [{ id: "s", layout: "grid", items }] } } })).status()).toBe(200);
+  const warning = async (item: string) => JSON.stringify((await status(request, "dslint")).problems.filter((p: { itemId: string; severity: string }) => p.itemId === item && p.severity === "warning"));
+  await expect.poll(() => warning("o"), { timeout: 10_000 }).toContain("text overflows its box");
+  await expect.poll(() => warning("f"), { timeout: 10_000 }).toContain("the drawing is flat boxes and lines");
+  await page.locator('[data-item="g"]').scrollIntoViewIfNeeded(); // checks measure what is on screen
+  await expect.poll(() => warning("g"), { timeout: 10_000 }).toContain("a 3D scene is shown in a card");
+  const s = await status(request, "dslint");
+  expect(s.unverified).toEqual([]);
+  expect(s.problems.filter((p: { severity: string }) => p.severity === "error")).toEqual([]);
+});

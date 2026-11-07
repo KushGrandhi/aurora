@@ -201,3 +201,12 @@ test("queries re-run after a broken dataset is fixed", async () => {
   const fixed = await intake.patch("sales", [{ op: "addDataset", name: "data", input: fx("sales.csv") }], "caller");
   expect(fixed.problems.filter((p) => p.severity === "error")).toEqual([]);
 });
+
+test("design warnings from the screen become warning problems", async () => {
+  const { intake } = setup();
+  await intake.render(salesView(), "caller");
+  await intake.screenMessage({ t: "rendered", viewId: "sales", version: 1, ok: ["k", "t"], failed: [], warnings: [{ itemId: "t", message: "x" }] });
+  expect(intake.status("sales").problems).toContainEqual({ itemId: "t", severity: "warning", message: "design: x" });
+  await intake.screenMessage({ t: "rendered", viewId: "sales", version: 1, ok: ["k", "t"], failed: [] });
+  expect(intake.status("sales").problems.filter((x) => x.severity === "warning")).toEqual([]);
+});
