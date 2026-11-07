@@ -11,6 +11,10 @@ export type Clock = {
   setPlaying(b: boolean): void;
   setSpeed(n: number): void;
   step(by: number): void;
+  /** Jump to a time (wrapped at `period`). */
+  seek(t: number): void;
+  /** Where time wraps, if it does (one cycle). */
+  period?: number;
 };
 
 /**
@@ -43,7 +47,12 @@ export function useClock({ speed = 1, playing = true, period }: { speed?: number
     setT(ref.current);
   }, [period]);
 
-  return { t, ref, playing: isPlaying, speed: rate, setPlaying, setSpeed, step };
+  const seek = useCallback((to: number) => {
+    ref.current = wrap(to, period);
+    setT(ref.current);
+  }, [period]);
+
+  return { t, ref, playing: isPlaying, speed: rate, setPlaying, setSpeed, step, seek, period };
 }
 
 /** Play/pause, an optional step button, a speed switch, and room for your own chips. */
@@ -80,6 +89,47 @@ export function ControlBar({ clock, speeds, onStep, stepLabel = "Step", children
         </div>
       </div>
       {children && <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">{children}</div>}
+    </div>
+  );
+}
+
+/**
+ * A timeline for a clock with a `period`: drag along it to scrub (the animation pauses while you hold it), click a
+ * mark to jump to that moment, or use the arrow keys. Marks name the moments that matter ("ignition", "valve opens").
+ */
+export function Scrubber({ clock, marks = [], label = "Time" }: { clock: Clock; marks?: { at: number; label: string }[]; label?: string }) {
+  const period = clock.period ?? 1;
+  const track = useRef<HTMLDivElement>(null);
+  const held = useRef<{ wasPlaying: boolean } | undefined>();
+  const at = (clientX: number) => {
+    const r = track.current!.getBoundingClientRect();
+    return Math.min(0.9999, Math.max(0, (clientX - r.left) / r.width)) * period;
+  };
+  const frac = (clock.t % period) / period;
+  return (
+    <div data-kit-scrubber className="mb-2 w-full select-none pb-9 pt-1">
+      <div ref={track} role="slider" tabIndex={0} aria-label={label} aria-valuemin={0} aria-valuemax={period} aria-valuenow={Math.round(clock.t)}
+        className="relative h-6 cursor-pointer touch-none outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-full"
+        onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); held.current = { wasPlaying: clock.playing }; clock.setPlaying(false); clock.seek(at(e.clientX)); }}
+        onPointerMove={(e) => { if (held.current) clock.seek(at(e.clientX)); }}
+        onPointerUp={() => { if (held.current?.wasPlaying) clock.setPlaying(true); held.current = undefined; }}
+        onKeyDown={(e) => {
+          const by = period / 72;
+          if (e.key === "ArrowRight") { e.preventDefault(); clock.setPlaying(false); clock.seek(clock.ref.current + by); }
+          if (e.key === "ArrowLeft") { e.preventDefault(); clock.setPlaying(false); clock.seek(clock.ref.current - by); }
+        }}>
+        <div className="absolute inset-x-0 top-1/2 h-[3px] -translate-y-1/2 rounded-full bg-ink/10" />
+        <div className="absolute left-0 top-1/2 h-[3px] -translate-y-1/2 rounded-full bg-accent" style={{ width: `${frac * 100}%` }} />
+        <div className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent shadow-card ring-4 ring-accent/20" style={{ left: `${frac * 100}%` }} />
+      </div>
+      <div className="relative h-0">
+        {marks.map((m) => (
+          <button key={m.label} onClick={() => { clock.setPlaying(false); clock.seek(m.at); }} aria-label={m.label}
+            className="absolute top-1 -translate-x-1/2 whitespace-nowrap text-xs text-muted transition hover:text-ink" style={{ left: `${(m.at / period) * 100}%` }}>
+            <span className="mx-auto mb-1 block h-1.5 w-px bg-ink/30" />{m.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Vector3, type Group } from "three";
-import { Glass, Glow, Label, Metal, Paint, type Clock } from "aurora/kit";
+import { Glass, Glow, Grab, Label, Metal, Paint, type Clock } from "aurora/kit";
 import { BORE, CYLS, HEAD, L, LINER_BOTTOM, OFFSET, PIN_UP, PISTON_H, R, SPACING, STROKES, cylAt, rad, type Cyl } from "./model";
 
 const UP = new Vector3(0, 1, 0), pin = new Vector3(), wrist = new Vector3();
@@ -94,7 +94,8 @@ const along = (beta: number, d: number, z: number): [number, number, number] => 
 export default function Engine({ clock, selected }: { clock: Clock; selected: number | null }) {
   return (
     <group>
-      <Crank clock={clock} />
+      {/* Take hold of the crank and turn it: the whole engine follows your hand. */}
+      <Grab clock={clock} rate={1.5}><Crank clock={clock} /></Grab>
       {CYLS.map((c) => <Cylinder key={c.n} c={c} clock={clock} selected={selected === c.n} />)}
       {[-1, 1].map((bank) => (
         <group key={bank} rotation-z={-rad(bank * 45)} position-z={bank * OFFSET}>

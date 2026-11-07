@@ -523,3 +523,7 @@ body.dragging-number { cursor: ew-resize; user-select: none; }
   border-bottom: 1.5px dashed color-mix(in srgb, var(--accent) 60%, transparent); border-radius: 0; }
 .prose-choice select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .num-out { font-size: 13px; color: var(--ink2); font-variant-numeric: tabular-nums; min-width: 56px; }
+
+/* A chart whose data changes moves each mark to its new shape. */
+.chart path { transition: d 650ms var(--ease), opacity 220ms var(--ease); }
+@media (prefers-reduced-motion: reduce) { .chart path { transition: none; } }

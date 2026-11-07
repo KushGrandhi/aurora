@@ -207,3 +207,47 @@ export default function App() {
   await page.locator('[data-item="s1"]').evaluate((el) => el.scrollIntoView({ block: "center" }));
   await expect(f.locator("#s")).toHaveText("1:1");
 });
+
+test("Scrubber scrubs time and jumps to marked moments; Grab turns time by dragging a part", async ({ page, request }) => {
+  const app = `import { Scene, Metal, Grab, Scrubber, useClock } from "aurora/kit";
+export default function App() {
+  const clock = useClock({ period: 720, speed: 90, playing: false });
+  return (
+    <div>
+      <div style={{ height: 300 }}><Scene autoRotate={false}><Grab clock={clock} rate={2}><mesh><boxGeometry args={[3, 3, 3]} /><Metal /></mesh></Grab></Scene></div>
+      <Scrubber clock={clock} marks={[{ at: 180, label: "ignition" }, { at: 540, label: "exhaust opens" }]} />
+      <p id="t">{Math.round(clock.t)}</p>
+    </div>
+  );
+}`;
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await show(page, request, "kit13", [{ id: "d", c: design(app, { height: 520 }) }]);
+  const f = frame(page);
+  await expect(f.locator("#t")).toHaveText("0");
+  // a marked moment
+  await f.getByRole("button", { name: "ignition" }).click();
+  await expect(f.locator("#t")).toHaveText("180");
+  // drag along the track to three quarters
+  const track = f.locator("[data-kit-scrubber] [role=slider]");
+  const b = (await track.boundingBox())!;
+  await page.mouse.move(b.x + 2, b.y + b.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(b.x + b.width * 0.75, b.y + b.height / 2, { steps: 6 });
+  await page.mouse.up();
+  await expect.poll(async () => Number(await f.locator("#t").textContent())).toBeGreaterThan(500);
+  await expect.poll(async () => Number(await f.locator("#t").textContent())).toBeLessThan(580);
+  // the keyboard nudges it
+  await track.focus();
+  const before = Number(await f.locator("#t").textContent());
+  await page.keyboard.press("ArrowRight");
+  await expect.poll(async () => Number(await f.locator("#t").textContent())).not.toBe(before);
+  // grab the part and drag: time moves
+  await f.getByRole("button", { name: "ignition" }).click();
+  await expect(f.locator("#t")).toHaveText("180");
+  const c = (await f.locator("canvas").boundingBox())!;
+  await page.mouse.move(c.x + c.width / 2, c.y + c.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(c.x + c.width / 2 + 60, c.y + c.height / 2, { steps: 6 });
+  await page.mouse.up();
+  await expect.poll(async () => Number(await f.locator("#t").textContent())).toBeGreaterThan(250);
+});

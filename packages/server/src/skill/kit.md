@@ -35,6 +35,8 @@ House-style building blocks for a `design`. **Assemble these instead of drawing 
 |---|---|
 | `useClock` | `const clock = useClock({ speed: 120, period: 720 })`: time that advances `speed` units per second and wraps at `period`. `clock.t` is React state (20 updates a second): use it for text and colours. Inside `useFrame`, read `clock.ref.current` for smooth motion. Also `clock.playing`, `setPlaying`, `speed`, `setSpeed`, `step(by)`. |
 | `ControlBar` | `<ControlBar clock={clock} onStep={…} stepLabel="Next firing">chips…</ControlBar>`: play/pause, a step button, a Slow/Normal/Fast switch and room for your own chips. Put it in `<Panel at="bottom">`. |
+| `Scrubber` | `<Scrubber clock={clock} marks={[{ at: 180, label: "Ignition" }]} />`: a timeline for a clock with a `period`. Drag to scrub (it pauses while held), click a mark to jump to that moment, arrow keys nudge. Mark the moments the explanation is about. Put it above the `ControlBar`. |
+| `Grab` | `<Grab clock={clock} rate={1.5}><Crank /></Grab>`: makes a part something the reader takes hold of. Dragging it sideways moves time (`rate` units per pixel; `axis="y"` for up/down), so turning the crank by hand turns the engine. The scene stops orbiting while held. |
 | `PhaseDial` | `<PhaseDial phases={[{ name, color: "--s1" }, …]} value={0.4} />`: where something is in a repeating cycle (strokes, heartbeat phases, seasons). `value` 0..1 through the whole cycle. |
 | `Legend` | `<Legend items={[{ name, color, active, onClick }]} />`: coloured keys; with `onClick` they become selectors. |
 

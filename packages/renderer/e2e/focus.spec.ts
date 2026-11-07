@@ -77,3 +77,25 @@ test("a table row focuses its name, not its date, and charts without that value 
   await page.waitForTimeout(300);
   for (const i of [0, 1]) expect(await bars.nth(i).evaluate((el) => Number(el.getAttribute("opacity") ?? 1))).toBe(1);
 });
+
+test("a chart moves its marks to new values when a filter changes, instead of redrawing", async ({ page, request }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/#foc3");
+  await expect(page.locator(".conn.up")).toBeVisible();
+  const v = { v: 2, id: "foc3", title: "Morph",
+    datasets: { d: { inline: [{ region: "East", k: "a", revenue: 10 }, { region: "West", k: "a", revenue: 20 }, { region: "East", k: "b", revenue: 30 }, { region: "West", k: "b", revenue: 5 }] } },
+    params: { k: { type: "select", label: "Kind", options: ["a", "b"], default: "a" } },
+    queries: { rows: { sql: "SELECT region, revenue FROM d WHERE k = $k ORDER BY region" } },
+    sections: [{ id: "s", layout: "grid", items: [{ id: "ch", c: { type: "chart", query: "rows", vegaLite: { mark: "bar", encoding: { y: { field: "region", type: "nominal", sort: null }, x: { field: "revenue", type: "quantitative", scale: { domain: [0, 40] } } } } } }] }] };
+  expect((await request.post("/api/views", { data: { view: v } })).status()).toBe(200);
+  const bar = page.locator('[data-item="ch"] .mark-rect path').first();
+  await expect(bar).toBeVisible();
+  await page.waitForTimeout(1300);
+  await bar.evaluate((el) => { (el as SVGElement & { tag?: string }).tag = "same"; });
+  const before = await bar.getAttribute("d");
+  expect(await bar.evaluate((el) => getComputedStyle(el).transitionProperty)).toContain("d");
+  await page.locator(".filterbar select").selectOption("b");
+  await expect.poll(() => bar.getAttribute("d")).not.toBe(before);
+  // the same element moved: no redraw
+  expect(await page.locator('[data-item="ch"] .mark-rect path').first().evaluate((el) => (el as SVGElement & { tag?: string }).tag)).toBe("same");
+});

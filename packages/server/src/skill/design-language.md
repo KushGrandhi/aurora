@@ -26,7 +26,8 @@ These are what an interface looks like when nobody designed it. Each has a repla
 | motion scattered over every element, the same fade-up on each section | one orchestrated moment, plus the mechanism's own motion; tie motion to what the reader does |
 | a small uppercase tracked label over every heading ("AURORA · SHOWCASE", "STAGE 4 OF 5") | nothing, or plain sentence-case text that adds information ("Relaxation, valves shut") |
 | "A · B · C" meta strings, numbers on things that aren't a sequence | say it in a sentence; number only real steps |
-| numbers counting up from zero | the value, shown at once; animate only a *change* |
+| numbers counting up from zero | the value, shown at once; animate only a *change* (charts and numbers already move to new values when a filter changes) |
+| a mechanism you can only watch | `Scrubber` with the key moments marked, and `Grab` on the part a person would turn by hand |
 | gradient text, purple-to-blue washes, glow blobs | solid ink; colour only where it means something |
 | glass on everything | glass only for dense controls over a scene |
 | the default blue on every subject | a `palette` drawn from the subject |

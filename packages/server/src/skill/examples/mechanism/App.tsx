@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ControlBar, Panel, PhaseDial, Scene, Stage, Stagger, useClock } from "aurora/kit";
+import { ControlBar, Panel, PhaseDial, Scene, Scrubber, Stage, Stagger, useClock } from "aurora/kit";
 import Engine from "./Engine";
 import { FIRING_ORDER, STROKES, cyl, cylAt, lastFired } from "./model";
 
@@ -34,6 +34,8 @@ export default function App() {
       </Panel>
 
       <Panel at="bottom" glass>
+        {/* The timeline of one cycle, with the moments the followed cylinder changes stroke marked on it. */}
+        <Scrubber clock={clock} label="Crank angle" marks={STROKES.map((s, k) => ({ at: (sel.fire + 180 * k) % 720, label: `${s.name} ${sel.n}` }))} />
         <ControlBar clock={clock} onStep={() => clock.step(toNext)} stepLabel="Next firing">
           <span className="text-xs text-muted">Firing order</span>
           {FIRING_ORDER.map((n) => {
