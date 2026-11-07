@@ -120,7 +120,7 @@ For abstract things with no physical form (a protocol, an algorithm, a timeline 
 
 ## Layout recipes
 
-**Physical mechanism** (see `examples/mechanism.md`): `display: "hero"` (the view's `title` and `summary` become the hero's headline, so write them well), a `Stage` whose `Scene` fills it, `Panel at="top-right"` (what just happened, then the part being followed: `PhaseDial`, state, one sentence), `Panel at="bottom" glass` (`ControlBar` plus selector chips). Below the hero, as ordinary sections: `steps` and a `callout`.
+**Physical mechanism** (see `examples/mechanism.md`): a `story` section. Its first item is a design: a `Stage` whose `Scene` fills it, `Panel at="top-right"` (the part being followed: `PhaseDial`, state), `Panel at="bottom" glass` (`Scrubber` with the key moments marked, `ControlBar` plus selector chips). It reads `useStory()` and freezes on each step's `state`. The other items are the steps: two or three sentences per moment, in order. The view's `palette` comes from the subject. After the story, a `callout`. (A `display: "hero"` scene with no story is for something to explore, not to explain.)
 
 **2D interactive explainer** for an abstract process (see `examples/explainer.md`):
 ```

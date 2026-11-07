@@ -65,17 +65,30 @@ export default function App() {
   expect(await t.getAttribute("data-mounts")).toBe("1");
 });
 
-test("the skill's 3D mechanism example renders as a hero with no warnings", async ({ page, request }) => {
+test("the skill's 3D mechanism example is a story: steps drive the pinned scene, with no warnings", async ({ page, request }) => {
   const { readFileSync } = await import("node:fs");
   const dir = new URL("../../server/src/skill/examples/mechanism/", import.meta.url);
   const files = Object.fromEntries(["App.tsx", "Engine.tsx", "model.ts"].map((f) => [f, readFileSync(new URL(f, dir), "utf8")]));
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/#kitmech");
   await expect(page.locator(".conn.up")).toBeVisible();
-  const view = { v: 2, id: "kitmech", title: "V8", sections: [{ id: "s", layout: "grid", items: [{ id: "d", span: 12, c: { type: "design", framework: "react", display: "hero", files } }] }, { id: "t", layout: "grid", items: [{ id: "x", span: 12, c: { type: "text", md: "below" } }] }] };
+  const filler = " Words to give the step some length.".repeat(10);
+  const view = { v: 2, id: "kitmech", title: "V8", palette: { accent: "#e8590c" }, sections: [{ id: "s", title: "Four strokes", layout: "story", items: [
+    { id: "d", c: { type: "design", framework: "react", files } },
+    { id: "s1", c: { type: "text", md: "**Compression.**" + filler }, story: { state: { cylinder: 1, stroke: 3 } } },
+    { id: "s2", c: { type: "text", md: "**Power.**" + filler }, story: { state: { cylinder: 1, stroke: 0 } } },
+  ] }, { id: "t", layout: "grid", items: [{ id: "x", span: 12, c: { type: "text", md: "below" } }] }] };
   expect((await request.post("/api/views", { data: { view } })).status()).toBe(200);
   await expect(frame(page).locator("canvas")).toHaveCount(1);
   await expect(frame(page).getByText("crankshaft", { exact: true })).toBeVisible();
+  // each step freezes the engine on its stroke
+  await page.locator('[data-item="s2"]').evaluate((el) => el.scrollIntoView({ block: "center" }));
+  await expect(frame(page).locator("[data-kit-panel]").getByText("Power", { exact: true })).toBeVisible();
+  await expect(frame(page).getByRole("button", { name: "Play" })).toBeVisible(); // frozen there, not running past it
+  await page.waitForTimeout(1500);
+  await expect(frame(page).locator("[data-kit-panel]").getByText("Power", { exact: true })).toBeVisible();
+  await page.locator('[data-item="s1"]').evaluate((el) => el.scrollIntoView({ block: "center" }));
+  await expect(frame(page).locator("[data-kit-panel]").getByText("Compression", { exact: true })).toBeVisible();
   await page.waitForTimeout(3500); // design checks run after the frame settles
   const s = await status(request, "kitmech");
   expect(s.unverified).toEqual([]);
@@ -250,4 +263,53 @@ export default function App() {
   await page.mouse.move(c.x + c.width / 2 + 60, c.y + c.height / 2, { steps: 6 });
   await page.mouse.up();
   await expect.poll(async () => Number(await f.locator("#t").textContent())).toBeGreaterThan(250);
+});
+
+test("Scrubber labels for moments close together don't overlap", async ({ page, request }) => {
+  const app = `import { Scrubber, useClock } from "aurora/kit";
+export default function App() {
+  const clock = useClock({ period: 800, playing: false });
+  return <div style={{ padding: 24 }}><Scrubber clock={clock} marks={[{ at: 0, label: "Atria squeeze" }, { at: 290, label: "Valves shut" }, { at: 320, label: "Outlets open" }, { at: 345, label: "Ejection" }, { at: 600, label: "Outlets shut" }]} /><p id="after">after</p></div>;
+}`;
+  await page.setViewportSize({ width: 1000, height: 800 });
+  await show(page, request, "kit14", [{ id: "d", c: design(app, { height: 300 }) }]);
+  const f = frame(page);
+  const labels = f.locator("[data-kit-scrubber] button");
+  await expect(labels).toHaveCount(5);
+  await page.waitForTimeout(300);
+  const boxes = await labels.evaluateAll((els) => els.map((e) => e.getBoundingClientRect()).map((r) => ({ l: r.left, r: r.right, t: r.top, b: r.bottom })));
+  for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+    const a = boxes[i], b = boxes[j];
+    const overlap = a.l < b.r - 1 && b.l < a.r - 1 && a.t < b.b - 1 && b.t < a.b - 1;
+    expect(overlap, `labels ${i} and ${j} overlap`).toBe(false);
+  }
+  // and nothing below the scrubber is covered
+  const after = (await f.locator("#after").boundingBox())!;
+  for (const b of boxes) expect(b.b).toBeLessThanOrEqual(after.y + 1);
+});
+
+test("a design warning when panel text sits over the 3D model, and none when it is clear", async ({ page, request }) => {
+  const app = (camera: string) => `import { Stage, Scene, Metal, Panel } from "aurora/kit";
+export default function App() {
+  return (
+    <Stage scene={<Scene camera={${camera}} autoRotate={false}><mesh><boxGeometry args={[2, 2, 2]} /><Metal /></mesh></Scene>}>
+      <Panel at="top-left"><p id="txt" style={{ width: 300 }}>A paragraph of readout text that would be hard to read on top of the model itself, and it wraps.</p></Panel>
+    </Stage>
+  );
+}`;
+  await page.setViewportSize({ width: 1280, height: 800 });
+  const view = (id: string, camera: string) => ({ v: 2, id, title: "Over", sections: [{ id: "s", layout: "grid", items: [{ id: "d", c: { type: "design", framework: "react", display: "page", files: { "App.tsx": app(camera) } } }] }] });
+  const warns = async (id: string) => (await status(request, id)).problems.filter((p: { message: string }) => p.message.includes("over the 3D model"));
+  // close camera: the model fills the frame, the panel's text sits on it
+  await page.goto("/#kit15");
+  await expect(page.locator(".conn.up")).toBeVisible();
+  expect((await request.post("/api/views", { data: { view: view("kit15", "[0, 0, 2.6]") } })).status()).toBe(200);
+  await expect(frame(page).locator("#txt")).toBeVisible();
+  await expect.poll(async () => (await warns("kit15")).length, { timeout: 15000 }).toBe(1);
+  // far camera, model offset to the right: the text is clear
+  expect((await request.post("/api/views", { data: { view: view("kit16", "[-3, 0, 14]") } })).status()).toBe(200);
+  await page.goto("/#kit16");
+  await expect(frame(page).locator("#txt")).toBeVisible();
+  await expect.poll(async () => (await status(request, "kit16")).unverified, { timeout: 15000 }).toEqual([]);
+  expect(await warns("kit16")).toEqual([]);
 });

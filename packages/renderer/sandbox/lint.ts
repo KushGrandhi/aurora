@@ -80,10 +80,46 @@ function boxSoup(doc: Document): string | undefined {
   return n > 8 ? "many small boxed panels: group related readouts into one panel and let the main visual carry the page" : undefined;
 }
 
+/**
+ * Text in a bare kit Panel that sits on top of the 3D model (the scene publishes the model's on-screen box as
+ * data-kit-model). The box is a bounding box, so it is shrunk a little before comparing, and a warning needs a real
+ * share of the panel's text on it.
+ */
+function textOverModel(doc: Document): string | undefined {
+  const boxes = Array.from(doc.querySelectorAll("canvas[data-kit-model]")).map((c) => (c as HTMLElement).dataset.kitModel!.split(",").map(Number));
+  if (!boxes.length) return undefined;
+  const win = doc.defaultView!;
+  for (const panel of Array.from(doc.querySelectorAll("[data-kit-panel]")) as HTMLElement[]) {
+    const bg = win.getComputedStyle(panel).backgroundColor;
+    if (bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent") continue; // a glass panel carries its own backdrop
+    let total = 0, over = 0;
+    const walk = doc.createTreeWalker(panel, NodeFilter.SHOW_TEXT);
+    for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+      if (!(n.textContent ?? "").trim() || (n.parentElement && n.parentElement.closest("button, [data-kit-controls], [data-kit-scrubber]"))) continue;
+      const range = doc.createRange();
+      range.selectNodeContents(n);
+      for (const r of Array.from(range.getClientRects())) {
+        const area = r.width * r.height;
+        total += area;
+        for (const [l0, t0, r0, b0] of boxes) {
+          const dx = (r0 - l0) * 0.12, dy = (b0 - t0) * 0.12;
+          const w = Math.min(r.right, r0 - dx) - Math.max(r.left, l0 + dx), h = Math.min(r.bottom, b0 - dy) - Math.max(r.top, t0 + dy);
+          if (w > 0 && h > 0) over += w * h;
+        }
+      }
+    }
+    if (total > 0 && over / total > 0.25) {
+      const text = (panel.textContent ?? "").trim().replace(/\s+/g, " ").slice(0, 30);
+      return `panel text sits over the 3D model ("${text}"): move the camera (Scene camera and target) so the model clears the panels, or give that panel glass`;
+    }
+  }
+  return undefined;
+}
+
 /** Every check that finds something, at most one message per kind. Never throws. */
 export function lintDocument(doc: Document, opts: { display: Display }): string[] {
   const out: string[] = [];
-  for (const check of [() => overflow(doc), () => boxed3d(doc, opts.display), () => flatDrawing(doc), () => boxSoup(doc)]) {
+  for (const check of [() => overflow(doc), () => boxed3d(doc, opts.display), () => flatDrawing(doc), () => boxSoup(doc), () => textOverModel(doc)]) {
     try {
       const m = check();
       if (m) out.push(m);

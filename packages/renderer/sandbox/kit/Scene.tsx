@@ -1,7 +1,7 @@
 import { Component, useEffect, useRef, useState, type ReactNode } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment, Lightformer, OrbitControls } from "@react-three/drei";
-import { BackSide, Box3, type Group } from "three";
+import { BackSide, Box3, Vector3, type Group } from "three";
 
 type Vec3 = [number, number, number];
 export type SceneProps = { children: ReactNode; camera?: Vec3; target?: Vec3; autoRotate?: boolean; shadows?: boolean; className?: string };
@@ -64,6 +64,36 @@ function Floor({ of }: { of: React.RefObject<Group> }) {
   return y === undefined ? null : <ContactShadows position={[0, y, 0]} opacity={0.4} scale={24} blur={2.6} far={12} resolution={512} />;
 }
 
+/**
+ * Where the model lands on screen, for aurora's design checks: the projected bounding box of everything in the scene,
+ * in page pixels, written to the canvas as data-kit-model every half second. Checks use it to warn when panel text
+ * sits on top of the model.
+ */
+function ModelRect({ of }: { of: React.RefObject<Group> }) {
+  const { camera, gl, size } = useThree();
+  const last = useRef(0);
+  const box = useRef(new Box3());
+  const v = useRef(new Vector3());
+  useFrame(({ clock }) => {
+    if (!of.current || clock.elapsedTime - last.current < 0.5) return;
+    last.current = clock.elapsedTime;
+    box.current.setFromObject(of.current);
+    if (box.current.isEmpty()) return;
+    const { min, max } = box.current;
+    let l = Infinity, t = Infinity, r = -Infinity, b = -Infinity;
+    for (const x of [min.x, max.x]) for (const y of [min.y, max.y]) for (const z of [min.z, max.z]) {
+      const p = v.current.set(x, y, z).project(camera);
+      if (p.z > 1) continue; // behind the camera
+      const px = ((p.x + 1) / 2) * size.width, py = ((1 - p.y) / 2) * size.height;
+      l = Math.min(l, px); r = Math.max(r, px); t = Math.min(t, py); b = Math.max(b, py);
+    }
+    if (!Number.isFinite(l)) return;
+    const c = gl.domElement.getBoundingClientRect();
+    gl.domElement.dataset.kitModel = [l + c.left, t + c.top, r + c.left, b + c.top].map(Math.round).join(",");
+  });
+  return null;
+}
+
 function Controls({ target, autoRotate }: { target: Vec3; autoRotate: boolean }) {
   const [spin, setSpin] = useState(autoRotate);
   const timer = useRef<number>();
@@ -103,6 +133,7 @@ export function Scene({ children, camera = [6, 4, 8], target = [0, 0, 0], autoRo
           </directionalLight>
           <group ref={group}>{children}</group>
           {shadows && <Floor of={group} />}
+          <ModelRect of={group} />
           <Controls target={target} autoRotate={autoRotate} />
         </Canvas>
       </Guard>

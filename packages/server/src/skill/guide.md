@@ -35,12 +35,12 @@ Follow these steps in order, every time.
 | a collection: projects, people, files | `cards` | 12 |
 | images or video that already exist | `media` | 12 |
 | prose, or JSON to inspect | `text`, `json` | 6 to 12 |
-| **how something physical works: an engine, a heart, a machine, the solar system** | `design`: a 3D scene built with `aurora/kit`, `display: "hero"` (copy `examples/mechanism.md`) | 12 |
+| **how something physical works: an engine, a heart, a machine, the solar system** | a `story` section: a 3D `aurora/kit` scene pinned, with steps that drive it, and a `palette` from the subject (copy `examples/mechanism.md`) | — |
 | **a landing page or product mockup** | `design` with `display: "page"` (copy `examples/landing.md`) | 12 |
 | **an abstract process with no physical shape (an algorithm, a protocol), a simulation, a game** | `design` | 12 |
 
 Good combinations:
-- **Explain how something physical works:** the mechanism first, as a 3D `aurora/kit` scene with `display: "hero"`, then `steps` (span 7) and a `callout` (span 5) side by side below it.
+- **Explain how something physical works:** a `story` section whose first item is the 3D `aurora/kit` scene and whose other items are short `text` steps, one per moment that matters, each with `"story": {"state": …}` that freezes the scene on that moment; the last step sets it running. Give the view a `palette` drawn from the subject (red and blue for blood, hot orange for combustion) and use `--s1`, `--s2`… in the scene. Then a `callout` for the one thing worth remembering. Don't put a list of `steps` under a sandbox scene: the story *is* the steps.
 - **Explain a system:** `architecture`, then a `diagram` for its main request, then a `callout` for the key decision.
 - **Analyse data:** a row of `kpi`, then a `chart`, then a `table`; add filters when the reader will want to slice it.
 - **A page or product:** one `design` with `display: "page"`, as the only item in the view.
@@ -48,7 +48,7 @@ Good combinations:
 Before using a component for the first time, read its fields and example in `references/components.md`.
 
 **Before writing any `design`:** read `references/design-canvas.md`, `references/design-language.md` and `references/kit.md`, then open the closest example and copy its structure:
-- `examples/mechanism.md`: **start here for anything physical.** A 3D V8 engine built from `aurora/kit`: glass cylinders, glowing gas, labels, floating panels and controls, shown as a hero.
+- `examples/mechanism.md`: **start here for anything physical.** A 3D V8 engine built from `aurora/kit`, told as a story: the scene stays pinned while steps freeze it on each stroke, with a scrubber, a grabbable crank and a palette. It shows the whole view to send.
 - `examples/explainer.md`: a 2D interactive drawing with play, step and speed controls, for a process that has no physical shape.
 - `examples/landing.md`: a full landing page with nav, hero, proof, features, how it works, pricing, FAQ and a closing call to action.
 
@@ -127,7 +127,7 @@ The same operations work over HTTP: `POST localhost:4317/api/views {view}`, `POS
 Go through every line. Fix what fails, then check `status` once more.
 
 - [ ] `status` shows no `error` and no `design:` warning.
-- [ ] A physical mechanism is a 3D `aurora/kit` scene shown with `display: "hero"` or `"page"`, not a flat drawing in a card.
+- [ ] A physical mechanism is a 3D `aurora/kit` scene pinned in a `story` section with steps that drive it (or a `hero`), not a flat drawing in a card, and the view has a `palette` from its subject.
 - [ ] Every item uses the component the table above suggests; a `design` is used only where no catalog component fits.
 - [ ] Designs use only token colors (`bg-surface`, `text-ink-2`, `var(--s1)`…): no `slate`, `gray`, `white`, `black`, hex or `dark:`.
 - [ ] Nothing animated or absolutely positioned overlaps text.

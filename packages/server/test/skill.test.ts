@@ -78,23 +78,37 @@ test("examples and component docs use tokens, never raw colors", () => {
 test("the skill routes mechanisms to a 3D kit recipe", () => {
   expect(skill).toContain("examples/mechanism.md");
   expect(skill).toContain("aurora/kit");
-  expect(skill).toContain('"hero"');
+  expect(skill).toContain('"story"');
   expect(all).not.toContain("Draw visuals with SVG");
 });
 
 test("kit reference documents every kit export", () => {
   const md = files["references/kit.md"];
-  for (const name of ["Scene", "Metal", "Glass", "Glow", "Paint", "useToken", "Label", "Stage", "Panel", "useClock", "ControlBar", "Reveal", "Stagger", "PhaseDial", "Legend"]) expect(md).toContain(`\`${name}\``);
+  for (const name of ["Scene", "Metal", "Glass", "Glow", "Paint", "useToken", "Label", "Stage", "Panel", "Stat", "useClock", "ControlBar", "Scrubber", "Grab", "useFocus", "useStory", "useParam", "Reveal", "Stagger", "PhaseDial", "Legend"]) expect(md).toContain(`\`${name}\``);
 });
 
-test("the mechanism example is a hero kit scene", () => {
+test("the mechanism example is a guided story: a pinned kit scene driven by steps, in the subject's colours", () => {
   const md = files["examples/mechanism.md"];
   expect(md).toContain('from "aurora/kit"');
-  expect(md).toContain('"display": "hero"');
+  expect(md).toContain('"layout": "story"');
+  expect(md).toMatch(/"story": \{[^}]*"state"/);
+  expect(md).toContain('"palette"');
+  expect(md).toContain("useStory");
+  expect(md).toContain("Scrubber");
+  expect(md).toContain("Grab");
   for (const f of readdirSync(new URL("../src/skill/examples/mechanism/", import.meta.url))) expect(md).toContain(`### \`${f}\``);
 });
 
 test("design-canvas lists the 3D libraries and the design-check warnings", () => {
   const md = files["references/design-canvas.md"];
   for (const s of ["@react-three/fiber", "@react-three/drei", "aurora/kit", "text overflows its box", "a 3D scene is shown in a card", "the drawing is flat boxes and lines", "many small boxed panels"]) expect(md).toContain(s);
+});
+
+test("the mechanism example's view is valid exactly as written (copied views must not start with errors)", async () => {
+  const { ViewSchema } = await import("@aurora/spec");
+  const { validateView } = await import("@aurora/engine");
+  const json = files["examples/mechanism.md"].match(/## The view\n\n```json\n([\s\S]*?)```/)![1];
+  const view = ViewSchema.parse(JSON.parse(json));
+  const { problems } = validateView(view, { queryRows: new Map(), querySql: new Map() });
+  expect(problems.filter((p) => p.severity === "error")).toEqual([]);
 });

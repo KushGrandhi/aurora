@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type MutableRefObject, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type MutableRefObject, type ReactNode } from "react";
 import { Pause, Play, SkipForward } from "lucide-react";
 
 const wrap = (v: number, period?: number) => (period ? ((v % period) + period) % period : v);
@@ -106,8 +106,32 @@ export function Scrubber({ clock, marks = [], label = "Time" }: { clock: Clock; 
     return Math.min(0.9999, Math.max(0, (clientX - r.left) / r.width)) * period;
   };
   const frac = (clock.t % period) / period;
+  // Labels of moments close together go on separate rows, so none covers another.
+  const labelRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const [rows, setRows] = useState<number[]>([]);
+  const marksKey = marks.map((m) => `${m.at}:${m.label}`).join("|");
+  useLayoutEffect(() => {
+    const place = () => {
+      const ends: number[] = []; // per row, the right edge of its last label
+      const next = marks.map((_, i) => i).sort((a, b) => marks[a].at - marks[b].at).reduce<number[]>((acc, i) => {
+        const r = labelRefs.current[i]?.getBoundingClientRect();
+        if (!r) return acc;
+        let row = ends.findIndex((end) => r.left > end + 8);
+        if (row < 0) row = ends.length;
+        ends[row] = r.right;
+        acc[i] = row;
+        return acc;
+      }, []);
+      setRows((old) => (old.join() === next.join() ? old : next));
+    };
+    place();
+    const ro = new ResizeObserver(place);
+    if (track.current) ro.observe(track.current);
+    return () => ro.disconnect();
+  }, [marksKey]);
+  const rowCount = Math.max(1, ...rows.map((r) => (r ?? 0) + 1));
   return (
-    <div data-kit-scrubber className="mb-2 w-full select-none pb-9 pt-1">
+    <div data-kit-scrubber className="mb-2 w-full select-none pt-1" style={{ paddingBottom: 14 + rowCount * 22 }}>
       <div ref={track} role="slider" tabIndex={0} aria-label={label} aria-valuemin={0} aria-valuemax={period} aria-valuenow={Math.round(clock.t)}
         className="relative h-6 cursor-pointer touch-none outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-full"
         onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); held.current = { wasPlaying: clock.playing }; clock.setPlaying(false); clock.seek(at(e.clientX)); }}
@@ -123,10 +147,10 @@ export function Scrubber({ clock, marks = [], label = "Time" }: { clock: Clock; 
         <div className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent shadow-card ring-4 ring-accent/20" style={{ left: `${frac * 100}%` }} />
       </div>
       <div className="relative h-0">
-        {marks.map((m) => (
-          <button key={m.label} onClick={() => { clock.setPlaying(false); clock.seek(m.at); }} aria-label={m.label}
-            className="absolute top-1 -translate-x-1/2 whitespace-nowrap text-xs text-muted transition hover:text-ink" style={{ left: `${(m.at / period) * 100}%` }}>
-            <span className="mx-auto mb-1 block h-1.5 w-px bg-ink/30" />{m.label}
+        {marks.map((m, i) => (
+          <button key={m.label} ref={(el) => { labelRefs.current[i] = el; }} onClick={() => { clock.setPlaying(false); clock.seek(m.at); }} aria-label={m.label}
+            className="absolute -translate-x-1/2 whitespace-nowrap text-xs leading-4 text-muted transition hover:text-ink" style={{ left: `${(m.at / period) * 100}%`, top: 12 + (rows[i] ?? 0) * 22 }}>
+            <span className="pointer-events-none absolute bottom-full left-1/2 mb-0.5 w-px bg-ink/30" style={{ height: 6 + (rows[i] ?? 0) * 22 }} />{m.label}
           </button>
         ))}
       </div>
