@@ -127,15 +127,19 @@ export function App() {
     return k && (k.span ?? 12) >= 4 ? k.id : undefined;
   }, [view]);
   const media = (currentId && state.media[currentId]) || undefined;
-  const theme = useMemo(() => themeFor(mode), [mode]);
+  const palette = view?.palette;
+  const paletteKey = JSON.stringify(palette ?? null);
+  const theme = useMemo(() => themeFor(mode, palette), [mode, paletteKey]);
+  // The view's palette also reaches the screen's own CSS (accents, sparklines, focus) as variables.
+  const paletteVars = useMemo(() => palette ? Object.fromEntries([...(palette.accent ? [["--accent", palette.accent]] : []), ...(palette.series ?? []).map((c, i) => [`--s${i + 1}`, c])]) : undefined, [paletteKey]);
   const ctxFor = useCallback((item: ViewItem, hero: boolean): RenderCtx => ({
-    results, mode, theme, hero, motion: { spring: SPRING, reduced },
+    results, mode, theme, palette, hero, motion: { spring: SPRING, reduced },
     media: (src) => media?.[src],
     send: (name, payload) => { if (currentId && !showing) send({ t: "event", viewId: currentId, itemId: item.id, name, payload }); },
     ...(item.c.type === "design" || item.c.type === "custom" ? { openPage: () => setOpened(item.id) } : {}),
     report: (ok, message, retract) => { if (currentId && !showing) report(currentId, version, item.id, ok, message, retract); },
     warn: (messages) => { if (currentId && !showing) warn(currentId, version, item.id, messages); },
-  }), [results, mode, theme, media, currentId, version, showing, report, warn, reduced]);
+  }), [results, mode, theme, palette, media, currentId, version, showing, report, warn, reduced]);
   const params = currentId ? state.params[currentId] : undefined;
 
   const viewProblems = problems.filter((p) => !p.itemId && p.severity !== "unverified");
@@ -182,7 +186,7 @@ export function App() {
 
   return (
     <MotionRoot>
-    <div className={`app${pageItem ? " page-mode" : heroItem ? " immersive" : ""}`}>
+    <div className={`app${pageItem ? " page-mode" : heroItem ? " immersive" : ""}`} style={paletteVars as React.CSSProperties | undefined}>
       <aside className="side">
         <div className="brand"><span className="mark" />aurora<span className={`conn${up ? " up" : ""}`} title={up ? "connected" : "reconnecting"} /></div>
         {list.length > 0 && <h2>Views</h2>}

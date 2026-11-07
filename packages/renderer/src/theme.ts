@@ -14,10 +14,11 @@ export const TOKENS = {
   },
 } as const;
 
-const FONT = 'system-ui, -apple-system, "SF Pro Text", "Segoe UI", sans-serif';
+const FONT = '"Hanken Grotesk Variable", "Hanken Grotesk", system-ui, sans-serif';
 
-export function vegaConfig(mode: Mode): Record<string, unknown> {
-  const t = TOKENS[mode];
+/** Vega-Lite theme; `series` (a view's own palette) replaces the categorical colours. */
+export function vegaConfig(mode: Mode, series?: readonly string[]): Record<string, unknown> {
+  const t = { ...TOKENS[mode], series: series ?? TOKENS[mode].series };
   const axis = {
     domainColor: t.axis, gridColor: t.grid, gridWidth: 1, tickColor: t.axis, tickSize: 4,
     labelColor: t.muted, labelFont: FONT, labelFontSize: 11, labelPadding: 6, labelAngle: 0, labelOverlap: "greedy", labelLimit: 160, tickCount: 6,

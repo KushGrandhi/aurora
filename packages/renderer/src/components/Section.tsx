@@ -1,7 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { Item, Problem, Section as SectionT, ViewItem } from "@aurora/spec";
 import { packRows } from "../layout.ts";
-import { SPRING, SPRING_SOFT, enterDelay, shouldGlow } from "../motion.tsx";
+import { ENTER_EASE, SPRING, enterDelay, shouldGlow } from "../motion.tsx";
 import type { RenderCtx } from "../registry.tsx";
 import { ItemFrame } from "./ItemFrame.tsx";
 import { Tabs } from "./Tabs.tsx";
@@ -18,7 +18,7 @@ export type SectionProps = {
   leads?: boolean;
   /** Position of this section in the view, for the opening stagger. */
   order?: number;
-  /** Reading number of a titled section (1, 2, …): shown above its heading; even ones sit on a band. */
+  /** Reading number of a titled section (1, 2, …): even ones sit on a band. */
   number?: number;
 };
 
@@ -44,8 +44,8 @@ function Grid({ section, version, problems, ctxFor, heroId, viewId, changed, lea
               data-glow={glow ? "true" : undefined}
               className={item.id === bleedId ? "bleed" : `card${item.id.startsWith("d_") ? " default" : ""}`}
               style={{ gridColumn: item.id === bleedId ? "1 / -1" : `span ${item.span}` }}
-              initial={reduced ? false : { opacity: 0, y: 12, scale: 0.985 }}
-              animate={{ opacity: 1, y: 0, scale: 1, transition: { ...SPRING_SOFT, delay: enterDelay(order, i) } }}
+              initial={reduced ? false : { opacity: 0 }}
+              animate={{ opacity: 1, transition: { duration: 0.5, ease: ENTER_EASE, delay: enterDelay(order, i) } }}
               exit={{ opacity: 0, scale: 0.98, transition: SPRING }}>
               {glow && <span key={version} className="glow" aria-hidden />}
               <ItemFrame item={item} version={version} changedAt={changed[item.id]} ctx={item.id === bleedId ? { ...ctxFor(item, false), bleed: true } : ctxFor(item, item.id === heroId)} problem={itemProblem(problems, item.id)} showTitle={item.id !== bleedId} />
@@ -61,7 +61,6 @@ export function Section(props: SectionProps) {
   const { section, number } = props;
   return (
     <motion.div layout="position" className={`section${number && number % 2 === 0 ? " band" : ""}`} data-section={section.id}>
-      {section.title && number && <div className="section-eyebrow">{String(number).padStart(2, "0")}</div>}
       {section.title && <h2 className="section-title">{section.title}</h2>}
       {section.layout === "tabs" ? <Tabs {...props} /> : <Grid {...props} />}
     </motion.div>

@@ -66,7 +66,8 @@ Before using a component for the first time, read its fields and example in `ref
 ```
 
 - Every id (view, section, item, query, dataset) matches `^[A-Za-z_]\w*$` and is unique in the view. Patches find things by id, so keep ids stable.
-- The screen reads like an article: the view `title` and `summary` are the page headline (on a hero they sit on the stage), and each section `title` is a large numbered heading. Write them as short headlines that say the point ("East leads, barely"), not labels ("Data"). Items sit on the page without boxes.
+- The screen reads like an article: the view `title` and `summary` are the page headline (on a hero they sit on the stage), and each section `title` is a large heading. Write them as short headlines that say the point ("East leads, barely"), not labels ("Data"). Items sit on the page without boxes.
+- `palette` (optional): `{"accent": "#hex", "series": ["#hex", …]}` gives the view colours drawn from its subject; the screen, charts and designs all use it.
 - `layout: "grid"` places items on 12 columns with `span`. `layout: "tabs"` shows each item as a tab named by its `title`.
 - A section may start with `"items": []`; you fill it with patches.
 - `c.type` picks the component. All other fields of `c` belong to that component.
@@ -101,7 +102,7 @@ aurora's screen is calm, warm-neutral and precise. Everything you build should l
 3. **Label on the drawing.** Put names next to the parts, with a thin leader line if needed. Don't use a separate legend.
 4. **Nothing moves over text.** Moving things travel in their own lanes, at least 8px clear of every label.
 5. **An explainer is interactive.** Give it play/pause, next step and speed controls, a card for the current step, and readouts of what is true right now.
-6. **One type scale.** `text-4xl`/`text-6xl font-semibold tracking-tight` for the headline, `text-xl font-semibold` for headings, `text-sm text-ink-2 leading-relaxed` for body, and `text-xs uppercase tracking-wider text-muted` for small labels.
+6. **One type scale.** `text-4xl`/`text-6xl font-semibold tracking-tight` for the headline, `text-xl font-semibold` for headings, `text-sm text-ink-2 leading-relaxed` for body, and `text-sm text-muted` (sentence case) for small labels. No uppercase tracked eyebrows over headings.
 7. **Generous space.** Cards are `rounded-2xl bg-surface p-6 ring-1 ring-hair shadow-card`, gaps are `gap-4` or `gap-6`, and page sections are `py-20`.
 8. **Motion explains.** Things enter with a fade and an 8px rise over 0.3 to 0.5 s; state changes take 0.2 s. Continuous animation is only for showing a mechanism.
 9. **No fixed height.** A design card grows and shrinks with its content. Leave out `height`.

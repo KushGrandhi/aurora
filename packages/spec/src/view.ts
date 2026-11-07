@@ -26,6 +26,11 @@ export const SectionSchema = z.object({
 });
 export type Section = z.infer<typeof SectionSchema>;
 
+const Hex = z.string().regex(/^#[0-9a-fA-F]{6}$/, "a colour like #c2410c");
+/** A view's own colours: an accent and up to eight series colours, chosen to fit its subject. Both themes use them. */
+export const PaletteSchema = z.object({ accent: Hex.optional(), series: z.array(Hex).min(1).max(8).optional() });
+export type Palette = z.infer<typeof PaletteSchema>;
+
 export const ViewSchema = z.object({
   v: z.literal(2),
   id: IdSchema,
@@ -34,6 +39,7 @@ export const ViewSchema = z.object({
   datasets: z.record(IdSchema, DataInputJsonSchema).optional(),
   queries: z.record(IdSchema, QuerySchema).optional(),
   params: z.record(IdSchema, ParamSchema).optional(),
+  palette: PaletteSchema.optional(),
   sections: z.array(SectionSchema),
 });
 export type View = z.infer<typeof ViewSchema>;

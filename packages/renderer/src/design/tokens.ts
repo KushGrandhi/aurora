@@ -23,4 +23,4 @@ function vars(mode: "light" | "dark"): string {
 export const TOKEN_CSS = `:root { ${vars("light")} --ease: cubic-bezier(0.22, 1, 0.36, 1); color-scheme: light; }\n.dark { ${vars("dark")} color-scheme: dark; }`;
 
 /** Tailwind theme: each variable becomes a color utility (`bg-*`, `text-*`, `border-*`, `ring-*`, `fill-*`, `stroke-*`). */
-export const TOKEN_THEME = `@theme inline { ${COLORS.map((c) => `--color-${c}: var(--${c});`).join(" ")} --shadow-card: var(--shadow); --ease-aurora: var(--ease); }`;
+export const TOKEN_THEME = `@theme inline { ${COLORS.map((c) => `--color-${c}: var(--${c});`).join(" ")} --shadow-card: var(--shadow); --ease-aurora: var(--ease); --font-sans: 'Hanken Grotesk Variable', 'Hanken Grotesk', system-ui, sans-serif; --font-serif: 'Newsreader Variable', 'Newsreader', Georgia, serif; }`;

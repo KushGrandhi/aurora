@@ -3,7 +3,7 @@ import { auroraBootstrap } from "./bootstrap.ts";
 import { IMPORT_MAP } from "./libs.ts";
 import { TOKEN_CSS, TOKEN_THEME } from "./tokens.ts";
 
-export type SrcdocOpts = { origin: string; framework: "react" | "html"; mode: "light" | "dark"; data: Record<string, unknown[]>; assets: Record<string, string>; display?: "card" | "page" | "hero" };
+export type SrcdocOpts = { origin: string; framework: "react" | "html"; mode: "light" | "dark"; data: Record<string, unknown[]>; assets: Record<string, string>; display?: "card" | "page" | "hero"; palette?: { accent?: string; series?: string[] } };
 
 /** No network, nothing but aurora's own libraries and media: the sandbox's whole outside world. */
 export function sandboxCsp(origin: string): string {
@@ -28,6 +28,10 @@ export function sandboxCsp(origin: string): string {
 const safeJson = (v: unknown) => JSON.stringify(v).replace(/</g, "\\u003c").replace(/[\u2028\u2029]/g, (c) => `\\u${c.charCodeAt(0).toString(16)}`);
 const attr = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
 
+const HEX = /^#[0-9a-fA-F]{6}$/;
+const paletteCss = (p: { accent?: string; series?: string[] }) =>
+  [...(p.accent && HEX.test(p.accent) ? [`--accent: ${p.accent};`] : []), ...(p.series ?? []).filter((c) => HEX.test(c)).map((c, i) => `--s${i + 1}: ${c};`)].join(" ");
+
 /** The frame's whole document: CSP, import map, Tailwind, the font, the project and the runtime that links it. */
 export function buildSrcdoc(p: CompiledProject, o: SrcdocOpts): string {
   const imports = Object.fromEntries(Object.entries(IMPORT_MAP).map(([k, f]) => [k, `${o.origin}/lib/${f}`]));
@@ -37,14 +41,16 @@ export function buildSrcdoc(p: CompiledProject, o: SrcdocOpts): string {
     `<meta http-equiv="Content-Security-Policy" content="${attr(sandboxCsp(o.origin))}">`,
     '<meta name="viewport" content="width=device-width, initial-scale=1">',
     `<script type="importmap">${safeJson({ imports })}</script>`,
-    `<link rel="stylesheet" href="${o.origin}/lib/fonts/inter.css">`,
+    `<link rel="stylesheet" href="${o.origin}/lib/fonts/aurora.css">`,
     `<script type="application/json" id="aurora-project">${safeJson(project)}</script>`,
     `<script id="aurora-bootstrap">(${String(auroraBootstrap).replace(/<\/script/gi, "<\\/script")})()</script>`,
     `<script src="${o.origin}/lib/tailwind.js"></script>`,
     // Tailwind's `dark:` follows aurora's theme (a class on <html>), not the OS setting.
     `<style id="aurora-tokens">${TOKEN_CSS}</style>`,
+    // The view's own palette overrides the accent and series colours in both themes.
+    ...(o.palette ? [`<style id="aurora-palette">:root, .dark { ${paletteCss(o.palette)} }</style>`] : []),
     `<style type="text/tailwindcss">@custom-variant dark (&:where(.dark, .dark *));\n${TOKEN_THEME}</style>`,
-    "<style>html,body{margin:0}body{font-family:'Inter Variable',Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}</style>",
+    "<style>html,body{margin:0}body{font-family:'Hanken Grotesk Variable','Hanken Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}</style>",
     ...p.css.map((c) => `<style>${c.replace(/<\/style/gi, "<\\/style")}</style>`),
     `<script type="module" src="${o.origin}/lib/runtime.js"></script>`,
   ].join("\n");

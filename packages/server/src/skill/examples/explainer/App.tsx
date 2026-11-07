@@ -66,7 +66,7 @@ export default function App() {
           <AnimatePresence mode="wait">
             <motion.div key={stage.name} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
               className="rounded-2xl bg-surface p-5 shadow-card ring-1 ring-hair">
-              <div className="text-xs font-medium uppercase tracking-wider" style={{ color: stage.color }}>Step {e.stage + 1} of 4</div>
+              <div className="text-sm font-medium" style={{ color: stage.color }}>Step {e.stage + 1} of 4</div>
               <div className="mt-1 text-xl font-semibold tracking-tight">{stage.name}</div>
               <p className="mt-2 text-sm leading-relaxed text-ink-2">{stage.text}</p>
             </motion.div>

@@ -1,5 +1,5 @@
 import { lazy, type FC } from "react";
-import type { Component, QueryResult } from "@aurora/spec";
+import type { Component, QueryResult, Palette } from "@aurora/spec";
 import type { MotionApi } from "./motion.tsx";
 import { TOKENS, type Mode } from "./theme.ts";
 import { Json } from "./components/Json.tsx";
@@ -8,14 +8,18 @@ import { Text } from "./components/Text.tsx";
 
 export type Theme = { categorical: readonly string[]; sequential: readonly string[]; ink: string; ink2: string; muted: string; surface: string; hair: string; axis: string };
 
-export function themeFor(mode: Mode): Theme {
+/** The screen's colours for a theme; a view's own palette (if any) replaces the accent and series colours. */
+export function themeFor(mode: Mode, palette?: Palette): Theme {
   const t = TOKENS[mode];
-  return { categorical: t.series, sequential: t.ramp, ink: t.ink, ink2: t.ink2, muted: t.muted, surface: t.surface, hair: t.grid, axis: t.axis };
+  const series = palette?.series ? [...palette.series, ...t.series.slice(palette.series.length)] : t.series;
+  return { categorical: series, sequential: t.ramp, ink: t.ink, ink2: t.ink2, muted: t.muted, surface: t.surface, hair: t.grid, axis: t.axis };
 }
 
 export type Viewport = "desktop" | "tablet" | "phone";
 
 export type RenderCtx = {
+  /** The view's own colours, if it chose any. */
+  palette?: Palette;
   results: Record<string, QueryResult>;
   mode: Mode;
   theme: Theme;

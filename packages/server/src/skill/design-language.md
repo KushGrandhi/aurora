@@ -1,6 +1,6 @@
 # aurora design language
 
-aurora's screen is calm, warm-neutral and precise: soft off-white (or near-black) surfaces, hairline borders, one blue accent, a small fixed palette for categories, Inter type, and motion that explains rather than decorates. A design you build should feel like it belongs on that screen, and like a finished product: **depth, light and motion**, never a wireframe. There is one house style; don't invent a new look per view.
+aurora's screen is calm, warm-neutral and precise: soft off-white (or near-black) surfaces, hairline borders, Hanken Grotesk type (Newsreader as a serif), one accent, a small palette for categories, and motion that explains rather than decorates. A design you build should feel like it belongs on that screen, and like a finished product: **depth, light and motion**, never a wireframe. The structure is one house style; the **colours come from the subject**: give the view a `palette` (`{"accent": "#b91c1c", "series": ["#b91c1c", "#1d4ed8"]}` for a heart's oxygen-rich and oxygen-poor blood) and the screen, charts and designs all use it.
 
 ## Five principles
 
@@ -23,7 +23,13 @@ These are what an interface looks like when nobody designed it. Each has a repla
 | text and numbers in frosted cards over a scene | bare `Panel` and `Stat`: large type on the scene |
 | a title inside a hero design | nothing: the screen shows the view's title and summary on the hero |
 | a flat solid background behind a visual | `Stage`'s soft radial backdrop |
-| motion scattered over every element | one `Stagger` entrance, plus the mechanism's own motion |
+| motion scattered over every element, the same fade-up on each section | one orchestrated moment, plus the mechanism's own motion; tie motion to what the reader does |
+| a small uppercase tracked label over every heading ("AURORA · SHOWCASE", "STAGE 4 OF 5") | nothing, or plain sentence-case text that adds information ("Relaxation, valves shut") |
+| "A · B · C" meta strings, numbers on things that aren't a sequence | say it in a sentence; number only real steps |
+| numbers counting up from zero | the value, shown at once; animate only a *change* |
+| gradient text, purple-to-blue washes, glow blobs | solid ink; colour only where it means something |
+| glass on everything | glass only for dense controls over a scene |
+| the default blue on every subject | a `palette` drawn from the subject |
 | labels on top of moving parts | `Label` with its leader line, set off to one side |
 | a legend you have to match colours against | colour on the object itself, named by a `Label` or the panel |
 
@@ -54,7 +60,7 @@ On a filled accent or category color, text is `text-white`. On `bg-ink` (an inve
 
 ## Type
 
-Inter is loaded. Use these and nothing in between:
+Hanken Grotesk is the default (`font-sans`); Newsreader (`font-serif`) is there for an editorial display line or a quote. Use these and nothing in between:
 
 | Role | Classes |
 |---|---|
@@ -63,7 +69,7 @@ Inter is loaded. Use these and nothing in between:
 | Heading | `text-xl font-semibold tracking-tight` |
 | Card heading | `font-semibold` |
 | Body | `text-base` or `text-sm`, `leading-relaxed text-ink-2` |
-| Label / eyebrow | `text-xs font-medium uppercase tracking-wider text-muted` (or `text-accent` for an eyebrow) |
+| Small label | `text-sm text-muted`, sentence case. No uppercase tracked eyebrows. |
 | Numbers | add `tabular-nums` |
 | SVG labels | `fontSize={12}` with `fill="var(--ink-2)"`; small notes `fontSize={11}` with `fill="var(--muted)"` |
 

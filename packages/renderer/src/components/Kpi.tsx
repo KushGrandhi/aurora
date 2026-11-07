@@ -10,8 +10,9 @@ const easeOutExpo = (t: number) => (t >= 1 ? 1 : 1 - Math.pow(2, -10 * t));
 
 /** Animates a number from its previous value to the new one; non-numbers render directly. */
 function useCountUp(target: unknown, ms = 1100): unknown {
-  const [shown, setShown] = useState<unknown>(typeof target === "number" ? 0 : target);
-  const from = useRef(0);
+  // The first value shows as it is (counting up from zero is decoration); a change glides from the old value.
+  const [shown, setShown] = useState<unknown>(target);
+  const from = useRef(typeof target === "number" ? target : 0);
   useEffect(() => {
     if (typeof target !== "number" || matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
       setShown(target);

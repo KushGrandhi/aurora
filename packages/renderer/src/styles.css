@@ -30,7 +30,7 @@
 html, body { margin: 0; }
 body {
   background: var(--page); color: var(--ink);
-  font: 15px/1.55 system-ui, -apple-system, "SF Pro Text", "Segoe UI", sans-serif;
+  font: 15.5px/1.55 "Hanken Grotesk Variable", "Hanken Grotesk", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
 }
 button { font: inherit; color: inherit; }
@@ -160,7 +160,6 @@ td:first-child { font-weight: 550; }
 
 /* v2: sections, tabs, fallbacks, json, versions */
 .section { margin-bottom: 96px; }
-.section-eyebrow { font-size: 12px; font-weight: 550; letter-spacing: 0.2em; color: var(--muted); font-variant-numeric: tabular-nums; margin-bottom: 10px; }
 .section-title { font-size: clamp(28px, 2.6vw, 38px); font-weight: 650; line-height: 1.12; letter-spacing: -0.03em; color: var(--ink); margin: 0 0 32px; text-wrap: balance; }
 /* Every other titled section sits on a full-width band, so a long page has a rhythm. */
 .section.band { background: var(--band); box-shadow: 0 0 0 100vmax var(--band); clip-path: inset(-64px -100vmax); margin-top: 160px; margin-bottom: 160px; }

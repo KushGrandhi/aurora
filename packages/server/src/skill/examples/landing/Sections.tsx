@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Check, ChevronDown, Feather, Link2, Lock, NotebookPen } from "lucide-react";
 
 const Wrap = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => <div className={`mx-auto max-w-6xl px-6 ${className}`}>{children}</div>;
-const Eyebrow = ({ children }: { children: string }) => <div className="text-xs font-medium uppercase tracking-wider text-accent">{children}</div>;
+const Eyebrow = ({ children }: { children: string }) => <div className="text-sm font-medium text-accent">{children}</div>;
 
 export function Nav() {
   return (

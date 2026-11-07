@@ -42,11 +42,17 @@ function copyStatic(): Plugin {
     },
     writeBundle() {
       copyFileSync(require.resolve("@tailwindcss/browser"), path.join(outDir, "tailwind.js"));
-      const fontDir = path.dirname(require.resolve("@fontsource-variable/inter/index.css"));
+      // aurora's typefaces (Hanken Grotesk for text, Newsreader as a serif), bundled so designs never need the network.
+      // inter.css stays for designs that name Inter in their own CSS.
       mkdirSync(path.join(outDir, "fonts", "files"), { recursive: true });
-      const css = readFileSync(path.join(fontDir, "index.css"), "utf8");
-      for (const [, f] of css.matchAll(/url\(\.\/(files\/[^)]+)\)/g)) copyFileSync(path.join(fontDir, f), path.join(outDir, "fonts", f));
-      writeFileSync(path.join(outDir, "fonts", "inter.css"), css);
+      const copy = (pkg: string) => {
+        const dir = path.dirname(require.resolve(`@fontsource-variable/${pkg}/index.css`));
+        const css = readFileSync(path.join(dir, "index.css"), "utf8");
+        for (const [, f] of css.matchAll(/url\(\.\/(files\/[^)]+)\)/g)) copyFileSync(path.join(dir, f), path.join(outDir, "fonts", f));
+        return css;
+      };
+      writeFileSync(path.join(outDir, "fonts", "inter.css"), copy("inter"));
+      writeFileSync(path.join(outDir, "fonts", "aurora.css"), copy("hanken-grotesk") + "\n" + copy("newsreader"));
     },
   };
 }
