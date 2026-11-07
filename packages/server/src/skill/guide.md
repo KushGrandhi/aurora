@@ -105,7 +105,7 @@ aurora's screen is calm, warm-neutral and precise. Everything you build should l
 8. **Motion explains.** Things enter with a fade and an 8px rise over 0.3 to 0.5 s; state changes take 0.2 s. Continuous animation is only for showing a mechanism.
 9. **No fixed height.** A design card grows and shrinks with its content. Leave out `height`.
 10. **Real content.** Use specific, believable words and numbers. No lorem ipsum and no empty image boxes.
-11. **Depth, not boxes.** A physical thing is a 3D scene built with `aurora/kit` (metal, glass, glow, light and shadow), never rectangles in rows. The scene carries the page; readouts live in at most three floating panels.
+11. **Depth, not boxes.** A physical thing is a 3D scene built with `aurora/kit` (metal, glass, glow, light and shadow), never rectangles in rows. The scene carries the page; readouts sit on it as plain type (at most three bare panels), never in cards.
 
 ## Problems
 

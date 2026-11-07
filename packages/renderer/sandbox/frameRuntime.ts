@@ -16,6 +16,8 @@ type Boot = { project: Project; post(msg: Record<string, unknown>): void; report
 const DEP = "__aurora__/";
 // The classic bootstrap (src/design/bootstrap.ts) ran first and set up errors, storage, window.aurora and messages.
 const { project, post, reportError } = (window as unknown as { __auroraBoot: Boot }).__auroraBoot;
+// How the screen shows this design (card, page or hero): the kit reads it to keep clear of the screen's own type.
+document.documentElement.dataset.display = project.display ?? "card";
 // Libraries come from the frame's import map at run time; a variable specifier keeps the bundler from inlining them.
 const load = (spec: string): Promise<any> => import(/* @vite-ignore */ spec);
 

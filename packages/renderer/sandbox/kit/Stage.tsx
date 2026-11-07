@@ -17,22 +17,41 @@ export function Stage({ children, scene, className = "" }: { children?: ReactNod
   );
 }
 
+// In a hero the screen sets the view's title over the left of the stage: left panels start past it.
 const AT = {
-  "top-left": "left-6 top-6",
-  "top-right": "right-6 top-6",
-  bottom: "inset-x-6 bottom-6",
-  "bottom-left": "left-6 bottom-6",
-  "bottom-right": "right-6 bottom-6",
+  "top-left": "left-8 top-8 [[data-display=hero]_&]:left-[24%]",
+  "top-right": "right-8 top-8",
+  bottom: "inset-x-8 bottom-8 [[data-display=hero]_&]:left-[24%]",
+  "bottom-left": "left-8 bottom-8 [[data-display=hero]_&]:left-[24%]",
+  "bottom-right": "right-8 bottom-8",
 } as const;
 
-/** A frosted glass panel floating over a Stage. On narrow screens panels stack in the flow instead of floating. */
-export function Panel({ children, at, className = "" }: { children: ReactNode; at: keyof typeof AT; className?: string }) {
+/**
+ * Text floating over a Stage, with no box: type sits straight on the scene, kept readable by a soft halo of the
+ * page colour behind it. `glass` gives it a frosted panel instead, for dense controls. On narrow screens panels
+ * stack in the flow instead of floating.
+ */
+export function Panel({ children, at, glass = false, className = "" }: { children: ReactNode; at: keyof typeof AT; glass?: boolean; className?: string }) {
+  const look = glass
+    ? "rounded-2xl bg-surface/75 p-4 shadow-card ring-1 ring-hair backdrop-blur-xl"
+    : "p-1 [text-shadow:0_1px_14px_var(--page),0_0_2px_var(--page)]";
   return (
     <div
       data-kit-panel
-      className={`absolute z-10 max-w-[min(26rem,calc(100%-3rem))] rounded-2xl bg-surface/75 p-4 text-ink shadow-card ring-1 ring-hair backdrop-blur-xl ${at === "bottom" ? "max-w-none" : ""} ${AT[at]} max-sm:relative max-sm:inset-auto max-sm:m-3 max-sm:max-w-none ${className}`}
+      className={`absolute z-10 max-w-[min(26rem,calc(100%-4rem))] text-ink ${look} ${at === "bottom" ? "max-w-none" : ""} ${AT[at]} max-sm:relative max-sm:inset-auto max-sm:m-4 max-sm:max-w-none ${className}`}
     >
       {children}
+    </div>
+  );
+}
+
+/** A headline number as large type, with a quiet label above and an optional note below. No tile. */
+export function Stat({ label, value, note, size = "lg" }: { label: ReactNode; value: ReactNode; note?: ReactNode; size?: "md" | "lg" }) {
+  return (
+    <div data-kit-stat>
+      <div className="text-sm text-muted">{label}</div>
+      <div className={`mt-1 font-semibold leading-none tracking-[-0.03em] tabular-nums ${size === "lg" ? "text-[52px]" : "text-[34px]"}`}>{value}</div>
+      {note && <div className="mt-2 text-sm text-ink-2">{note}</div>}
     </div>
   );
 }

@@ -9,7 +9,7 @@ aurora's screen is calm, warm-neutral and precise: soft off-white (or near-black
 3. **Label the thing itself.** Names sit next to what they name. Don't make the reader match colors against a legend.
 4. **Motion explains.** Animate to show cause and effect, flow or a change of state, never as decoration.
 5. **Let them touch it.** If something changes over time or has parts, let the reader play, pause, step, scrub and select.
-6. **Depth over boxes.** Physical things are lit 3D objects (`aurora/kit`): metal, glass, glow, real shadows. The main visual is big and edge to edge; text floats beside it in a few glass panels.
+6. **Depth over boxes.** Physical things are lit 3D objects (`aurora/kit`): metal, glass, glow, real shadows. The main visual is big and edge to edge; text sits straight on it as type (bare `Panel`, `Stat`), never in cards. Glass only for dense controls.
 
 ## Banned defaults
 
@@ -20,6 +20,8 @@ These are what an interface looks like when nobody designed it. Each has a repla
 | a machine, organ or process drawn as rectangles in rows | a 3D scene with `aurora/kit`: `Scene`, `Metal`, `Glass`, `Glow`, `Label` |
 | a 3D scene or big visual in a card | `display: "hero"` with sections below it, or `display: "page"` |
 | eight small stat boxes around the visual | one `Panel` with two to four readouts |
+| text and numbers in frosted cards over a scene | bare `Panel` and `Stat`: large type on the scene |
+| a title inside a hero design | nothing: the screen shows the view's title and summary on the hero |
 | a flat solid background behind a visual | `Stage`'s soft radial backdrop |
 | motion scattered over every element | one `Stagger` entrance, plus the mechanism's own motion |
 | labels on top of moving parts | `Label` with its leader line, set off to one side |
@@ -111,7 +113,7 @@ For abstract things with no physical form (a protocol, an algorithm, a timeline 
 
 ## Layout recipes
 
-**Physical mechanism** (see `examples/mechanism.md`): `display: "hero"`, a `Stage` whose `Scene` fills it, `Panel at="top-left"` (eyebrow, headline, what just happened), `Panel at="top-right"` (the part being followed: `PhaseDial`, state, one sentence), `Panel at="bottom"` (`ControlBar` plus selector chips). Below the hero, as ordinary sections: `steps` and a `callout`.
+**Physical mechanism** (see `examples/mechanism.md`): `display: "hero"` (the view's `title` and `summary` become the hero's headline, so write them well), a `Stage` whose `Scene` fills it, `Panel at="top-right"` (what just happened, then the part being followed: `PhaseDial`, state, one sentence), `Panel at="bottom" glass` (`ControlBar` plus selector chips). Below the hero, as ordinary sections: `steps` and a `callout`.
 
 **2D interactive explainer** for an abstract process (see `examples/explainer.md`):
 ```

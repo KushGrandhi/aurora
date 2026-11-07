@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Legend, Panel, Scene, Stage, Stagger, useClock } from "aurora/kit";
+import { Legend, Panel, Scene, Stage, Stat, useClock } from "aurora/kit";
 import Bars, { type Row } from "./Bars";
 
 type Bridge = { data?: Record<string, unknown[]>; onData?(cb: (d: Record<string, unknown[]>) => void): (() => void) | void; send?(name: string, payload: unknown): void };
@@ -31,27 +31,14 @@ export default function App() {
 
   return (
     <Stage scene={<Scene camera={[7, 4.2, 10.5]} target={[0, 0.4, 0]}><Bars rows={rows} selected={selected} onPick={pick} clock={clock} /></Scene>}>
-      <Panel at="top-left">
-        <Stagger>
-          <div className="text-xs font-medium uppercase tracking-wider text-accent">aurora · showcase</div>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">Show anything, live</h1>
-          <p className="mt-2 text-sm leading-relaxed text-ink-2">
-            This scene is a 3D design reading a query. Change the filters above and the columns reshape. Drag to turn it, and click a column.
-          </p>
-        </Stagger>
+      {/* In a hero the screen shows the view's title and summary on the left: the design adds only what changes. */}
+      <Panel at="top-right">
+        <Stat label={sel ? sel.region : "All regions"} value={money(sel ? sel.revenue : total)}
+          note={sel ? `${Math.round((sel.revenue / Math.max(1, total)) * 100)}% of revenue · ${sel.units} units` : `${rows.length} regions in the current filter. Click a column.`} />
       </Panel>
 
-      <Panel at="top-right" className="w-64">
-        <div className="text-xs text-muted">{sel ? sel.region : "All regions"}</div>
-        <div className="mt-1 text-3xl font-semibold tracking-tight tabular-nums">{money(sel ? sel.revenue : total)}</div>
-        <div className="mt-1 text-xs text-muted">{sel ? `${Math.round((sel.revenue / Math.max(1, total)) * 100)}% of revenue · ${sel.units} units` : `${rows.length} regions in the current filter`}</div>
-      </Panel>
-
-      <Panel at="bottom">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-xs text-muted">Regions</span>
-          <Legend items={rows.map((r, i) => ({ name: r.region, color: `--s${(i % 6) + 1}`, active: selected === r.region, onClick: () => pick(r.region) }))} />
-        </div>
+      <Panel at="bottom-left">
+        <Legend items={rows.map((r, i) => ({ name: r.region, color: `--s${(i % 6) + 1}`, active: selected === r.region, onClick: () => pick(r.region) }))} />
       </Panel>
     </Stage>
   );

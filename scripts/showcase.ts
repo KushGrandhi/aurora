@@ -9,7 +9,7 @@ const f = (n: string) => readFileSync(path.join(here, "showcase", n), "utf8");
 const base = `http://localhost:${process.env.AURORA_PORT ?? 4317}`;
 
 const view = {
-  v: 2, id: "showcase", title: "aurora, everything at once", summary: "A 3D design reading live data, then every catalog component, all filtered by the controls above.",
+  v: 2, id: "showcase", title: "Show anything, live.", summary: "Revenue by region as light: a 3D design reading a live query. Change a filter and the columns reshape; drag to turn it. Below, every component aurora has.",
   datasets: { sales: path.join(root, "packages/engine/test/fixtures/sales.csv") },
   params: {
     region: { type: "select", label: "Region", options: { query: "regions", field: "region" } },

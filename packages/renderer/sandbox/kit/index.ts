@@ -2,7 +2,7 @@
 export { Scene, type SceneProps } from "./Scene.tsx";
 export { Metal, Glass, Glow, Paint } from "./materials.tsx";
 export { Label } from "./Label.tsx";
-export { Stage, Panel } from "./Stage.tsx";
+export { Stage, Panel, Stat } from "./Stage.tsx";
 export { useClock, ControlBar, type Clock } from "./controls.tsx";
 export { Reveal, Stagger, EASE } from "./Reveal.tsx";
 export { PhaseDial, Legend } from "./PhaseDial.tsx";

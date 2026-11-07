@@ -126,3 +126,45 @@ test("a bug inside a 3D scene is reported, not blamed on WebGL", async ({ page, 
   await expect(frame(page).locator("[data-kit-fallback]")).toContainText("hit an error");
   await expect.poll(async () => JSON.stringify((await status(request, "kit8")).problems)).toContain("boom3d");
 });
+
+test("panels and labels carry no box by default; glass is opt-in", async ({ page, request }) => {
+  const app = `
+import { Stage, Scene, Metal, Label, Panel, Stat } from "aurora/kit";
+export default function App() {
+  return (
+    <Stage scene={<Scene><mesh><boxGeometry /><Metal /></mesh><Label at={[0, 1, 0]}>part</Label></Scene>}>
+      <Panel at="top-left"><h2 id="bare">Bare</h2></Panel>
+      <Panel at="top-right" glass><h2 id="glass">Glass</h2></Panel>
+      <Panel at="bottom-left"><Stat label="Revenue" value="$98,491" note="all regions" /></Panel>
+    </Stage>
+  );
+}`;
+  await show(page, request, "kit9", [{ id: "d", c: design(app) }]);
+  const f = frame(page);
+  await expect(f.getByText("part")).toBeVisible();
+  const box = (sel: string) => f.locator(sel).evaluate((el) => {
+    const p = el.closest("[data-kit-panel]") as HTMLElement, cs = getComputedStyle(p);
+    return { bg: cs.backgroundColor, shadow: cs.boxShadow };
+  });
+  const bare = await box("#bare");
+  expect(bare.bg).toBe("rgba(0, 0, 0, 0)");
+  expect(bare.shadow).toBe("none");
+  expect((await box("#glass")).shadow).not.toBe("none");
+  const pill = await f.locator("[data-kit-label] span").last().evaluate((el) => { const cs = getComputedStyle(el); return { bg: cs.backgroundColor, shadow: cs.boxShadow }; });
+  expect(pill).toEqual({ bg: "rgba(0, 0, 0, 0)", shadow: "none" });
+  const value = f.getByText("$98,491");
+  expect(parseFloat(await value.evaluate((el) => getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(40);
+  await expect.poll(async () => (await status(request, "kit9")).unverified).toEqual([]);
+  expect((await status(request, "kit9")).problems.filter((p: { severity: string }) => p.severity === "error")).toEqual([]);
+});
+
+test("in a hero, left panels stay clear of the screen's title", async ({ page, request }) => {
+  const app = `import { Stage, Scene, Metal, Panel } from "aurora/kit";
+export default function App() { return <Stage scene={<Scene><mesh><boxGeometry /><Metal /></mesh></Scene>}><Panel at="top-left"><h2 id="tl">Readout</h2></Panel></Stage>; }`;
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await show(page, request, "kit10", [{ id: "d", c: { type: "design", framework: "react", display: "hero", files: { "App.tsx": app } } }]);
+  const f = frame(page);
+  await expect(f.locator("#tl")).toBeVisible();
+  const { left, width } = await f.locator("#tl").evaluate((el) => ({ left: (el.closest("[data-kit-panel]") as HTMLElement).getBoundingClientRect().left, width: innerWidth }));
+  expect(left).toBeGreaterThanOrEqual(width * 0.18);
+});

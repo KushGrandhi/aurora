@@ -3,8 +3,9 @@ import { ControlBar, Panel, PhaseDial, Scene, Stage, Stagger, useClock } from "a
 import Engine from "./Engine";
 import { FIRING_ORDER, STROKES, cyl, cylAt, lastFired } from "./model";
 
-// A full-bleed 3D stage with three floating panels: what is happening (top left), the cylinder you follow
-// (top right) and the controls (bottom). The scene carries the page; the panels stay small and few.
+// A full-bleed 3D stage. In a hero the screen sets the view's title and summary on the left, so the design adds only
+// what changes: the cylinder you follow (top right, plain type on the scene) and the controls (bottom, glass because
+// they are dense). The scene carries the page.
 export default function App() {
   const clock = useClock({ speed: 120, period: 720 }); // degrees of crank per second; one cycle is 720°
   const [selected, setSelected] = useState<number | null>(1);
@@ -15,18 +16,13 @@ export default function App() {
 
   return (
     <Stage scene={<Scene camera={[10, 6.5, -13]} target={[0.6, 0.8, 0]}><Engine clock={clock} selected={selected} /></Scene>}>
-      <Panel at="top-left">
+      <Panel at="top-right" className="w-80">
         <Stagger>
-          <div className="text-xs font-medium uppercase tracking-wider text-accent">V8 · cross-plane crank</div>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">Eight cylinders, one crankshaft</h1>
-          <p className="mt-2 text-sm leading-relaxed text-ink-2">
+          <p className="text-[15px] leading-relaxed text-ink-2">
             <span className="font-semibold text-bad">Cylinder {fired.n}</span> just fired. Another fires every 90° of crank rotation, so the crank is always being pushed.
           </p>
         </Stagger>
-      </Panel>
-
-      <Panel at="top-right" className="w-72">
-        <div className="flex items-center gap-4">
+        <div className="mt-5 flex items-center gap-4">
           <PhaseDial phases={STROKES} value={st.phase / 720} />
           <div>
             <div className="text-xs text-muted">Cylinder {sel.n} · {sel.bank < 0 ? "left" : "right"} bank</div>
@@ -37,7 +33,7 @@ export default function App() {
         <p className="mt-3 text-sm leading-relaxed text-ink-2">{STROKES[st.stroke].text}</p>
       </Panel>
 
-      <Panel at="bottom">
+      <Panel at="bottom" glass>
         <ControlBar clock={clock} onStep={() => clock.step(toNext)} stepLabel="Next firing">
           <span className="text-xs text-muted">Firing order</span>
           {FIRING_ORDER.map((n) => {

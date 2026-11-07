@@ -36,7 +36,7 @@ export function Legend({ items }: { items: { name: string; color: string; active
             {it.name}
           </>
         );
-        const cls = `flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium transition ${it.active ? "bg-raised text-ink ring-1 ring-hair" : "text-ink-2"}`;
+        const cls = `flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium transition ${it.active ? "text-ink underline decoration-2 underline-offset-4" : "text-ink-2"}`;
         return it.onClick ? <button key={it.name} onClick={it.onClick} className={cls}>{body}</button> : <span key={it.name} className={cls}>{body}</span>;
       })}
     </div>
