@@ -8,12 +8,13 @@ This file is the whole method. The files under `references/` and `examples/` hol
 
 Follow these steps in order, every time.
 
-1. **Pick** the components with the table below. Catalog components look polished with little effort; use a `design` only for what they can't show.
-2. **Render** the frame with `mcp__aurora__render`: title, one-line summary and sections (with the first item, or with `"items": []`).
-3. **Add** the remaining items with `mcp__aurora__patch`, **one call at a time**. Each call passes `baseVersion` = the `version` the previous call returned. Two patches sent together collide.
-4. **Check** with `mcp__aurora__status`. Fix every `error` with a patch, then check again.
-5. **Review** your work against **Before you finish** at the end of this file. You cannot see the screen, so this checklist is your eyes.
-6. **Tell** the user the URL in one line. Don't repeat the content in the terminal.
+1. **Shape** the story and choose its look. Anything bigger than a one-number answer is a story: read `references/story.md` and outline it (the one sentence, the hook, the beats, the signature moment), then read `references/design-language.md` and decide its direction (the stage colours, type and motion that fit this subject). Never default to the look of the last view or the example.
+2. **Pick** the components for each beat with the table below. Catalog components show data and structure well with little effort; use a `design` for the beats that need their own visual, above all the hook and the signature moment.
+3. **Render** the frame with `mcp__aurora__render`: title, one-line summary and sections (with the first item, or with `"items": []`).
+4. **Add** the remaining items with `mcp__aurora__patch`, **one call at a time**. Each call passes `baseVersion` = the `version` the previous call returned. Two patches sent together collide.
+5. **Check** with `mcp__aurora__status`. Fix every `error` with a patch, then check again.
+6. **Review** your work against **Before you finish** at the end of this file. You cannot see the screen, so this checklist is your eyes.
+7. **Tell** the user the URL in one line. Don't repeat the content in the terminal.
 
 `unverified` in a result means no screen has drawn and checked the item yet. A `design` stays `unverified` for a few seconds after it draws, while aurora runs its design checks: call `status` again after about 3 seconds and fix any `design:` warning. If it is still `unverified` after that, no screen is open: give the URL to the user and stop.
 
@@ -42,12 +43,12 @@ Follow these steps in order, every time.
 Good combinations:
 - **Explain how something physical works:** a `story` section whose first item is the 3D `aurora/kit` scene and whose other items are short `text` steps, one per moment that matters, each with `"story": {"state": …}` that freezes the scene on that moment; the last step sets it running. Give the view a `palette` drawn from the subject (red and blue for blood, hot orange for combustion) and use `--s1`, `--s2`… in the scene. Then a `callout` for the one thing worth remembering. Don't put a list of `steps` under a sandbox scene: the story *is* the steps.
 - **Explain a system:** `architecture`, then a `diagram` for its main request, then a `callout` for the key decision.
-- **Analyse data:** a row of `kpi`, then a `chart`, then a `table`; add filters when the reader will want to slice it.
+- **Analyse data:** for a quick look, a row of `kpi`, then a `chart`, then a `table`, with filters when the reader will want to slice it. For a story about the data, shape it first (`references/story.md`): open on the most surprising number, then a beat per finding.
 - **A page or product:** one `design` with `display: "page"`, as the only item in the view.
 
 Before using a component for the first time, read its fields and example in `references/components.md`.
 
-**Before writing any `design`:** read `references/design-canvas.md`, `references/design-language.md` and `references/kit.md`, then open the closest example and copy its structure:
+**Before writing any `design`:** read `references/design-canvas.md`, `references/design-language.md` and `references/kit.md`, then open the closest example: copy how it works, and give it the look you chose for this subject:
 - `examples/mechanism.md`: **start here for anything physical.** A 3D V8 engine built from `aurora/kit`, told as a story: the scene stays pinned while steps freeze it on each stroke, with a scrubber, a grabbable crank and a palette. It shows the whole view to send.
 - `examples/explainer.md`: a 2D interactive drawing with play, step and speed controls, for a process that has no physical shape.
 - `examples/landing.md`: a full landing page with nav, hero, proof, features, how it works, pricing, FAQ and a closing call to action.
@@ -68,7 +69,7 @@ Before using a component for the first time, read its fields and example in `ref
 - Every id (view, section, item, query, dataset) matches `^[A-Za-z_]\w*$` and is unique in the view. Patches find things by id, so keep ids stable.
 - The screen reads like an article: the view `title` and `summary` are the page headline (on a hero they sit on the stage), and each section `title` is a large heading. Write them as short headlines that say the point ("East leads, barely"), not labels ("Data"). Items sit on the page without boxes.
 - **Everything is linked.** Pointing at a value anywhere (a bar, a table row, a part in a design) lights the same value up in every item: charts dim the rest, tables mark the row, prose highlights the word. Use the same names across items (the chart's category, the table's column, the design's part) and mention them in prose, so a view explores as one thing.
-- `palette` (optional): `{"accent": "#hex", "series": ["#hex", …]}` gives the view colours drawn from its subject; the screen, charts and designs all use it.
+- `palette` (optional): `{"page": "#hex", "ink": "#hex", "accent": "#hex", "series": ["#hex", …]}` sets the view's whole stage from its subject: `page` is the background, `ink` the text, and aurora derives every surface and line from them; the screen, charts and designs all follow it. Read `references/design-language.md` before choosing.
 - `layout: "grid"` places items on 12 columns with `span`. `layout: "tabs"` shows each item as a tab named by its `title`.
 - `layout: "story"` is a guided explanation, the best way to explain a process: the **first item stays pinned** (a design, a chart, a diagram) while the other items scroll past as steps. Each step can carry `"story": {"focus": "compression", "state": {"phase": 1}}`: when it reaches the middle of the screen, `focus` lights that value up across the view and `state` reaches a design as `aurora.story.state` (kit: `useStory()`). Write each step as two or three sentences about one moment; let the visual show it. Prefer a story over a sandbox scene with a list of steps under it.
 - A section may start with `"items": []`; you fill it with patches.
@@ -95,21 +96,21 @@ A patch is a list of ops. They apply together or not at all, and a bad op names 
 
 **To add at the end, leave `after` out.** `"after": "<id>"` places it right after that item or section, and `"after": null` puts it **first**. If a result says `"rebased": true`, the person picked an older version on screen; call `status` to see what is current.
 
-## Design language, in brief
+## Art direction, in brief
 
-aurora's screen is calm, warm-neutral and precise. Everything you build should look like part of it. The full rules and recipes are in `references/design-language.md`. These ones matter most:
+Each view gets its own look; the full method is in `references/design-language.md`. These matter most:
 
-1. **Use the tokens, never raw colors.** Inside a design, use `bg-page`, `bg-surface`, `bg-raised`, `text-ink`, `text-ink-2`, `text-muted`, `ring-hair`, `bg-accent`, and `var(--s1)` to `var(--s8)` for categories. They switch to dark mode by themselves. Don't write `slate-*`, `gray-*`, `white`, `black` or hex values, and don't write `dark:` variants.
-2. **Color means something.** `accent` marks the action, `s1` to `s8` mark categories in that order, and `good`/`bad`/`warn` mark state. Everything else is neutral.
-3. **Label on the drawing.** Put names next to the parts, with a thin leader line if needed. Don't use a separate legend.
-4. **Nothing moves over text.** Moving things travel in their own lanes, at least 8px clear of every label.
-5. **An explainer is interactive.** Give it play/pause, next step and speed controls, a card for the current step, and readouts of what is true right now.
-6. **One type scale.** `text-4xl`/`text-6xl font-semibold tracking-tight` for the headline, `text-xl font-semibold` for headings, `text-sm text-ink-2 leading-relaxed` for body, and `text-sm text-muted` (sentence case) for small labels. No uppercase tracked eyebrows over headings.
-7. **Generous space.** Cards are `rounded-2xl bg-surface p-6 ring-1 ring-hair shadow-card`, gaps are `gap-4` or `gap-6`, and page sections are `py-20`.
-8. **Motion explains.** Things enter with a fade and an 8px rise over 0.3 to 0.5 s; state changes take 0.2 s. Continuous animation is only for showing a mechanism.
-9. **No fixed height.** A design card grows and shrinks with its content. Leave out `height`.
-10. **Real content.** Use specific, believable words and numbers. No lorem ipsum and no empty image boxes.
-11. **Depth, not boxes.** A physical thing is a 3D scene built with `aurora/kit` (metal, glass, glow, light and shadow), never rectangles in rows. The scene carries the page; readouts sit on it as plain type (at most three bare panels), never in cards.
+1. **Decide a direction from the subject** before building: its world, a mood in two or three words, a genre to borrow from, the stage colours, the type and the motion personality. Don't repeat the example's look or your last view's.
+2. **Set the stage with the `palette`** (`page`, `ink`, `accent`, `series`), drawn from the subject. A dark stage for cinema, a light one for editorial calm, a tint for a place of its own.
+3. **Use the tokens, never raw colours.** In a design, `bg-page`, `text-ink`, `text-ink-2`, `text-muted`, `ring-hair`, `bg-accent`, `var(--s1)`… carry the palette and follow the theme. No `slate-*`, `gray-*`, `white`, `black`, hex or `dark:`.
+4. **Contrast in scale.** One enormous headline or number, the main visual full screen or edge to edge, then quiet body text. Never a small visual boxed in a card among small boxes.
+5. **Direct the motion.** Tie it to what the reader does (scrolling a story, dragging a value); one thing leads, the rest follow; match the personality you chose. Continuous animation only for a mechanism or a living scene.
+6. **Colour means something**, and keeps that meaning everywhere in the view.
+7. **Label on the drawing**, never with a legend to decode.
+8. **Nothing moves over text.**
+9. **Physical things are 3D** (`aurora/kit`), never rectangles in rows.
+10. **No fixed height** on a design card, and it works on a phone.
+11. **Real content**, specific and believable.
 
 ## Problems
 
@@ -127,6 +128,8 @@ The same operations work over HTTP: `POST localhost:4317/api/views {view}`, `POS
 Go through every line. Fix what fails, then check `status` once more.
 
 - [ ] `status` shows no `error` and no `design:` warning.
+- [ ] The story has a hook on the first screen, one idea per beat, a signature moment and an ending that lands the one sentence; it answers who, what, when, where, why and how without naming them.
+- [ ] The look was chosen for this subject: a `palette` (stage, accent, series), type and motion that fit it, and it doesn't copy the example's or the last view's look.
 - [ ] A physical mechanism is a 3D `aurora/kit` scene pinned in a `story` section with steps that drive it (or a `hero`), not a flat drawing in a card, and the view has a `palette` from its subject.
 - [ ] Every item uses the component the table above suggests; a `design` is used only where no catalog component fits.
 - [ ] Designs use only token colors (`bg-surface`, `text-ink-2`, `var(--s1)`…): no `slate`, `gray`, `white`, `black`, hex or `dark:`.

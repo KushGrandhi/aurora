@@ -1,144 +1,132 @@
-# aurora design language
+# Art direction
 
-aurora's screen is calm, warm-neutral and precise: soft off-white (or near-black) surfaces, hairline borders, Hanken Grotesk type (Newsreader as a serif), one accent, a small palette for categories, and motion that explains rather than decorates. A design you build should feel like it belongs on that screen, and like a finished product: **depth, light and motion**, never a wireframe. The structure is one house style; the **colours come from the subject**: give the view a `palette` (`{"accent": "#b91c1c", "series": ["#b91c1c", "#1d4ed8"]}` for a heart's oxygen-rich and oxygen-poor blood) and the screen, charts and designs all use it.
+Every view gets its own look, decided from its subject and its story. A story about Formula 1 should not look like a story about coral reefs, and neither should look like the last thing you made. aurora gives you the means to make any direction coherent (a palette that sets the whole stage, tokens that follow it everywhere, fonts, 3D, motion). You choose the direction.
 
-## Five principles
+Shape the story first (`references/story.md`). Then decide the look, then build.
 
-1. **Answer first.** The headline says the point ("It moves heat out; it doesn't make cold"), not the topic ("Refrigerators"). The most important thing is the biggest thing.
-2. **Calm surfaces, meaningful color.** Neutrals carry the layout. Color appears only where it means something: an action, a category, a state.
-3. **Label the thing itself.** Names sit next to what they name. Don't make the reader match colors against a legend.
-4. **Motion explains.** Animate to show cause and effect, flow or a change of state, never as decoration.
-5. **Let them touch it.** If something changes over time or has parts, let the reader play, pause, step, scrub and select. Guide, don't just hand over a sandbox: a `story` section walks the reader through the moments that matter, and numbers they can drag in the prose (`{{rpm}}`) let them ask "what if".
-6. **Depth over boxes.** Physical things are lit 3D objects (`aurora/kit`): metal, glass, glow, real shadows. The main visual is big and edge to edge; text sits straight on it as type (bare `Panel`, `Stat`), never in cards. Glass only for dense controls.
+## Decide a direction before you build
 
-## Banned defaults
+Write these down in your own reasoning, in a line each:
 
-These are what an interface looks like when nobody designed it. Each has a replacement.
+1. **The subject's world.** What does this subject look and feel like in real life? Racing is carbon fibre, speed and night. The ocean is depth, cold light and slow movement. Money is paper, ink and precision. A history is archival print and the colour of old photographs.
+2. **The mood**, in two or three words: "hushed, precise, expensive", "loud, kinetic, proud", "warm, curious, hand-made".
+3. **A genre to borrow from**: a product film, a newspaper data story, a museum placard, an engineering blueprint, a sports broadcast, a field guide, a magazine feature, a mission control screen.
+4. **The stage**: dark, light or tinted, and its colours, set with the view's `palette` (below).
+5. **The type**: a display face and a body face that fit the mood (the fonts are listed in `references/design-canvas.md`).
+6. **The motion personality**: "heavy and slow, like a camera on a crane", "snappy and exact", "springy and playful", "still, so only the data moves".
+7. **The signature moment** from your story outline, and how the look serves it.
 
-| Instead of | Do this |
-|---|---|
-| a machine, organ or process drawn as rectangles in rows | a 3D scene with `aurora/kit`: `Scene`, `Metal`, `Glass`, `Glow`, `Label` |
-| a 3D scene or big visual in a card | `display: "hero"` with sections below it, or `display: "page"` |
-| eight small stat boxes around the visual | one `Panel` with two to four readouts |
-| text and numbers in frosted cards over a scene | bare `Panel` and `Stat`: large type on the scene |
-| a title inside a hero design | nothing: the screen shows the view's title and summary on the hero |
-| a flat solid background behind a visual | `Stage`'s soft radial backdrop |
-| motion scattered over every element, the same fade-up on each section | one orchestrated moment, plus the mechanism's own motion; tie motion to what the reader does |
-| a small uppercase tracked label over every heading ("AURORA · SHOWCASE", "STAGE 4 OF 5") | nothing, or plain sentence-case text that adds information ("Relaxation, valves shut") |
-| "A · B · C" meta strings, numbers on things that aren't a sequence | say it in a sentence; number only real steps |
-| numbers counting up from zero | the value, shown at once; animate only a *change* (charts and numbers already move to new values when a filter changes) |
-| a mechanism you can only watch | `Scrubber` with the key moments marked, and `Grab` on the part a person would turn by hand |
-| gradient text, purple-to-blue washes, glow blobs | solid ink; colour only where it means something |
-| glass on everything | glass only for dense controls over a scene |
-| the default blue on every subject | a `palette` drawn from the subject |
-| labels on top of moving parts | `Label` with its leader line, set off to one side |
-| a legend you have to match colours against | colour on the object itself, named by a `Label` or the panel |
+**Don't repeat yourself.** The examples show how things work, not what things should look like. If your direction matches the example you started from, or the last view you made, change it. Two subjects that differ should look different.
+
+## Colour
+
+A view's `palette` sets the stage. `page` is the background, `ink` is the text, and aurora derives every other surface, line and muted tone from those two, for the screen, the charts and every design, so they always agree. `accent` is the one colour that marks action and emphasis, and `series` are the colours for categories, in order.
+
+```json
+"palette": { "page": "#0b0d10", "ink": "#e9e6df", "accent": "#e8590c", "series": ["#e8590c", "#5b8def", "#d9a441"] }
+```
+
+- **Draw it from the subject.** Hot orange for combustion, oxygen red and venous blue for blood, chlorophyll green on warm paper for a forest, signal yellow on asphalt black for a road story. Not the default blue.
+- **A dark stage** feels cinematic and makes light, glow and colour sing. **A light stage** feels editorial and calm. **A tinted stage** (deep navy, warm paper, forest green) gives a story its own place.
+- **Colour means something.** Once a colour stands for a thing, it stands for that thing everywhere in the view: the chart, the 3D part, the word in the prose.
+- In a design, use the tokens (`bg-page`, `text-ink`, `var(--accent)`, `var(--s1)`…), never hard-coded colours: the tokens carry your palette, and they keep working when the person switches theme. Blend with `color-mix(in oklab, var(--s1), var(--page) 60%)`; fade with Tailwind's `/` (`bg-accent/10`). Gradients, glows and vignettes are fine when they come from the palette and play a part (light falling on the subject, depth behind it).
+
+## Type
+
+Type carries the voice. Pick a display face for headlines and the hook, and a body face for reading (they can be the same family).
+
+- **Contrast in scale is what makes a page feel cinematic.** One enormous line (`text-[clamp(3rem,9vw,9rem)] leading-[0.9] tracking-tight`) or one gigantic number beats ten medium ones. Then drop straight down to quiet body text.
+- **Body text stays readable:** 16 to 20px, `leading-relaxed`, lines under about 70 characters (`max-w-xl` or `max-w-prose`), in `text-ink` or `text-ink-2`.
+- **Small labels** are `text-sm`, in sentence case. Use uppercase tracking only when the genre calls for it (a mission control readout, a blueprint title block), never on autopilot over every heading.
+- **Numbers** get `tabular-nums`. A huge number can take the display face.
+- **Headlines say the point** ("It moves heat out; it doesn't make cold"), never the topic ("Refrigerators").
+
+## Composition
+
+- **The main visual is big.** Full screen or edge to edge, with the text set on it or beside it. A visual boxed in a card is small.
+- **Asymmetry and empty space.** A column of text on the left third, a visual bleeding off the right edge; a full screen holding one sentence. Generous space reads as confidence.
+- **Rhythm.** Alternate big moments (a full-screen scene, one huge number) with quiet reading moments. Vary the layout from beat to beat; a page of identical blocks reads as a form.
+- **Depth.** Layers: something far (a backdrop, a soft gradient), the subject, and type in front. A 3D scene, a photograph or a drawing can all give it.
+- **Text never fights the visual.** Over a busy area, put the text in a calm spot, or give it a halo or a scrim from the palette.
+
+## Motion
+
+Motion is where a page feels alive, so direct it like a film.
+
+- **Tie it to the reader.** Things move because the reader scrolled, dragged, hovered or reached a beat. A `story` section moves its visual as the steps pass.
+- **Choreograph.** In each moment, one thing leads and the rest follow with a short delay. Don't animate everything at once, and don't give every section the same entrance.
+- **Match the motion personality you chose.** Heavy and cinematic: 0.8 to 1.6 s, slow ease-out (`[0.16, 1, 0.3, 1]`), long travel, camera moves. Precise: 0.2 to 0.4 s, `[0.22, 1, 0.36, 1]`, short travel. Playful: springs (`type: "spring", stiffness: 260, damping: 20`).
+- **Techniques to reach for:** a camera that flies in or orbits to the next part, parallax layers, a mask or clip-path that reveals an image or a line of type, kinetic type (words arriving one by one), a chart that grows and then morphs into the next one, a scale comparison that zooms out until the number makes sense.
+- **Continuous animation** is for a mechanism or a living scene (an engine running, water flowing). Drive it from one `requestAnimationFrame` loop holding one number, and compute everything else from that number.
+- **Respect reduced motion:** when `matchMedia("(prefers-reduced-motion: reduce)").matches`, show each state without the travel.
+
+## Defaults nobody chose
+
+These are what an interface looks like when nobody made a decision. Each is fine if you chose it for this story; reject it when it's just the default.
+
+- a purple-to-blue gradient, glow blobs or gradient text with no reason in the subject
+- the same fade-and-rise on every section
+- a small uppercase tracked label over every heading
+- a row of identical cards, or eight small stat boxes around the visual
+- numbers counting up from zero for decoration (counting is fine when the count is the point, such as years passing)
+- glass on everything
+- the default blue
+- a physical thing drawn as rectangles in rows (build it in 3D with `aurora/kit`)
+
+## The guardrails
+
+These hold whatever direction you choose:
+
+1. **Legible.** Text keeps strong contrast against whatever is behind it, including over images and 3D. aurora rejects a palette whose `ink` is hard to read on its `page`.
+2. **Honest.** Numbers come from queries. Motion never distorts a quantity.
+3. **Nothing moves over text being read.** Moving things travel in their own space, clear of labels.
+4. **Labelled on the thing.** Names sit next to what they name, with a thin leader line if needed, not in a legend you have to match colours against.
+5. **Works everywhere.** It works on a phone (grids use `md:` breakpoints, rows use `flex-wrap`, SVGs use `viewBox` with `className="w-full h-auto"`) and in both themes (tokens only, no `dark:` variants).
+6. **Real content.** Specific, believable words. No lorem ipsum and no empty image boxes.
 
 ## Tokens
 
-Every design sandbox has these as Tailwind colors and as CSS variables. They switch with aurora's light/dark theme, so **don't write `dark:` variants** and **don't use Tailwind's palette** (`slate-*`, `gray-*`, `indigo-*`…), `white`, `black` or hex values.
+Every design sandbox has these as Tailwind colours and as CSS variables. They carry the view's palette and switch with the theme, so **don't write `dark:` variants** and **don't use Tailwind's own palette** (`slate-*`, `gray-*`, `indigo-*`…), `white`, `black` or hex values.
 
 | Token | Tailwind | CSS | Use for |
 |---|---|---|---|
-| page | `bg-page` | `var(--page)` | the page background |
-| surface | `bg-surface` | `var(--surface)` | cards and panels |
-| raised | `bg-raised` | `var(--raised)` | controls, inputs, things on a card |
-| ink | `text-ink` | `var(--ink)` | headings, primary text, dark strokes |
+| page | `bg-page` | `var(--page)` | the stage background |
+| surface | `bg-surface` | `var(--surface)` | a panel or card, when you need one |
+| raised | `bg-raised` | `var(--raised)` | controls, inputs, things on a panel |
+| ink | `text-ink` | `var(--ink)` | headlines, primary text, dark strokes |
 | ink-2 | `text-ink-2` | `var(--ink-2)` | body text, secondary strokes |
 | muted | `text-muted` | `var(--muted)` | captions, small labels, inactive things |
 | hair | `ring-hair`, `border-hair`, `divide-hair` | `var(--hair)` | hairline borders |
 | line | `stroke-line`, `bg-line` | `var(--line)` | grid lines, leader lines, light structure |
-| accent | `bg-accent`, `text-accent`, `ring-accent` | `var(--accent)` | the primary action, focus, selection |
+| accent | `bg-accent`, `text-accent`, `ring-accent` | `var(--accent)` | the primary action, emphasis, selection |
 | good / bad / warn | `text-good`, `bg-bad`… | `var(--good)`… | state: success, failure or danger, caution |
-| s1…s8 | `bg-s1`, `fill-s3`, `stroke-s2`… | `var(--s1)`… | categories, always in this order |
-| shadow | `shadow-card` | `var(--shadow)` | the one card shadow |
+| s1…s8 | `bg-s1`, `fill-s3`, `stroke-s2`… | `var(--s1)`… | categories, in order |
+| shadow | `shadow-card` | `var(--shadow)` | a soft shadow |
 
-Series colors in order: s1 blue, s2 orange, s3 green, s4 amber, s5 pink, s6 deep green, s7 violet, s8 red. Natural meanings: **cold/water/in = s1**, **heat/energy = s2 or s4**, **danger/burn = bad**, **spent/inactive = muted**.
+Without a `series`, the categories are s1 blue, s2 orange, s3 green, s4 amber, s5 pink, s6 deep green, s7 violet and s8 red. Natural meanings: cold, water or input = s1; heat or energy = s2 or s4; danger = `bad`; spent or inactive = `muted`.
 
-Mixing: `color-mix(in oklab, var(--s1), var(--s4) 40%)` blends two tokens and still follows the theme. Fading: use the `opacity` attribute or class, or Tailwind's `/` modifier (`bg-accent/10`).
+On a filled accent or category colour, text is `text-white`. On `bg-ink` (an inverted block), text is `text-page`.
 
-On a filled accent or category color, text is `text-white`. On `bg-ink` (an inverted block), text is `text-page`.
+## Craft notes
 
-## Type
+**3D scenes** (`references/kit.md`). `Scene` has studio light, reflections, a soft shadow and orbit controls. Materials say what a part is: `Metal` for moving mechanical parts, `Glass` for walls you need to see through, `Glow` for what is hot, live or flowing, `Paint` for the one part to look at. Show the inside (glass walls, cut-aways, a translucent shell). Label four to six parts with `Label`. Frame the object about 30° above and to one side so depth reads, filling most of the stage. Put readouts on the stage as plain type (`Panel`, `Stat`, at most three panels); glass only for dense controls.
 
-Hanken Grotesk is the default (`font-sans`); Newsreader (`font-serif`) is there for an editorial display line or a quote. Use these and nothing in between:
-
-| Role | Classes |
-|---|---|
-| Display (page hero) | `text-4xl md:text-6xl font-semibold tracking-tight` |
-| Title | `text-3xl font-semibold tracking-tight` |
-| Heading | `text-xl font-semibold tracking-tight` |
-| Card heading | `font-semibold` |
-| Body | `text-base` or `text-sm`, `leading-relaxed text-ink-2` |
-| Small label | `text-sm text-muted`, sentence case. No uppercase tracked eyebrows. |
-| Numbers | add `tabular-nums` |
-| SVG labels | `fontSize={12}` with `fill="var(--ink-2)"`; small notes `fontSize={11}` with `fill="var(--muted)"` |
-
-Sentence case everywhere. Keep body lines under about 70 characters (`max-w-xl` for paragraphs).
-
-## Space and shape
-
-- 4px grid: `gap-2`, `gap-4`, `gap-6`, `p-4`, `p-6`, `py-20`. Prefer more space to less.
-- Page width: `mx-auto max-w-6xl px-6`. Sections on a page: `py-20`.
-- **Card:** `rounded-2xl bg-surface p-6 shadow-card ring-1 ring-hair`.
-- **Inset or tile on a card:** `rounded-xl bg-raised px-3 py-2 ring-1 ring-hair`.
-- **Primary button:** `rounded-xl bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90`.
-- **Secondary button:** `rounded-xl bg-raised px-4 py-2 text-sm font-medium ring-1 ring-hair hover:bg-surface`.
-- **Segmented control:** a `grid grid-cols-N gap-1 rounded-xl bg-raised p-1 ring-1 ring-hair`; the selected segment gets its color as background and `text-white`. Labels must fit: one short word each (at most about 10 letters for 4 segments in a 320px panel), or use `grid-cols-2` for long names.
-- **Button rows:** `flex flex-wrap gap-2`, so they wrap on a phone instead of overflowing.
-- **Pill / badge:** `rounded-full bg-surface px-3 py-1 text-xs font-medium text-ink-2 ring-1 ring-hair`.
-- **Slider:** `<input type="range" className="w-full" style={{ accentColor: "var(--accent)" }} />`.
-- Icons: `lucide-react` at `size={16}` (inline) to `18` (feature tiles), colored `text-accent` or `text-ink-2`.
-
-## Motion
-
-- Easing: `[0.22, 1, 0.36, 1]` (motion) or `var(--ease)` (CSS).
-- Enter: fade and rise 8 to 12px, 0.3 to 0.5 s, staggered by about 0.08 s.
-- State change (a panel swapping content): 0.2 s with `AnimatePresence mode="wait"`.
-- Continuous animation only for a mechanism or flow. Drive it from one `requestAnimationFrame` loop holding a single number (time or angle); compute everything else from that number.
-- Respect reduced motion: start paused when `matchMedia("(prefers-reduced-motion: reduce)").matches`.
-
-## 3D scenes
-
-- Build with `aurora/kit` (`references/kit.md`): `Scene` already has studio light, reflections, soft shadow and orbit controls. Don't add your own lights or cameras.
-- Materials say what a part is: `Metal` for moving mechanical parts, `Glass` for walls you need to see through, `Glow` (with a token colour) for what is hot, live or flowing, `Paint` for the one part to look at.
-- Make the inside visible: glass walls, cut-aways, a translucent shell. The reader came to see how it works.
-- Label four to six parts with `Label`. Put the explanation in panels, not on the model.
-- Frame it: camera about 30° above and to one side, so depth reads. The object fills most of the stage.
-
-## Drawings (SVG)
-
-For abstract things with no physical form (a protocol, an algorithm, a timeline you draw yourself). Not for machines or organs: those are 3D.
-
-
-- `<svg viewBox="0 0 W H" className="h-auto w-full">`: it scales to any width. **Make W close to the width it is shown at** (about 400 to 600 for a drawing beside a 320px panel) and fill it: a wide viewBox shown small shrinks every label and stroke. Draw the parts big; leave at most about 10% empty margin.
-- Parts: `fill="var(--raised)"` with `stroke="var(--ink-2)"` (strokeWidth 1.5 to 2), or `fill="var(--line)"` for structure such as walls and frames.
-- Labels go **outside** the parts, connected by a 1px `stroke="var(--line)"` leader line. Keep them at fixed positions away from anything that moves.
-- Flow: small dots (r 2 to 3) moving along a path, colored by meaning. Show flow only while it's actually happening.
-- State: show it through color (token by meaning), density (more dots = more pressure), and fill level.
+**Drawings (SVG)** for things with no physical form (a protocol, an algorithm):
+- `<svg viewBox="0 0 W H" className="h-auto w-full">`, with W close to the width it shows at (a wide viewBox shown small shrinks every label). Fill it; leave at most about 10% empty margin.
+- Parts: `fill="var(--raised)"` with `stroke="var(--ink-2)"`, or `fill="var(--line)"` for structure. Labels outside the parts with a 1px `stroke="var(--line)"` leader line, at fixed positions away from anything that moves. Labels `fontSize={12}` `fill="var(--ink-2)"`.
+- Flow: small dots (r 2 to 3) moving along a path, coloured by meaning, only while the flow is happening.
 - Deterministic: no `Math.random()` during render; precompute positions.
 
-## Layout recipes
+**Interactive explainers** let the reader play, pause, step, scrub and change speed, show the current step, and give live readouts of what is true right now.
 
-**Physical mechanism** (see `examples/mechanism.md`): a `story` section. Its first item is a design: a `Stage` whose `Scene` fills it, `Panel at="top-right"` (the part being followed: `PhaseDial`, state), `Panel at="bottom" glass` (`Scrubber` with the key moments marked, `ControlBar` plus selector chips). It reads `useStory()` and freezes on each step's `state`. The other items are the steps: two or three sentences per moment, in order. The view's `palette` comes from the subject. After the story, a `callout`. (A `display: "hero"` scene with no story is for something to explore, not to explain.)
+**Controls** (when you need them): buttons are verbs ("Next step"), button rows `flex flex-wrap gap-2`, segmented controls with labels short enough to fit, sliders with `style={{ accentColor: "var(--accent)" }}`. `lucide-react` icons at 16 to 18px.
 
-**2D interactive explainer** for an abstract process (see `examples/explainer.md`):
-```
-[ drawing card (wide)                    ] [ panel 320px          ]
-[                                        ] [ Play  Next step      ]
-[   labelled parts, animated mechanism   ] [ Speed slider         ]
-[                                        ] [ stage switcher       ]
-[                                        ] [ current step card    ]
-[                                        ] [ live readouts (2x2)  ]
-```
-`grid gap-6 md:grid-cols-[minmax(0,1fr)_320px]`: on a phone the panel drops below the drawing.
+**No fixed height** on a design card: it grows with its content. Set a height only for a stage that fills the screen.
 
-**Landing page** (see `examples/landing.md`), top to bottom: sticky nav; hero (pill, display headline, one-sentence promise, primary and secondary button, **a visual**: a product mockup built from divs and tokens); proof strip; three feature cards; how it works (3 numbered steps on a `bg-surface` band); pricing (3 tiers, the middle one featured with `ring-accent`); FAQ accordion; a closing call to action on `bg-ink text-page`; footer.
+## Starting points
 
-**Concept with parts** (no time element): one labelled drawing (span 12), then catalog `steps` and a `callout` beside each other.
+These show the mechanics of three common kinds of design. Copy how they work, then give them your own look.
 
-## Words
-
-- Specific beats generic: "Flights land Friday 9:40" not "Lorem ipsum"; "Ships every two weeks" not "Fast delivery".
-- Buttons are verbs: "Start writing free", "Next step".
-- One idea per card. Cut every sentence the reader doesn't need.
+- **Something physical** (`examples/mechanism.md`): a `story` section whose first item is a 3D `Stage` that reads `useStory()` and freezes on each step's `state`, with a `Scrubber` and a grabbable part for exploring. The steps are two or three sentences per moment. After the story, a `callout`.
+- **An abstract process** (`examples/explainer.md`): a wide drawing beside a 320px panel of controls, a current-step card and readouts (`grid gap-6 md:grid-cols-[minmax(0,1fr)_320px]`).
+- **A page** (`examples/landing.md`): a whole website as one design with `display: "page"`. Its sections are one possible order, not a required one; a product story may want a single scrolling film instead.

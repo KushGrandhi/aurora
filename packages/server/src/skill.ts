@@ -26,6 +26,7 @@ export function generateSkillFiles(): Record<string, string> {
   return {
     "SKILL.md": `---\nname: aurora\ndescription: ${JSON.stringify(DESCRIPTION)}\n---\n\n${src("guide.md")}\n`,
     "references/components.md": components(),
+    "references/story.md": `${src("story.md")}\n`,
     "references/design-language.md": `${src("design-language.md")}\n`,
     "references/design-canvas.md": `${src("design-canvas.md")}\n`,
     "references/data.md": `${src("data.md")}\n`,
@@ -64,7 +65,7 @@ export function generateSkillFiles(): Record<string, string> {
     "examples/landing.md": example(
       "landing",
       "landing page (a notes app)",
-      "A complete landing page shown full screen: sticky nav, hero with a product mockup built from tokens, proof strip, feature cards, how it works, three pricing tiers, FAQ accordion, closing call to action and footer. It looks right in light and dark because it only uses tokens. Copy its sections and change the words for any product or service.",
+      "A complete landing page shown full screen: sticky nav, hero with a product mockup built from tokens, proof strip, feature cards, how it works, three pricing tiers, FAQ accordion, closing call to action and footer. It looks right in light and dark because it only uses tokens. Copy how it is built (sections as components, a mockup made from tokens), then give it a look and an order that fit the product.",
       { id: "page", span: 12, c: { type: "design", framework: "react", display: "page", files: { "App.tsx": "…", "Hero.tsx": "…", "Sections.tsx": "…" } } },
       ["App.tsx", "Hero.tsx", "Sections.tsx"],
     ),

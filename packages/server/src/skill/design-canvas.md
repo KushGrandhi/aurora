@@ -28,7 +28,7 @@ A `design` item is a small React + Tailwind (or plain HTML/JS) project that runs
 
 ## Build it in steps
 
-1. **Start from the closest example** (`examples/mechanism.md` for anything physical, `examples/landing.md` for a page, `examples/explainer.md` for an abstract process). Keep its structure, layout and controls, and change the content.
+1. **Start from the closest example** (`examples/mechanism.md` for anything physical, `examples/landing.md` for a page, `examples/explainer.md` for an abstract process). Keep how it works (the model, the story hooks, the controls), then give it the look you chose for this subject: its palette, type, composition and motion.
 2. **Split by role:** `model.ts` (the state and its math), `Engine.tsx` or `Drawing.tsx` (the 3D scene or the SVG), `App.tsx` (stage, panels and controls). Keep each file under about 200 lines.
 3. **Render a working version first**, then improve it with `editFile`. Never resend every file to change a few lines.
 4. After each change, call `mcp__aurora__status`. Problems come with `file:line:col`.
