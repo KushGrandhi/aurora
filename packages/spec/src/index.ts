@@ -11,3 +11,4 @@ export * from "./view.ts";
 export * from "./ops.ts";
 export * from "./params.ts";
 export * from "./stage.ts";
+export * from "./fonts.ts";

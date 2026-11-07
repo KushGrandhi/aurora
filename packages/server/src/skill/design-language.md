@@ -12,7 +12,7 @@ Write these down in your own reasoning, in a line each:
 2. **The mood**, in two or three words: "hushed, precise, expensive", "loud, kinetic, proud", "warm, curious, hand-made".
 3. **A genre to borrow from**: a product film, a newspaper data story, a museum placard, an engineering blueprint, a sports broadcast, a field guide, a magazine feature, a mission control screen.
 4. **The stage**: dark, light or tinted, and its colours, set with the view's `palette` (below).
-5. **The type**: a display face and a body face that fit the mood (the fonts are listed in `references/design-canvas.md`).
+5. **The type**: a display face and a body face that fit the mood, from Google Fonts (set with the view's `fonts`, below).
 6. **The motion personality**: "heavy and slow, like a camera on a crane", "snappy and exact", "springy and playful", "still, so only the data moves".
 7. **The signature moment** from your story outline, and how the look serves it.
 
@@ -33,7 +33,26 @@ A view's `palette` sets the stage. `page` is the background, `ink` is the text, 
 
 ## Type
 
-Type carries the voice. Pick a display face for headlines and the hook, and a body face for reading (they can be the same family).
+Type carries the voice. Pick a display face for headlines and the hook, and a body face for reading (they can be the same family). Any Google Fonts family works, by its exact name:
+
+```json
+"fonts": { "display": "Fraunces", "body": "Inter", "mono": "JetBrains Mono", "extra": ["Caveat"] }
+```
+
+The screen's headline, section headings, prose and code use them, and every design gets them as `font-display`, `font-body` (also `font-sans`) and `font-mono`; a family in `extra` is there for a design to name (`font-['Caveat']`). aurora fetches each family once and keeps it, so a misspelt name comes back as a warning with suggestions. Families for Japanese, Chinese or Korean text (Noto Sans JP…) are large; use them only for that text.
+
+Some pairings by mood, to start from (there are about 1,900 families; go beyond these):
+
+| Mood | Display | Body |
+|---|---|---|
+| precise, technical, engineered | Space Grotesk, Archivo, IBM Plex Sans Condensed | Inter, IBM Plex Sans |
+| editorial, considered, literary | Fraunces, Playfair Display, Instrument Serif | Newsreader, Source Serif 4, Literata |
+| cinematic, loud, proud | Bebas Neue, Anton, Big Shoulders | Inter, Barlow |
+| warm, human, friendly | Young Serif, DM Serif Display | DM Sans, Nunito Sans |
+| futuristic, systems, data | Syne, Unbounded, Orbitron | Sora, Manrope |
+| archival, historical | EB Garamond, Cormorant Garamond, Libre Caslon Display | EB Garamond, Crimson Pro |
+| hand-made, notes, playful | Caveat, Gochi Hand, Fredoka | Nunito, Quicksand |
+| code, terminals, mission control | JetBrains Mono, Space Mono, IBM Plex Mono | IBM Plex Sans, Inter |
 
 - **Contrast in scale is what makes a page feel cinematic.** One enormous line (`text-[clamp(3rem,9vw,9rem)] leading-[0.9] tracking-tight`) or one gigantic number beats ten medium ones. Then drop straight down to quiet body text.
 - **Body text stays readable:** 16 to 20px, `leading-relaxed`, lines under about 70 characters (`max-w-xl` or `max-w-prose`), in `text-ink` or `text-ink-2`.

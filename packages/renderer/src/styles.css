@@ -26,11 +26,13 @@
   color-scheme: dark;
 }
 
+/* A view's typefaces (its `fonts`); these are the house defaults. */
+:root { --aurora-body: "Hanken Grotesk Variable", "Hanken Grotesk", system-ui, sans-serif; --aurora-display: var(--aurora-body); --aurora-mono: ui-monospace, "SF Mono", Menlo, monospace; }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 body {
   background: var(--page); color: var(--ink);
-  font: 15.5px/1.55 "Hanken Grotesk Variable", "Hanken Grotesk", system-ui, sans-serif;
+  font: 15.5px/1.55 var(--aurora-body);
   -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
 }
 button { font: inherit; color: inherit; }
@@ -73,7 +75,7 @@ main { padding: 44px 48px 64px; min-width: 0; }
 .status .spin { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--hair); border-top-color: var(--accent); animation: spin 0.8s linear infinite; }
 .status .ok { width: 8px; height: 8px; border-radius: 50%; background: #0ca30c; }
 @keyframes spin { to { transform: rotate(360deg); } }
-h1 { font-size: clamp(28px, 3.2vw, 40px); line-height: 1.1; letter-spacing: -0.025em; font-weight: 700; margin: 0 0 10px; }
+h1 { font-family: var(--aurora-display); font-size: clamp(28px, 3.2vw, 40px); line-height: 1.1; letter-spacing: -0.025em; font-weight: 700; margin: 0 0 10px; }
 .summary { font-size: 17px; color: var(--ink2); margin: 0 0 32px; max-width: 72ch; }
 
 .grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; }
@@ -161,7 +163,7 @@ td:first-child { font-weight: 550; }
 
 /* v2: sections, tabs, fallbacks, json, versions */
 .section { margin-bottom: 96px; }
-.section-title { font-size: clamp(28px, 2.6vw, 38px); font-weight: 650; line-height: 1.12; letter-spacing: -0.03em; color: var(--ink); margin: 0 0 32px; text-wrap: balance; }
+.section-title { font-family: var(--aurora-display); font-size: clamp(28px, 2.6vw, 38px); font-weight: 650; line-height: 1.12; letter-spacing: -0.03em; color: var(--ink); margin: 0 0 32px; text-wrap: balance; }
 /* Every other titled section sits on a full-width band, so a long page has a rhythm. */
 .section.band { background: var(--band); box-shadow: 0 0 0 100vmax var(--band); clip-path: inset(-64px -100vmax); margin-top: 160px; margin-bottom: 160px; }
 .tab-list { display: flex; gap: 4px; margin-bottom: 10px; flex-wrap: wrap; }
@@ -301,13 +303,13 @@ figcaption { font-size: 12px; color: var(--ink2); margin-top: 6px; }
 /* Code */
 .code { border: 1px solid var(--hair); border-radius: 12px; overflow: hidden; background: var(--raised); }
 .code-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--hair); font-size: 12px; }
-.code-name { font-family: ui-monospace, "SF Mono", Menlo, monospace; color: var(--ink2); }
+.code-name { font-family: var(--aurora-mono); color: var(--ink2); }
 .code .copy { all: unset; display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--ink2); cursor: pointer; padding: 3px 8px; border-radius: 6px; }
 .code .copy:hover { background: var(--skeleton-a); color: var(--ink); }
 .code .copy:focus-visible { outline: 2px solid var(--accent); }
 .code-body { overflow: auto; position: relative; }
 .code.collapsed .code-body { overflow: hidden; -webkit-mask-image: linear-gradient(to bottom, #000 80%, transparent); mask-image: linear-gradient(to bottom, #000 80%, transparent); }
-.code-body pre { margin: 0; padding: 10px 0; background: transparent !important; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; line-height: 1.6; counter-reset: line; }
+.code-body pre { margin: 0; padding: 10px 0; background: transparent !important; font-family: var(--aurora-mono); font-size: 12.5px; line-height: 1.6; counter-reset: line; }
 .code-body code { display: block; min-width: max-content; }
 .code-body .line { display: inline-block; width: 100%; padding: 0 14px 0 0; }
 .code-body .line::before { counter-increment: line; content: counter(line); display: inline-block; width: 3.2em; padding-right: 1em; text-align: right; color: var(--muted); opacity: 0.7; user-select: none; }

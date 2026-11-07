@@ -1,21 +1,22 @@
 import { lazy, type FC } from "react";
 import type { Component, QueryResult, Palette, Param } from "@aurora/spec";
 import type { MotionApi } from "./motion.tsx";
-import { resolveStage, type Stage } from "@aurora/spec";
+import { resolveStage, type Fonts, type Stage } from "@aurora/spec";
+import { fontVars } from "./fonts.ts";
 import type { Mode } from "./theme.ts";
 import { Json } from "./components/Json.tsx";
 import { Kpi } from "./components/Kpi.tsx";
 import { Text } from "./components/Text.tsx";
 
-export type Theme = { categorical: readonly string[]; sequential: readonly string[]; ink: string; ink2: string; muted: string; surface: string; hair: string; axis: string; stage: Stage };
+export type Theme = { categorical: readonly string[]; sequential: readonly string[]; ink: string; ink2: string; muted: string; surface: string; hair: string; axis: string; stage: Stage; /** the body font stack */ font: string };
 
 /**
  * The screen's colours: the house theme for the person's mode with the palette's accent and series, or, when the
  * palette has a `page`, the view's whole stage (its mode then follows the page: read `theme.stage.mode`).
  */
-export function themeFor(mode: Mode, palette?: Palette): Theme {
+export function themeFor(mode: Mode, palette?: Palette, fonts?: Fonts): Theme {
   const t = resolveStage(mode, palette);
-  return { categorical: t.series, sequential: t.ramp, ink: t.ink, ink2: t.ink2, muted: t.muted, surface: t.surface, hair: t.grid, axis: t.axis, stage: t };
+  return { categorical: t.series, sequential: t.ramp, ink: t.ink, ink2: t.ink2, muted: t.muted, surface: t.surface, hair: t.grid, axis: t.axis, stage: t, font: fontVars(fonts)["--aurora-body"] };
 }
 
 export type Viewport = "desktop" | "tablet" | "phone";
@@ -30,6 +31,8 @@ export type RenderCtx = {
   story?: { index: number; state: unknown } | null;
   /** The view's own colours, if it chose any. */
   palette?: Palette;
+  /** The view's typefaces, if it chose any. */
+  fonts?: Fonts;
   results: Record<string, QueryResult>;
   mode: Mode;
   theme: Theme;

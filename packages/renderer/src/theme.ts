@@ -15,10 +15,10 @@ export function stageVars(t: Stage): Record<string, string> {
   };
 }
 
-const FONT = '"Hanken Grotesk Variable", "Hanken Grotesk", system-ui, sans-serif';
+const HOUSE_FONT = '"Hanken Grotesk Variable", "Hanken Grotesk", system-ui, sans-serif';
 
 /** Vega-Lite theme for a stage (the house theme, or a view's own). */
-export function vegaConfig(t: Stage): Record<string, unknown> {
+export function vegaConfig(t: Stage, FONT = HOUSE_FONT): Record<string, unknown> {
   const axis = {
     domainColor: t.axis, gridColor: t.grid, gridWidth: 1, tickColor: t.axis, tickSize: 4,
     labelColor: t.muted, labelFont: FONT, labelFontSize: 11, labelPadding: 6, labelAngle: 0, labelOverlap: "greedy", labelLimit: 160, tickCount: 6,

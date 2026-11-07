@@ -22,7 +22,7 @@ export default function Diagram({ c, ctx }: { c: DiagramC; ctx: RenderCtx }) {
   useEffect(() => {
     let live = true;
     const id = `mmd${++seq}`;
-    void mermaidEngine.render(id, c.source, ctx.theme.stage).then((r) => {
+    void mermaidEngine.render(id, c.source, ctx.theme.stage, ctx.theme.font).then((r) => {
       if (!live) return;
       setOut("svg" in r ? { svg: r.svg, id } : r);
       if ("error" in r) ctx.report(false, `mermaid: ${r.error}`);

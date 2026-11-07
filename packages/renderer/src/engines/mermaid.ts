@@ -2,15 +2,15 @@
 import type { Stage } from "../theme.ts";
 import { mix } from "@aurora/spec";
 
-export type DiagramEngine = { render(id: string, source: string, stage: Stage): Promise<{ svg: string } | { error: string }> };
+export type DiagramEngine = { render(id: string, source: string, stage: Stage, font?: string): Promise<{ svg: string } | { error: string }> };
 
 type Mermaid = typeof import("mermaid").default;
 let engine: Promise<Mermaid> | undefined;
 let configured: string | undefined; // the stage it was configured for: Mermaid's config is global
 let queue: Promise<unknown> = Promise.resolve(); // Mermaid's config is global: one render at a time
 
-function configure(m: Mermaid, t: Stage) {
-  const key = JSON.stringify(t);
+function configure(m: Mermaid, t: Stage, font = "Inter, system-ui, sans-serif") {
+  const key = JSON.stringify(t) + font;
   if (configured === key) return;
   const mode = t.mode;
   const raised = t.raised;
@@ -19,11 +19,11 @@ function configure(m: Mermaid, t: Stage) {
     startOnLoad: false,
     securityLevel: "strict",
     theme: "base",
-    fontFamily: "Inter, system-ui, sans-serif",
+    fontFamily: font,
     themeVariables: {
       darkMode: mode === "dark",
       background: t.surface,
-      fontFamily: "Inter, system-ui, sans-serif",
+      fontFamily: font,
       fontSize: "14px",
       primaryColor: raised,
       primaryTextColor: t.ink,
@@ -52,10 +52,10 @@ function configure(m: Mermaid, t: Stage) {
 }
 
 export const mermaidEngine: DiagramEngine = {
-  render(id, source, stage) {
+  render(id, source, stage, font) {
     const job = queue.then(async () => {
       const m = await (engine ??= import("mermaid").then((x) => x.default));
-      configure(m, stage);
+      configure(m, stage, font);
       try {
         await m.parse(source);
         const { svg } = await m.render(id, source);

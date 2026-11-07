@@ -25,7 +25,7 @@ async function serve() {
     ? createFakeProvider(fakeSalesDoc, { chunkSize: 24, delayMs: 5 })
     : providerFromConfig(cfg);
   const openBrowser = process.env.AURORA_NO_OPEN === "1" ? () => {} : undefined;
-  const srv = await startServer({ port: cfg.port, provider, staticDir: STATIC_DIR, openBrowser, viewsDir: process.env.AURORA_VIEWS_DIR || undefined });
+  const srv = await startServer({ port: cfg.port, provider, staticDir: STATIC_DIR, openBrowser, viewsDir: process.env.AURORA_VIEWS_DIR || undefined, fontsDir: process.env.AURORA_FONTS_DIR || undefined, fontsOffline: cfg.fonts === "offline" || process.env.AURORA_FONTS_OFFLINE === "1" });
   console.log(`aurora screen: ${srv.url}  (provider ${provider.name})`);
   return srv;
 }

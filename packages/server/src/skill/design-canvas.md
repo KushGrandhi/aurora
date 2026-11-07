@@ -17,7 +17,8 @@ A `design` item is a small React + Tailwind (or plain HTML/JS) project that runs
 ## What's available
 
 - **Libraries**, bundled and offline: `react`, `react-dom`, `motion` / `motion/react`, `lucide-react`, `three`, `@react-three/fiber`, `@react-three/drei`, `d3`, `gsap`, and **`aurora/kit`** (aurora's own building blocks: 3D scenes, materials, labels, panels, controls; see `references/kit.md`). Nothing else can be imported: no `@/` paths, no other npm packages.
-- **Tailwind** (v4) with aurora's tokens: `bg-surface`, `text-ink-2`, `ring-hair`, `bg-accent`, `fill-s1`… and CSS variables `var(--accent)` etc. Hanken Grotesk is the font (`font-sans`), with Newsreader as `font-serif`; a view's `palette` sets `--accent` and `--s1…`.
+- **Tailwind** (v4) with aurora's tokens: `bg-surface`, `text-ink-2`, `ring-hair`, `bg-accent`, `fill-s1`… and CSS variables `var(--accent)` etc. A view's `palette` sets them all (`references/design-language.md`).
+- **Fonts:** the view's `fonts` (any Google Fonts families) are `font-display`, `font-body` (also `font-sans`) and `font-mono`, with Newsreader as `font-serif`; a family in `fonts.extra` by name, `font-['Caveat']`. Without `fonts` everything is Hanken Grotesk. Don't link Google Fonts yourself: the network is blocked; name the family in the view instead.
 - **No network.** `fetch`, external images, fonts, 3D models and CDNs are blocked and come back as problems. Build visuals yourself: physical things as 3D scenes from `aurora/kit` and three.js shapes, abstract diagrams as SVG.
 - **Data:** `"data": ["queryName"]` puts that query's rows in `window.aurora.data.queryName`; `window.aurora.onData(cb)` fires when filters change them.
 - **Local media:** `"assets": {"logo": "/abs/path/logo.png"}`, then `window.aurora.asset("logo")` gives the URL.

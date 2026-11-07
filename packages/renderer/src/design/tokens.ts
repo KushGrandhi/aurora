@@ -30,4 +30,4 @@ export function stageCss(t: Stage): string {
 export const TOKEN_CSS = `:root { ${vars("light")} --ease: cubic-bezier(0.22, 1, 0.36, 1); color-scheme: light; }\n.dark { ${vars("dark")} color-scheme: dark; }`;
 
 /** Tailwind theme: each variable becomes a color utility (`bg-*`, `text-*`, `border-*`, `ring-*`, `fill-*`, `stroke-*`). */
-export const TOKEN_THEME = `@theme inline { ${COLORS.map((c) => `--color-${c}: var(--${c});`).join(" ")} --shadow-card: var(--shadow); --ease-aurora: var(--ease); --font-sans: 'Hanken Grotesk Variable', 'Hanken Grotesk', system-ui, sans-serif; --font-serif: 'Newsreader Variable', 'Newsreader', Georgia, serif; }`;
+export const TOKEN_THEME = `@theme inline { ${COLORS.map((c) => `--color-${c}: var(--${c});`).join(" ")} --shadow-card: var(--shadow); --ease-aurora: var(--ease); --font-sans: var(--aurora-body); --font-body: var(--aurora-body); --font-display: var(--aurora-display); --font-mono: var(--aurora-mono); --font-serif: 'Newsreader Variable', 'Newsreader', Georgia, serif; }`;

@@ -50,9 +50,9 @@ function withFocus(spec: Spec, field: string): Spec {
   return { ...spec, params: [...(spec.params ?? []), { name: "aurora_focus", value: null }], encoding: { ...spec.encoding, opacity: { condition: { test, value: 1 }, value: 0.22 } as never } };
 }
 
-export function Chart({ c, result, stage, onDrawn }: { c: ChartC; result: QueryResult; stage: Stage; onDrawn?: (ok: boolean, message?: string) => void }) {
+export function Chart({ c, result, stage, font, onDrawn }: { c: ChartC; result: QueryResult; stage: Stage; font?: string; onDrawn?: (ok: boolean, message?: string) => void }) {
   const mode = stage.mode;
-  const seriesKey = JSON.stringify(stage);
+  const seriesKey = JSON.stringify(stage) + font;
   const focus = useFocus();
   const setFocus = useRef(focus.set);
   setFocus.current = focus.set;
@@ -76,7 +76,7 @@ export function Chart({ c, result, stage, onDrawn }: { c: ChartC; result: QueryR
     const field = focusField(base);
     let cancelled = false;
     const spec = field ? withFocus(base, field) : base;
-    embed(ref.current, spec as never, { actions: false, renderer: "svg", config: vegaConfig(stage) as never, tooltip: { theme: mode } as never })
+    embed(ref.current, spec as never, { actions: false, renderer: "svg", config: vegaConfig(stage, font) as never, tooltip: { theme: mode } as never })
       .then((r) => {
         if (cancelled) return r.finalize();
         view = r;
@@ -121,5 +121,5 @@ export function Chart({ c, result, stage, onDrawn }: { c: ChartC; result: QueryR
 }
 
 export default function ChartRenderer({ c, ctx }: { c: ChartC; ctx: import("../registry.tsx").RenderCtx }) {
-  return <Chart c={c} result={ctx.results[c.query]} stage={ctx.theme.stage} onDrawn={ctx.report} />;
+  return <Chart c={c} result={ctx.results[c.query]} stage={ctx.theme.stage} font={ctx.theme.font} onDrawn={ctx.report} />;
 }

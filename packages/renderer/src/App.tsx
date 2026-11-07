@@ -14,6 +14,7 @@ import { Variants } from "./components/Variants.tsx";
 import { itemProblem } from "./components/Section.tsx";
 import { themeFor, type RenderCtx } from "./registry.tsx";
 import { stageVars } from "./theme.ts";
+import { fontHrefs, fontVars } from "./fonts.ts";
 import { mergeReport, mergeWarnings, type Pending } from "./reports.ts";
 import { emptyState, reduce, type State } from "./store.ts";
 import type { Mode } from "./theme.ts";
@@ -128,7 +129,21 @@ export function App() {
   const media = (currentId && state.media[currentId]) || undefined;
   const palette = view?.palette;
   const paletteKey = JSON.stringify(palette ?? null);
-  const theme = useMemo(() => themeFor(chosenMode, palette), [chosenMode, paletteKey]);
+  const fonts = view?.fonts;
+  const fontsKey = JSON.stringify(fonts ?? null);
+  const theme = useMemo(() => themeFor(chosenMode, palette, fonts), [chosenMode, paletteKey, fontsKey]);
+  // The view's typefaces: their CSS from aurora's server, and the roles as variables on the whole document.
+  useEffect(() => {
+    const root = document.documentElement;
+    for (const [k, v] of Object.entries(fontVars(fonts))) root.style.setProperty(k, v);
+    const links = fontHrefs(fonts).map((href) => {
+      const l = document.createElement("link");
+      l.rel = "stylesheet"; l.href = href; l.dataset.viewFont = "";
+      document.head.appendChild(l);
+      return l;
+    });
+    return () => { for (const l of links) l.remove(); };
+  }, [fontsKey]);
   // A view that sets its own page sets its own mode; otherwise the person's choice holds.
   const mode = theme.stage.mode;
   const ownStage = !!palette?.page;
@@ -141,14 +156,14 @@ export function App() {
   const paramState = currentId ? state.params[currentId] : undefined;
   const setParam = useCallback((name: string, value: unknown) => { if (currentId && !showing) send({ t: "param", viewId: currentId, name, value }); }, [currentId, showing]);
   const ctxFor = useCallback((item: ViewItem, hero: boolean): RenderCtx => ({
-    results, mode, theme, palette, hero, motion: { spring: SPRING, reduced },
+    results, mode, theme, palette, fonts, hero, motion: { spring: SPRING, reduced },
     params: paramState?.values ?? {}, paramDefs: view?.params, paramOptions: paramState?.options ?? {}, setParam,
     media: (src) => media?.[src],
     send: (name, payload) => { if (currentId && !showing) send({ t: "event", viewId: currentId, itemId: item.id, name, payload }); },
     ...(item.c.type === "design" || item.c.type === "custom" ? { openPage: () => setOpened(item.id) } : {}),
     report: (ok, message, retract) => { if (currentId && !showing) report(currentId, version, item.id, ok, message, retract); },
     warn: (messages) => { if (currentId && !showing) warn(currentId, version, item.id, messages); },
-  }), [results, mode, theme, palette, media, currentId, version, showing, report, warn, reduced, paramState, view?.params, setParam]);
+  }), [results, mode, theme, palette, fonts, media, currentId, version, showing, report, warn, reduced, paramState, view?.params, setParam]);
   const params = paramState;
   // Params the prose already offers as inline controls (`{{name}}`) don't repeat in the filter row.
   const inProse = useMemo(() => new Set((view?.sections ?? []).flatMap((s) => s.items).flatMap((i) => i.c.type === "text" && typeof (i.c as { md?: unknown }).md === "string" ? [...((i.c as unknown as { md: string }).md.matchAll(/\{\{([A-Za-z_]\w*)\}\}/g))].map((m) => m[1]) : [])), [view]);
@@ -171,9 +186,9 @@ export function App() {
   const quietCtx = (item: ViewItem, hero: boolean): RenderCtx => ({ ...ctxFor(item, hero), report: () => {}, warn: () => {}, send: () => {}, openPage: undefined });
   // Each option is drawn on its own stage, so options that differ in colours look different.
   const renderVariant = (v: View, i: number) => {
-    const vTheme = themeFor(chosenMode, v.palette);
-    const vCtx = (item: ViewItem, hero: boolean): RenderCtx => ({ ...quietCtx(item, hero), theme: vTheme, mode: vTheme.stage.mode, palette: v.palette });
-    const style = { ...stageVars(vTheme.stage), background: "var(--page)", color: "var(--ink)" } as React.CSSProperties;
+    const vTheme = themeFor(chosenMode, v.palette, v.fonts);
+    const vCtx = (item: ViewItem, hero: boolean): RenderCtx => ({ ...quietCtx(item, hero), theme: vTheme, mode: vTheme.stage.mode, palette: v.palette, fonts: v.fonts });
+    const style = { ...stageVars(vTheme.stage), ...fontVars(v.fonts), background: "var(--page)", color: "var(--ink)", fontFamily: "var(--aurora-body)" } as React.CSSProperties;
     const items = v.sections.flatMap((s) => s.items);
     const one = items.length === 1 ? items[0] : undefined;
     if (one && (one.c.type === "design" || one.c.type === "custom") && one.c.display === "page")

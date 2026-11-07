@@ -2,9 +2,10 @@ import type { CompiledProject } from "./compile.ts";
 import { auroraBootstrap } from "./bootstrap.ts";
 import { IMPORT_MAP } from "./libs.ts";
 import { TOKEN_CSS, TOKEN_THEME, stageCss } from "./tokens.ts";
-import { resolveStage, type Palette } from "@aurora/spec";
+import { resolveStage, type Fonts, type Palette } from "@aurora/spec";
+import { fontHrefs, fontVars } from "../fonts.ts";
 
-export type SrcdocOpts = { origin: string; framework: "react" | "html"; mode: "light" | "dark"; data: Record<string, unknown[]>; assets: Record<string, string>; display?: "card" | "page" | "hero"; palette?: Palette; params?: Record<string, unknown>; story?: { index: number; state: unknown } | null };
+export type SrcdocOpts = { origin: string; framework: "react" | "html"; mode: "light" | "dark"; data: Record<string, unknown[]>; assets: Record<string, string>; display?: "card" | "page" | "hero"; palette?: Palette; fonts?: Fonts; params?: Record<string, unknown>; story?: { index: number; state: unknown } | null };
 
 /** No network, nothing but aurora's own libraries and media: the sandbox's whole outside world. */
 export function sandboxCsp(origin: string): string {
@@ -46,6 +47,9 @@ export function buildSrcdoc(p: CompiledProject, o: SrcdocOpts): string {
     '<meta name="viewport" content="width=device-width, initial-scale=1">',
     `<script type="importmap">${safeJson({ imports })}</script>`,
     `<link rel="stylesheet" href="${o.origin}/lib/fonts/aurora.css">`,
+    // The view's typefaces, served by aurora (never Google), and their roles as variables.
+    ...fontHrefs(o.fonts, o.origin).map((h) => `<link rel="stylesheet" href="${attr(h)}">`),
+    `<style id="aurora-fonts">:root { ${Object.entries(fontVars(o.fonts)).map(([k, v]) => `${k}: ${v.replace(/[<>{};]/g, "")};`).join(" ")} }</style>`,
     `<script type="application/json" id="aurora-project">${safeJson(project)}</script>`,
     `<script id="aurora-bootstrap">(${String(auroraBootstrap).replace(/<\/script/gi, "<\\/script")})()</script>`,
     `<script src="${o.origin}/lib/tailwind.js"></script>`,
@@ -54,7 +58,7 @@ export function buildSrcdoc(p: CompiledProject, o: SrcdocOpts): string {
     // The view's own palette overrides the accent and series colours in both themes.
     ...(o.palette ? [`<style id="aurora-palette">:root, .dark { ${paletteCss(o.palette, o.mode)} }</style>`] : []),
     `<style type="text/tailwindcss">@custom-variant dark (&:where(.dark, .dark *));\n${TOKEN_THEME}</style>`,
-    "<style>html,body{margin:0}body{font-family:'Hanken Grotesk Variable','Hanken Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}</style>",
+    "<style>html,body{margin:0}body{font-family:var(--aurora-body);-webkit-font-smoothing:antialiased}</style>",
     ...p.css.map((c) => `<style>${c.replace(/<\/style/gi, "<\\/style")}</style>`),
     `<script type="module" src="${o.origin}/lib/runtime.js"></script>`,
   ].join("\n");

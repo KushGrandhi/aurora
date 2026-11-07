@@ -1,5 +1,6 @@
 import { readdirSync } from "node:fs";
 import { expect, test } from "vitest";
+import { fontEntry } from "@aurora/spec";
 import { allComponents } from "@aurora/spec";
 import { generateSkill, generateSkillFiles } from "../src/skill.ts";
 
@@ -122,4 +123,13 @@ test("the skill shapes a story and chooses a look before picking components", ()
   // the old fixed recipes are gone: no single entrance or type scale imposed on every view
   expect(art).not.toContain("Enter: fade and rise");
   expect(art).not.toContain("Use these and nothing in between");
+});
+
+test("every font the skill suggests is a real Google Fonts family", () => {
+  const md = files["references/design-language.md"];
+  const table = md.slice(md.indexOf("| Mood |"), md.indexOf("\n\n", md.indexOf("| Mood |")));
+  const names = table.split("\n").slice(2).flatMap((row) => row.split("|").slice(2, 4).flatMap((c) => c.split(",").map((s) => s.trim()).filter(Boolean)));
+  expect(names.length).toBeGreaterThan(30);
+  for (const n of names) expect(fontEntry(n)?.family, n).toBe(n);
+  for (const n of ["Fraunces", "Inter", "JetBrains Mono", "Caveat"]) expect(fontEntry(n)).toBeTruthy();
 });

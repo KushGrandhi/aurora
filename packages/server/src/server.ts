@@ -1,3 +1,4 @@
+import { FontStore } from "./fonts.ts";
 import { spawn } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -26,6 +27,8 @@ export type ServerOpts = {
   viewsDir?: string; // default ~/.aurora/views
   waitMs?: number; // how long render/patch wait for a screen report (default 1500)
   secretFile?: string; // media token secret, default ~/.aurora/secret
+  fontsDir?: string; // cached Google Fonts, default ~/.aurora/fonts
+  fontsOffline?: boolean; // never fetch fonts from Google
 };
 
 const REPLAY_VIEWS = 20;
@@ -130,8 +133,9 @@ export async function startServer(opts: ServerOpts) {
   const broadcast = (e: ViewEvent) => {
     for (const c of clients) send(c, e);
   };
+  const fonts = new FontStore({ dir: opts.fontsDir ?? path.join(homedir(), ".aurora", "fonts"), libDir: opts.staticDir ? path.join(opts.staticDir, "lib") : undefined, offline: opts.fontsOffline });
   const intake = new Intake({
-    store, data, emit: broadcast, baseUrl: () => base, screens: () => clients.size, openScreen: open, waitMs: opts.waitMs, media,
+    store, data, emit: broadcast, baseUrl: () => base, screens: () => clients.size, openScreen: open, waitMs: opts.waitMs, media, fonts,
   });
 
   const watcher = new ViewFileWatcher(intake);
@@ -198,6 +202,23 @@ export async function startServer(opts: ServerOpts) {
     } catch {
       json(res, 404, { error: "not found" });
     }
+  }
+
+  /** A view's fonts: /lib/fonts/family/<slug>.css (bundled, cached or a stand-in) and cached files under /lib/fonts/g/. */
+  async function serveFont(raw: string, res: ServerResponse) {
+    const head = (type: string) => res.writeHead(200, { "content-type": type, "access-control-allow-origin": "*", "x-content-type-options": "nosniff", "cache-control": "no-cache" });
+    const fam = raw.split("?")[0].match(/^\/lib\/fonts\/family\/([a-z0-9-]+)\.css$/);
+    if (fam) {
+      const css = await fonts.css(fam[1]);
+      if (css === undefined) return json(res, 404, { error: "not found" });
+      head("text/css; charset=utf-8");
+      return res.end(css);
+    }
+    const g = raw.split("?")[0].match(/^\/lib\/fonts\/g\/([a-z0-9-]+)\/([\w.-]+)$/);
+    const file = g && fonts.file(g[1], g[2]);
+    if (!file) return json(res, 404, { error: "not found" });
+    head("font/woff2");
+    res.end(await readFile(file));
   }
 
   async function serveStatic(req: IncomingMessage, res: ServerResponse) {
@@ -317,6 +338,7 @@ export async function startServer(opts: ServerOpts) {
       if (req.method === "GET" && token && (await media.serve(token, req, res))) return;
       return json(res, 404, { error: "not found" });
     }
+    if (raw.startsWith("/lib/fonts/family/") || raw.startsWith("/lib/fonts/g/")) return serveFont(raw, res);
     if (raw.startsWith("/lib/")) return serveLib(raw, res);
     const url = new URL(raw, base);
     if (!url.pathname.startsWith("/api/")) return serveStatic(req, res);

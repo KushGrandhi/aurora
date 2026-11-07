@@ -14,6 +14,7 @@ export type Config = {
   models?: OpenAIOpts["models"]; // per-task model names: { compose, repair }
   jsonMode?: OpenAIOpts["jsonMode"];
   effort?: "low" | "medium" | "high" | "xhigh" | "max"; // claude provider only
+  fonts?: "google" | "offline"; // "offline": never fetch Google Fonts (only bundled and already-cached families)
 };
 
 export function loadConfig(env: Record<string, string | undefined> = process.env): Config {

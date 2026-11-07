@@ -3,6 +3,7 @@ import { IdSchema, QuerySchema } from "./base.ts";
 import { ParamSchema } from "./params.ts";
 import type { Spec } from "./spec.ts";
 import { stageProblem } from "./stage.ts";
+import { FontsSchema } from "./fonts.ts";
 
 export const DataInputJsonSchema = z.union([
   z.string(),
@@ -51,6 +52,8 @@ export const ViewSchema = z.object({
   queries: z.record(IdSchema, QuerySchema).optional(),
   params: z.record(IdSchema, ParamSchema).optional(),
   palette: PaletteSchema.optional(),
+  /** Typefaces by Google Fonts family name; the screen and designs use them. */
+  fonts: FontsSchema.optional(),
   sections: z.array(SectionSchema),
 });
 export type View = z.infer<typeof ViewSchema>;

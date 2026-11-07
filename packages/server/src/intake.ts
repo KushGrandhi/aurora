@@ -8,6 +8,7 @@ import { randomUUID } from "node:crypto";
 import type { DataRuntime } from "./dataRuntime.ts";
 import { EventLog } from "./events.ts";
 import type { MediaRegistry } from "./media.ts";
+import type { FontStore } from "./fonts.ts";
 import { buildVariants } from "./variants.ts";
 import type { VersionSource, ViewStore } from "./viewStore.ts";
 
@@ -48,6 +49,7 @@ export type IntakeDeps = {
   openScreen(url: string): void;
   waitMs?: number;
   media?: MediaRegistry;
+  fonts?: FontStore;
 };
 
 const OPTIONS_CAP = 200;
@@ -271,6 +273,7 @@ export class Intake {
   private async commit(view: View, source: VersionSource, how: { ops?: PatchOp[]; changed?: string[]; baseVersion?: number; note?: string }): Promise<number> {
     const { store, emit } = this.deps;
     const r = this.runtime(view.id);
+    await this.deps.fonts?.prepare(view.fonts); // on disk before any screen asks for them
     const { checked, fresh } = await this.evaluate(view);
 
     const entry = await store.render(checked.view, source, how.note);
@@ -411,6 +414,7 @@ export class Intake {
     const checked = validateView(view, { queryRows, querySql });
     const problems = [...r.dataProblems, ...checked.problems];
     for (const [, q] of r.results) if (q.problem) problems.push(q.problem);
+    for (const m of this.deps.fonts?.problems(view.fonts) ?? []) problems.push({ severity: "warning", message: m, hint: "use an exact Google Fonts family name" });
     // Colours the model chose that are hard to see on the stage (in either theme, when the view doesn't set its page).
     const seen = new Set<string>();
     for (const m of [...paletteWarnings("light", view.palette), ...paletteWarnings("dark", view.palette)])

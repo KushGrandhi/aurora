@@ -63,6 +63,7 @@ const SETTLE_MS = 700;
  * (animation frames are paused while it is off screen, and some content, like a 3D canvas, only starts then).
  */
 const UNSEEN_MS = 1500;
+const FONTS_MAX_MS = 3000;
 function lintWhenSeen() {
   let done = false;
   const run = () => {
@@ -74,11 +75,13 @@ function lintWhenSeen() {
     } catch { /* checks never break a design */ }
     post({ type: "lint", warnings }); // always sent, even empty: it is what marks the design as checked
   };
-  setTimeout(() => {
+  // Text is measured in its real font: wait for the view's fonts (at most a few seconds) before the clock starts.
+  const fontsReady = Promise.race([document.fonts?.ready ?? Promise.resolve(), new Promise((r) => setTimeout(r, FONTS_MAX_MS))]);
+  void fontsReady.then(() => setTimeout(() => {
     requestAnimationFrame(() => setTimeout(run, SETTLE_MS));
     // A frame that is never painted (below the fold, a background tab) gets no animation frames: check it anyway.
     setTimeout(run, SETTLE_MS + UNSEEN_MS);
-  }, LINT_AFTER_MS);
+  }, LINT_AFTER_MS));
 }
 const ready = () => {
   post({ type: "ready" });
