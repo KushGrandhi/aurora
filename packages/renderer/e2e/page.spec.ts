@@ -87,7 +87,7 @@ test("a hero that is not first renders as a card with a warning", async ({ page,
 
 const sales = new URL("../../engine/test/fixtures/sales.csv", import.meta.url).pathname;
 
-test("a hero view is immersive: a rail, the title on the stage, filters as one pill", async ({ page, request }) => {
+test("a hero view is immersive: the whole screen, the title on the stage, filters as one pill", async ({ page, request }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/#hero3");
   await expect(page.locator(".conn.up")).toBeVisible();
@@ -97,13 +97,12 @@ test("a hero view is immersive: a rail, the title on the stage, filters as one p
   expect((await request.post("/api/views", { data: { view } })).status()).toBe(200);
   await expect(page.frameLocator('[data-item="d"] iframe').locator("h1")).toHaveText("Full page");
   await expect(page.locator(".app")).toHaveClass(/\bimmersive\b/);
-  // the sidebar is a thin rail until hovered
-  expect((await page.locator(".side").boundingBox())!.width).toBeLessThanOrEqual(64);
-  await expect(page.locator(".hist")).toBeHidden();
-  await page.locator(".side").hover();
-  await expect(page.locator(".hist")).toBeVisible();
-  await expect.poll(async () => (await page.locator(".side").boundingBox())!.width).toBeGreaterThan(200);
-  await page.mouse.move(900, 400);
+  // nothing beside the view: the stage spans the screen, and the way back to the list is a link in its corner
+  await expect(page.locator(".side")).toHaveCount(0);
+  const hero = (await page.locator(".hero").boundingBox())!;
+  expect(hero.x).toBeLessThanOrEqual(0);
+  expect(hero.width).toBeGreaterThanOrEqual(1280 - 2);
+  await expect(page.locator(".hero .home-link")).toBeVisible();
   // the title, summary and filters sit on the stage, in its first screen
   const head = page.locator(".hero-head");
   await expect(head.locator("h1")).toHaveText("Revenue, as light");
@@ -117,14 +116,23 @@ test("a hero view is immersive: a rail, the title on the stage, filters as one p
   await expect(head.locator(".version-strip, .versions, button").first()).toBeVisible();
 });
 
-test("a view without a hero keeps the normal sidebar", async ({ page, request }) => {
+test("every view has the whole screen; the list of views is a page of its own", async ({ page, request }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/#hero4");
   await expect(page.locator(".conn.up")).toBeVisible();
   expect((await request.post("/api/views", { data: { view: heroView("hero4", false) } })).status()).toBe(200);
   await expect(page.locator('[data-item="d"]')).toHaveClass(/\bcard\b/);
   await expect(page.locator(".app")).not.toHaveClass(/\bimmersive\b/);
-  await expect(page.locator(".hist")).toBeVisible();
+  await expect(page.locator(".side")).toHaveCount(0);
+  expect((await page.locator("main").boundingBox())!.x).toBe(0);
+  // the corner link opens the list; choosing a view opens it on the whole screen again
+  await page.locator(".home-link").click();
+  await expect(page).toHaveURL(/#\/views$/);
+  await expect(page.locator(".views-title")).toHaveText("Views");
+  await expect(page.locator(".app")).toHaveCount(0);
+  await page.locator('.views-list a[data-view="hero4"]').click();
+  await expect(page).toHaveURL(/#hero4$/);
+  await expect(page.locator('[data-item="d"]')).toBeVisible();
 });
 
 test("on a phone a hero view stacks the title above the stage", async ({ page, request }) => {

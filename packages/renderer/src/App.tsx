@@ -15,6 +15,7 @@ import { itemProblem } from "./components/Section.tsx";
 import { themeFor, type RenderCtx } from "./registry.tsx";
 import { stageVars } from "./theme.ts";
 import { fontHrefs, fontVars } from "./fonts.ts";
+import { HomeLink, ViewsPage } from "./components/ViewsPage.tsx";
 import { mergeReport, mergeWarnings, type Pending } from "./reports.ts";
 import { emptyState, reduce, type State } from "./store.ts";
 import type { Mode } from "./theme.ts";
@@ -73,6 +74,8 @@ export function App() {
   const conn = useRef<Conn>();
   const [up, setUp] = useState(false);
   const [picked, setPicked] = useState<string | undefined>(() => location.hash.slice(1) || undefined);
+  // #/views is the list of every view; any other hash is a view, shown on the whole screen.
+  const onViews = picked === "/views";
   const [preview, setPreview] = useState<{ viewId: string; version: number; view: View }>();
   const [opened, setOpened] = useState<string>(); // design item opened as the whole screen
   const [variantsClosed, setVariantsClosed] = useState<string>(); // key of the variants set the person dismissed
@@ -127,9 +130,10 @@ export function App() {
     return k && (k.span ?? 12) >= 4 ? k.id : undefined;
   }, [view]);
   const media = (currentId && state.media[currentId]) || undefined;
-  const palette = view?.palette;
+  // The list of views is aurora's own page: the house look, not the last view's.
+  const palette = onViews ? undefined : view?.palette;
   const paletteKey = JSON.stringify(palette ?? null);
-  const fonts = view?.fonts;
+  const fonts = onViews ? undefined : view?.fonts;
   const fontsKey = JSON.stringify(fonts ?? null);
   const theme = useMemo(() => themeFor(chosenMode, palette, fonts), [chosenMode, paletteKey, fontsKey]);
   // The view's typefaces: their CSS from aurora's server, and the roles as variables on the whole document.
@@ -215,25 +219,16 @@ export function App() {
   ) : undefined;
   const status = activity || (live ? `v${live.version} · ${live.source === "screen" ? "chosen on screen" : `from ${live.source}`}` : "");
 
+  const themeToggle = <button className="theme-toggle" onClick={toggleMode} disabled={ownStage} title={ownStage ? "This view sets its own colours" : undefined}>{mode === "dark" ? "☀︎ Light" : "☾ Dark"}</button>;
+
   return (
     <MotionRoot>
     <FocusProvider resetKey={currentId}>
+    {onViews ? (
+      <ViewsPage list={list} activity={state.activity} currentId={currentId} up={up} ago={ago}
+        themeToggle={themeToggle} />
+    ) : (
     <div className={`app${pageItem ? " page-mode" : heroItem ? " immersive" : ""}`} >
-      <aside className="side">
-        <div className="brand"><span className="mark" />aurora<span className={`conn${up ? " up" : ""}`} title={up ? "connected" : "reconnecting"} /></div>
-        {list.length > 0 && <h2>Views</h2>}
-        <ul className="hist">
-          {list.map((l) => (
-            <li key={l.id}>
-              <button className={l.id === currentId ? "sel" : ""} onClick={() => { location.hash = l.id; setPicked(l.id); setPreview(undefined); }}>
-                <div className="t">{l.title}</div>
-                <div className="s">{state.activity[l.id] && <span className="live-dot" />}{state.activity[l.id] ? "live" : ago(l.at)} · v{l.version}</div>
-              </button>
-            </li>
-          ))}
-        </ul>
-        <button className="theme-toggle" onClick={toggleMode} disabled={ownStage} title={ownStage ? "This view sets its own colours" : undefined}>{mode === "dark" ? "☀︎ Light" : "☾ Dark"}</button>
-      </aside>
       <main>
         {pageItem && view && currentId ? (
           <PageView
@@ -246,11 +241,13 @@ export function App() {
             title={view.title}
             versions={<>{reopen}<VersionStrip viewId={currentId} version={live?.version ?? version} previewing={showing?.version} onPreview={choosePreview} onCompare={openCompare} /></>}
             onExit={opened ? () => setOpened(undefined) : undefined}
+            home={<HomeLink up={up} />}
           />
         ) : (
         <div className="page">
           {!view || !currentId ? (
             <div className="empty">
+              <HomeLink up={up} />
               <div><div className="big">Nothing on screen yet</div>
               <p>Ask your assistant to show something with aurora, and it will build itself here.</p></div>
             </div>
@@ -259,13 +256,13 @@ export function App() {
               {heroItem && (
                 <Hero key={`hero:${currentId}`} item={heroItem} version={version} ctx={ctxFor(heroItem, false)} problems={problems} changed={showing ? {} : live?.changed ?? {}}
                   title={view.title} summary={view.summary ? fillPlaceholders(view.summary, results) : undefined}
-                  status={<div className="status">{activity ? <span className="spin" /> : <span className="ok" />}{status}</div>}
-                  versions={<div className="topbar-right">{reopen}<VersionStrip viewId={currentId} version={live?.version ?? version} previewing={showing?.version} onPreview={choosePreview} onCompare={openCompare} /></div>}
+                  status={<div className="status-row"><HomeLink up={up} /><div className="status">{activity ? <span className="spin" /> : <span className="ok" />}{status}</div></div>}
+                  versions={<div className="topbar-right">{reopen}{themeToggle}<VersionStrip viewId={currentId} version={live?.version ?? version} previewing={showing?.version} onPreview={choosePreview} onCompare={openCompare} /></div>}
                   filters={filters("pill")} />
               )}
               {!heroItem && <div className="topbar">
-                <div className="status">{activity ? <span className="spin" /> : <span className="ok" />}{status}</div>
-                <div className="topbar-right">{reopen}<VersionStrip viewId={currentId} version={live?.version ?? version} previewing={showing?.version} onPreview={choosePreview} onCompare={openCompare} /></div>
+                <div className="status-row"><HomeLink up={up} /><div className="status">{activity ? <span className="spin" /> : <span className="ok" />}{status}</div></div>
+                <div className="topbar-right">{reopen}{themeToggle}<VersionStrip viewId={currentId} version={live?.version ?? version} previewing={showing?.version} onPreview={choosePreview} onCompare={openCompare} /></div>
               </div>}
               {showing && (
                 <div className="preview-banner">
@@ -291,6 +288,7 @@ export function App() {
         )}
       </main>
     </div>
+    )}
     <AnimatePresence>
       {showVariants && pending && currentId && (
         <Variants key={pendingKey} title="Choose an option" items={pending.items} chooseLabel="Choose" render={renderVariant}

@@ -36,13 +36,10 @@ test("sections read like an article: bare items, strong headings, alternating ba
   const h = page.locator('[data-section="a"] .section-title');
   expect(parseFloat(await h.evaluate((el) => getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(28);
   await expect(page.locator(".section-eyebrow")).toHaveCount(0);
-  // every other section sits on a full-width band, without covering the sidebar or scrolling sideways
+  // every other section sits on a full-width band, without scrolling sideways
   await expect(page.locator('[data-section="b"]')).toHaveClass(/\bband\b/);
   await expect(page.locator('[data-section="a"]')).not.toHaveClass(/\bband\b/);
   await page.locator('[data-section="b"]').scrollIntoViewIfNeeded();
-  const b = (await page.locator('[data-section="b"]').boundingBox())!;
-  const atSide = await page.evaluate(([y]) => !!document.elementFromPoint(100, y)?.closest(".side"), [b.y + b.height / 2]);
-  expect(atSide).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(1280);
 });
 

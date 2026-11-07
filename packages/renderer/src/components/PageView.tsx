@@ -9,8 +9,8 @@ import { ItemFrame } from "./ItemFrame.tsx";
 const IDLE_MS = 2000;
 
 /** A design shown as the whole screen: a floating glass bar (title, versions, viewport, exit) that hides when idle. */
-export function PageView({ item, version, changedAt, ctx, problem, title, versions, onExit }: {
-  item: ViewItem; version: number; changedAt?: number; ctx: RenderCtx; problem?: Problem; title: string; versions: ReactNode; onExit?: () => void;
+export function PageView({ item, version, changedAt, ctx, problem, title, versions, onExit, home }: {
+  item: ViewItem; version: number; changedAt?: number; ctx: RenderCtx; problem?: Problem; title: string; versions: ReactNode; onExit?: () => void; home?: ReactNode;
 }) {
   const initial = (item.c as { viewport?: Viewport }).viewport ?? "desktop";
   const [viewport, setViewport] = useState<Viewport>(initial);
@@ -38,7 +38,7 @@ export function PageView({ item, version, changedAt, ctx, problem, title, versio
       {/* Pointer moves over the design go to its frame, not here: a thin strip along the top brings the bar back. */}
       <div className={`page-hot${idle ? " live" : ""}`} onMouseEnter={wake} onMouseMove={wake} aria-hidden />
       <div className={`page-bar${idle ? " idle" : ""}`} onMouseEnter={wake} onMouseMove={wake}>
-        <span className="page-title">{title}</span>
+        {home}<span className="page-title">{title}</span>
         {versions}
         <div className="viewports" role="group" aria-label="Viewport">
           {([["desktop", Monitor], ["tablet", Tablet], ["phone", Smartphone]] as const).map(([v, Icon]) => (
