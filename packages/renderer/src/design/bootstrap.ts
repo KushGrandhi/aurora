@@ -52,12 +52,27 @@ export function auroraBootstrap(): void {
   const dataListeners = new Set<Listener<Record<string, unknown[]>>>();
   const themeListeners = new Set<Listener<"light" | "dark">>();
   const focusListeners = new Set<Listener<string | null>>();
+  type Story = { index: number; state: unknown } | null;
+  const storyListeners = new Set<Listener<Story>>();
+  const paramListeners = new Set<Listener<Record<string, unknown>>>();
   let windowStart = 0;
   let sentInWindow = 0;
   let warned = false;
   const aurora = {
     data: project.data as Record<string, unknown[]>,
     theme: project.mode as "light" | "dark",
+    /** In a story section: the step the reader has scrolled to and its `state`, or null outside a story. */
+    story: (project.story ?? null) as Story,
+    onStory(cb: Listener<Story>) {
+      storyListeners.add(cb);
+      return () => storyListeners.delete(cb);
+    },
+    /** The view's param values by name (filters, and numbers the reader drags in prose). */
+    params: (project.params ?? {}) as Record<string, unknown>,
+    onParams(cb: Listener<Record<string, unknown>>) {
+      paramListeners.add(cb);
+      return () => paramListeners.delete(cb);
+    },
     /** Linked focus: what the reader is pointing at anywhere on the view (a region, a part), or null. */
     focus: null as string | null,
     onFocus(cb: Listener<string | null>) {
@@ -103,11 +118,17 @@ export function auroraBootstrap(): void {
 
   addEventListener("message", (e) => {
     if (e.source !== window.parent) return;
-    const m = e.data as { __aurora?: boolean; type?: string; data?: Record<string, unknown[]>; mode?: "light" | "dark"; value?: string | null };
+    const m = e.data as { __aurora?: boolean; type?: string; data?: Record<string, unknown[]>; mode?: "light" | "dark"; value?: string | null; story?: Story; params?: Record<string, unknown> };
     if (!m?.__aurora) return;
     if (m.type === "data" && m.data) {
       aurora.data = m.data;
       for (const cb of dataListeners) cb(m.data);
+    } else if (m.type === "story" && m.story !== undefined) {
+      aurora.story = m.story;
+      for (const cb of storyListeners) cb(m.story);
+    } else if (m.type === "params" && m.params) {
+      aurora.params = m.params;
+      for (const cb of paramListeners) cb(m.params);
     } else if (m.type === "focus" && m.value !== undefined) {
       if (m.value === aurora.focus) return;
       aurora.focus = m.value;

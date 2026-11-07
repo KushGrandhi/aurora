@@ -8,3 +8,4 @@ export { Reveal, Stagger, EASE } from "./Reveal.tsx";
 export { PhaseDial, Legend } from "./PhaseDial.tsx";
 export { useToken, readToken, onTheme } from "./tokens.ts";
 export { useFocus } from "./focus.ts";
+export { useStory, useParam } from "./story.ts";

@@ -48,6 +48,18 @@ function Pair({ kind, label, value, min, max, step, onChange }: {
   );
 }
 
+function NumberInput({ label, value, min, max, step, unit, onChange }: { label: string; value: number; min: number; max: number; step?: number; unit?: string; onChange(v: number): void }) {
+  const [v, setV] = useState(value);
+  useEffect(() => setV(value), [value]);
+  const later = useDebounced(onChange);
+  return (
+    <span className="pair">
+      <input type="range" aria-label={label} min={min} max={max} step={step ?? "any"} value={v} onChange={(e) => { setV(Number(e.target.value)); later(Number(e.target.value)); }} />
+      <span className="num-out">{v.toLocaleString("en-US")}{unit ? ` ${unit}` : ""}</span>
+    </span>
+  );
+}
+
 /** One row of controls above the sections; values come from the server, changes go back as `param` messages. */
 export function FilterBar({ params, values, options, onChange, variant }: Props) {
   return (
@@ -63,6 +75,7 @@ export function FilterBar({ params, values, options, onChange, variant }: Props)
           )}
           {p.type === "search" && <Search label={p.label} value={String(values[name] ?? "")} onChange={(v) => onChange(name, v)} />}
           {p.type === "range" && <Pair kind="number" label={p.label} value={(values[name] as [unknown, unknown]) ?? [p.min, p.max]} min={p.min} max={p.max} step={p.step} onChange={(v) => onChange(name, v)} />}
+          {p.type === "number" && <NumberInput label={p.label} value={typeof values[name] === "number" ? (values[name] as number) : p.default ?? p.min} min={p.min} max={p.max} step={p.step} unit={p.unit} onChange={(v) => onChange(name, v)} />}
           {p.type === "daterange" && <Pair kind="date" label={p.label} value={(values[name] as [unknown, unknown]) ?? [null, null]} onChange={(v) => onChange(name, v)} />}
         </label>
       ))}

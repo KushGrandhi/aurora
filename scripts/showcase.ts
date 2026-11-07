@@ -14,13 +14,14 @@ const view = {
   params: {
     region: { type: "select", label: "Region", options: { query: "regions", field: "region" } },
     when: { type: "daterange", label: "Date" },
+    top: { type: "number", label: "Orders shown", min: 5, max: 50, step: 5, default: 10 },
   },
   queries: {
     regions: { sql: "SELECT DISTINCT region FROM sales ORDER BY region" },
     by_region: { sql: "SELECT region, round(sum(revenue)) AS revenue, sum(units) AS units FROM sales WHERE ($region IS NULL OR region = $region) AND ($when_from IS NULL OR date >= $when_from::DATE) AND ($when_to IS NULL OR date <= $when_to::DATE) GROUP BY region ORDER BY region" },
     total: { sql: "SELECT sum(revenue) AS revenue, sum(units) AS units, count(*) AS orders, avg(revenue) AS avg_order FROM sales WHERE ($region IS NULL OR region = $region) AND ($when_from IS NULL OR date >= $when_from::DATE) AND ($when_to IS NULL OR date <= $when_to::DATE)" },
     monthly: { sql: "SELECT strftime(date_trunc('month', date), '%Y-%m') AS month, sum(revenue) AS revenue FROM sales WHERE ($region IS NULL OR region = $region) AND ($when_from IS NULL OR date >= $when_from::DATE) AND ($when_to IS NULL OR date <= $when_to::DATE) GROUP BY 1 ORDER BY 1" },
-    top_orders: { sql: "SELECT date, region, product, units, revenue FROM sales WHERE ($region IS NULL OR region = $region) AND ($when_from IS NULL OR date >= $when_from::DATE) AND ($when_to IS NULL OR date <= $when_to::DATE) ORDER BY revenue DESC LIMIT 50" },
+    top_orders: { sql: "SELECT date, region, product, units, revenue FROM sales WHERE ($region IS NULL OR region = $region) AND ($when_from IS NULL OR date >= $when_from::DATE) AND ($when_to IS NULL OR date <= $when_to::DATE) ORDER BY revenue DESC LIMIT $top" },
   },
   sections: [
     { id: "hero", layout: "grid", items: [
@@ -33,7 +34,14 @@ const view = {
       { id: "k_avg", span: 3, c: { type: "kpi", query: "total", field: "avg_order", label: "Average order", format: "currency" } },
       { id: "trend", span: 7, c: { type: "chart", query: "monthly", vegaLite: { title: "Revenue by month", mark: { type: "line", point: true }, encoding: { x: { field: "month", type: "ordinal" }, y: { field: "revenue", type: "quantitative" } } } } },
       { id: "regions_chart", span: 5, c: { type: "chart", query: "by_region", vegaLite: { title: "Revenue by region", mark: "bar", encoding: { y: { field: "region", type: "nominal", sort: "-x" }, x: { field: "revenue", type: "quantitative" } } } } },
+      { id: "orders_lede", span: 12, c: { type: "text", md: "The {{top}} largest orders in this filter, biggest first. Drag the number sideways to see more or fewer." } },
       { id: "orders", span: 12, c: { type: "table", query: "top_orders", title: "Largest orders" } },
+    ] },
+    { id: "tour", title: "Five regions, almost level", layout: "story", items: [
+      { id: "tour_chart", c: { type: "chart", query: "by_region", vegaLite: { mark: "bar", encoding: { y: { field: "region", type: "nominal", sort: "-x" }, x: { field: "revenue", type: "quantitative", title: "Revenue" }, color: { field: "region", type: "nominal", legend: null } } } } },
+      { id: "tour_east", c: { type: "text", md: "**East leads**, but only just. Scroll, and the chart follows the story: each step lights up the region it talks about, here and in the 3D columns above." }, story: { focus: "East" } },
+      { id: "tour_west", c: { type: "text", md: "**West** is a whisker behind. Point at any bar or table row yourself and the same region lights up everywhere on the page." }, story: { focus: "West" } },
+      { id: "tour_apac", c: { type: "text", md: "**APAC** trails the pack. Change the region or date filter at the top and every number on this page, this story included, re-runs." }, story: { focus: "APAC" } },
     ] },
     { id: "system", title: "How aurora is built", layout: "grid", items: [
       { id: "arch", span: 12, c: { type: "architecture", direction: "right", groups: [{ id: "local", label: "Your machine" }], nodes: [

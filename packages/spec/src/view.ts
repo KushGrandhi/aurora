@@ -15,13 +15,19 @@ export const ViewItemSchema = z.object({
   span: z.number().int().min(1).max(12).optional(),
   title: z.string().optional(),
   c: z.looseObject({ type: z.string().min(1) }), // components are checked by the registry
+  /**
+   * In a `story` section, what this step does to the pinned visual when it scrolls into view: `focus` lights a value up
+   * across the view (linked focus), `state` reaches a design as `aurora.story.state` (the kit's `useStory`).
+   */
+  story: z.object({ focus: z.string().max(200).optional(), state: z.unknown().optional() }).optional(),
 });
 export type ViewItem = z.infer<typeof ViewItemSchema>;
 
 export const SectionSchema = z.object({
   id: IdSchema,
   title: z.string().optional(),
-  layout: z.enum(["grid", "tabs"]),
+  // story: the first item stays pinned while the others scroll past as steps that drive it.
+  layout: z.enum(["grid", "tabs", "story"]),
   items: z.array(ViewItemSchema),
 });
 export type Section = z.infer<typeof SectionSchema>;

@@ -25,6 +25,8 @@ House-style building blocks for a `design`. **Assemble these instead of drawing 
 | `Paint` | `<Paint color="--accent" />`: a glossy painted surface. For the one part that should draw the eye. |
 | `Label` | `<Label at={[x, y, z]} side="left">piston</Label>`: a dot, a leader line and plain text pinned to a point, set off so it never sits on a moving part. Label four to six parts, not everything. |
 | `useFocus` | `const [focus, setFocus] = useFocus()`: linked focus with the rest of the view. `onPointerOver={() => setFocus("West")}`, `onPointerOut={() => setFocus(null)}` on a mesh, and light the part up when `focus === "West"`. Hovering West in a chart or table below then lights the same part. |
+| `useStory` | `const s = useStory()`: in a `story` section, `{ index, state }` of the step being read (`state` is the step's `story.state`), else null. Drive the scene from it: freeze the engine at `state.phase`, light the valve the step talks about. |
+| `useParam` | `const rpm = useParam<number>("rpm")`: the current value of a view param, e.g. a number the reader drags in the prose (`{{rpm}}`). |
 | `useToken` | `const c = useToken("--s1")`: a three.js Color that follows the theme, for materials you write yourself. |
 
 ## Time and controls

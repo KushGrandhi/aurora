@@ -84,7 +84,7 @@ export default function Design({ c, ctx }: { c: DesignC | Custom; ctx: RenderCtx
       setError(undefined);
       const { mode, data: d, assets: a } = latest.current;
       const display = latest.current.ctx.page ? "page" : latest.current.ctx.bleed ? "hero" : "card";
-      const srcdoc = buildSrcdoc(r, { origin: location.origin, framework: input.framework, mode, data: d, assets: a, display, palette: latest.current.ctx.palette });
+      const srcdoc = buildSrcdoc(r, { origin: location.origin, framework: input.framework, mode, data: d, assets: a, display, palette: latest.current.ctx.palette, params: latest.current.ctx.params, story: latest.current.ctx.story });
       const id = ++seq.current;
       setFrames((f) => [...f.slice(-1), { id, srcdoc }]);
     });
@@ -144,6 +144,10 @@ export default function Design({ c, ctx }: { c: DesignC | Custom; ctx: RenderCtx
 
   useEffect(() => { controllers.current.get(newest())?.setData(data); }, [dataKey]);
   useEffect(() => { for (const ctl of controllers.current.values()) ctl.setFocus(focus.value); }, [focus.value]);
+  const paramsKey = JSON.stringify(ctx.params ?? {});
+  useEffect(() => { for (const ctl of controllers.current.values()) ctl.setParams(ctx.params ?? {}); }, [paramsKey]);
+  const storyKey = JSON.stringify(ctx.story ?? null);
+  useEffect(() => { for (const ctl of controllers.current.values()) ctl.setStory(ctx.story ?? null); }, [storyKey]);
   useEffect(() => { for (const ctl of controllers.current.values()) ctl.setTheme(ctx.mode); }, [ctx.mode]);
   useEffect(() => { if (c.height !== undefined) setHeight(c.height); }, [c.height]);
 

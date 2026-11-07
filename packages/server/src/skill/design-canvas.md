@@ -22,6 +22,7 @@ A `design` item is a small React + Tailwind (or plain HTML/JS) project that runs
 - **Data:** `"data": ["queryName"]` puts that query's rows in `window.aurora.data.queryName`; `window.aurora.onData(cb)` fires when filters change them.
 - **Local media:** `"assets": {"logo": "/abs/path/logo.png"}`, then `window.aurora.asset("logo")` gives the URL.
 - **Theme:** `window.aurora.theme` is `"light"` or `"dark"` and `onTheme(cb)` reports changes. You rarely need these: the tokens already switch.
+- **Story and params:** in a `story` section the pinned design gets `aurora.story` (`{ index, state }` of the step being read; `aurora.onStory(cb)`), and every design gets the view's param values as `aurora.params` (`aurora.onParams(cb)`).
 - **Linked focus:** `window.aurora.focus` is what the reader is pointing at anywhere on the view (a region in a chart, a table row, a word in prose); `aurora.onFocus(cb)` hears changes and `aurora.setFocus("West")` / `setFocus(null)` points and lets go. Charts dim the rest, tables mark the row, prose highlights the word. In a kit scene use `useFocus()`. Focus by the same values your data uses (the region name, the part name) so everything lines up.
 - **Clicks back to you:** `window.aurora.send("chose", { plan: "pro" })`; read them with `mcp__aurora__events` (`after` = the last seq you saw, `waitMs` up to 60000 to wait).
 

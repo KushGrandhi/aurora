@@ -8,7 +8,7 @@ aurora's screen is calm, warm-neutral and precise: soft off-white (or near-black
 2. **Calm surfaces, meaningful color.** Neutrals carry the layout. Color appears only where it means something: an action, a category, a state.
 3. **Label the thing itself.** Names sit next to what they name. Don't make the reader match colors against a legend.
 4. **Motion explains.** Animate to show cause and effect, flow or a change of state, never as decoration.
-5. **Let them touch it.** If something changes over time or has parts, let the reader play, pause, step, scrub and select.
+5. **Let them touch it.** If something changes over time or has parts, let the reader play, pause, step, scrub and select. Guide, don't just hand over a sandbox: a `story` section walks the reader through the moments that matter, and numbers they can drag in the prose (`{{rpm}}`) let them ask "what if".
 6. **Depth over boxes.** Physical things are lit 3D objects (`aurora/kit`): metal, glass, glow, real shadows. The main visual is big and edge to edge; text sits straight on it as type (bare `Panel`, `Stat`), never in cards. Glass only for dense controls.
 
 ## Banned defaults

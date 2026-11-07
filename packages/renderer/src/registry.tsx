@@ -1,5 +1,5 @@
 import { lazy, type FC } from "react";
-import type { Component, QueryResult, Palette } from "@aurora/spec";
+import type { Component, QueryResult, Palette, Param } from "@aurora/spec";
 import type { MotionApi } from "./motion.tsx";
 import { TOKENS, type Mode } from "./theme.ts";
 import { Json } from "./components/Json.tsx";
@@ -18,6 +18,13 @@ export function themeFor(mode: Mode, palette?: Palette): Theme {
 export type Viewport = "desktop" | "tablet" | "phone";
 
 export type RenderCtx = {
+  /** The view's param values by name, its param definitions and resolved select options, and a way to set one. */
+  params?: Record<string, unknown>;
+  paramDefs?: Record<string, Param>;
+  paramOptions?: Record<string, string[]>;
+  setParam?(name: string, value: unknown): void;
+  /** For the pinned visual of a story section: the step in view and its state. */
+  story?: { index: number; state: unknown } | null;
   /** The view's own colours, if it chose any. */
   palette?: Palette;
   results: Record<string, QueryResult>;
@@ -46,7 +53,7 @@ export type Renderer = FC<{ c: any; ctx: RenderCtx }> & { selfReport?: boolean }
 type C<T extends Component["type"]> = Extract<Component, { type: T }>;
 
 const KpiR: Renderer = ({ c, ctx }: { c: C<"kpi">; ctx: RenderCtx }) => <Kpi c={c} results={ctx.results} hero={ctx.hero} color={ctx.theme.categorical[0]} />;
-const TextR: Renderer = ({ c, ctx }: { c: C<"text">; ctx: RenderCtx }) => <Text c={c} results={ctx.results} />;
+const TextR: Renderer = ({ c, ctx }: { c: C<"text">; ctx: RenderCtx }) => <Text c={c} results={ctx.results} ctx={ctx} />;
 const JsonR: Renderer = ({ c, ctx }: { c: { value?: unknown; query?: string }; ctx: RenderCtx }) => <Json value={c.query ? ctx.results[c.query]?.rows : c.value} />;
 
 /**

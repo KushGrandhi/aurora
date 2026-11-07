@@ -5,6 +5,7 @@ import { ENTER_EASE, SPRING, enterDelay, shouldGlow } from "../motion.tsx";
 import type { RenderCtx } from "../registry.tsx";
 import { ItemFrame } from "./ItemFrame.tsx";
 import { Tabs } from "./Tabs.tsx";
+import { Story } from "./Story.tsx";
 
 export type SectionProps = {
   section: SectionT;
@@ -62,7 +63,7 @@ export function Section(props: SectionProps) {
   return (
     <motion.div layout="position" className={`section${number && number % 2 === 0 ? " band" : ""}`} data-section={section.id}>
       {section.title && <h2 className="section-title">{section.title}</h2>}
-      {section.layout === "tabs" ? <Tabs {...props} /> : <Grid {...props} />}
+      {section.layout === "tabs" ? <Tabs {...props} /> : section.layout === "story" ? <Story {...props} /> : <Grid {...props} />}
     </motion.div>
   );
 }

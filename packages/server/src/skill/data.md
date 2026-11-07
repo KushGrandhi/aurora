@@ -54,11 +54,13 @@ A view's `params` become one row of filters above its sections. Queries read the
   "region": { "type": "select", "label": "Region", "options": { "query": "regions", "field": "region" } },
   "price":  { "type": "range", "label": "Price", "min": 0, "max": 500 },
   "when":   { "type": "daterange", "label": "Order date" },
-  "q":      { "type": "search", "label": "Product" }
+  "q":      { "type": "search", "label": "Product" },
+  "top":    { "type": "number", "label": "Orders shown", "min": 5, "max": 50, "step": 5, "default": 10 }
 }
 ```
 
-- `select` gives `$name` (null means "All"; options come from a list or from a query's column), `search` gives `$name` (text), `range` gives `$name_min` and `$name_max`, `daterange` gives `$name_from` and `$name_to` (ISO dates or null).
+- `select` gives `$name` (null means "All"; options come from a list or from a query's column), `search` gives `$name` (text), `range` gives `$name_min` and `$name_max`, `daterange` gives `$name_from` and `$name_to` (ISO dates or null), `number` gives `$name` (one number; `unit` labels it).
+- **Controls in prose:** write `{{name}}` in a `text` item and that param becomes a control inside the sentence: a `number` is a value the reader drags sideways ("Show the {{top}} largest orders"), a `select` an underlined choice. A param used this way leaves the filter row. Designs read params as `aurora.params` (`onParams`), or the kit's `useParam("name")`.
 - Write queries that work when a filter is unset: `WHERE ($region IS NULL OR region = $region)`, `AND ($when_from IS NULL OR date >= $when_from::DATE)`, `AND ($q = '' OR product ILIKE '%' || $q || '%')`.
 - Changing a filter on screen re-runs only the queries that use it. `status` shows current values under `params`; set one with `POST /api/views/<id>/params {"name","value"}`.
 - A query that uses a `$var` that no param provides is an error.

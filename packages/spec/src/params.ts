@@ -6,6 +6,8 @@ export const ParamSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("range"), label: z.string(), min: z.number(), max: z.number(), step: z.number().positive().optional(), default: z.tuple([z.number(), z.number()]).optional() }),
   z.object({ type: z.literal("daterange"), label: z.string(), default: z.tuple([z.string().nullable(), z.string().nullable()]).optional() }),
   z.object({ type: z.literal("search"), label: z.string(), default: z.string().optional() }),
+  // One number the reader drags (in prose, `{{name}}` becomes a draggable number): engine speed, a rate, a year.
+  z.object({ type: z.literal("number"), label: z.string(), min: z.number(), max: z.number(), step: z.number().positive().optional(), default: z.number().optional(), unit: z.string().max(20).optional() }),
 ]);
 export type Param = z.infer<typeof ParamSchema>;
 
@@ -31,6 +33,7 @@ export function paramDefault(param: Param): unknown {
     case "range": return param.default ?? [param.min, param.max];
     case "daterange": return param.default ?? [null, null];
     case "search": return param.default ?? "";
+    case "number": return param.default ?? param.min;
   }
 }
 
@@ -65,6 +68,10 @@ export function validateParamValue(name: string, param: Param, value: unknown, o
     }
     case "search":
       if (typeof value !== "string" || value.length > 200) return fail(`${param.label} takes text of at most 200 characters`);
+      break;
+    case "number":
+      if (typeof value !== "number" || !Number.isFinite(value)) return fail(`${param.label} takes a number`);
+      if (value < param.min || value > param.max) return fail(`${param.label} must be between ${param.min} and ${param.max}`);
       break;
   }
   return { ok: true, vars: paramValueVars(name, param, value) };

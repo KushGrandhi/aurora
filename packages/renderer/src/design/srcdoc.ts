@@ -3,7 +3,7 @@ import { auroraBootstrap } from "./bootstrap.ts";
 import { IMPORT_MAP } from "./libs.ts";
 import { TOKEN_CSS, TOKEN_THEME } from "./tokens.ts";
 
-export type SrcdocOpts = { origin: string; framework: "react" | "html"; mode: "light" | "dark"; data: Record<string, unknown[]>; assets: Record<string, string>; display?: "card" | "page" | "hero"; palette?: { accent?: string; series?: string[] } };
+export type SrcdocOpts = { origin: string; framework: "react" | "html"; mode: "light" | "dark"; data: Record<string, unknown[]>; assets: Record<string, string>; display?: "card" | "page" | "hero"; palette?: { accent?: string; series?: string[] }; params?: Record<string, unknown>; story?: { index: number; state: unknown } | null };
 
 /** No network, nothing but aurora's own libraries and media: the sandbox's whole outside world. */
 export function sandboxCsp(origin: string): string {
@@ -35,7 +35,7 @@ const paletteCss = (p: { accent?: string; series?: string[] }) =>
 /** The frame's whole document: CSP, import map, Tailwind, the font, the project and the runtime that links it. */
 export function buildSrcdoc(p: CompiledProject, o: SrcdocOpts): string {
   const imports = Object.fromEntries(Object.entries(IMPORT_MAP).map(([k, f]) => [k, `${o.origin}/lib/${f}`]));
-  const project = { framework: o.framework, entry: p.entry, order: p.order, modules: p.modules, data: o.data, assets: o.assets, mode: o.mode, display: o.display ?? "card" };
+  const project = { framework: o.framework, entry: p.entry, order: p.order, modules: p.modules, data: o.data, assets: o.assets, mode: o.mode, display: o.display ?? "card", params: o.params ?? {}, story: o.story ?? null };
   const head = [
     '<meta charset="utf-8">',
     `<meta http-equiv="Content-Security-Policy" content="${attr(sandboxCsp(o.origin))}">`,

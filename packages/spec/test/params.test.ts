@@ -60,3 +60,13 @@ test("removeParam unknown is rejected atomically", () => {
   expect(r.ok).toBe(false);
   if (!r.ok) expect(r.problem.message).toContain("nope");
 });
+
+test("a number param gives one $var, starts at its default and checks its range and step", () => {
+  const p = { type: "number", label: "Engine speed", min: 600, max: 7000, step: 100, default: 800, unit: "rpm" } as Param;
+  expect(paramVars("rpm", p)).toEqual(["rpm"]);
+  expect(paramDefaults({ rpm: p })).toEqual({ rpm: 800 });
+  expect(validateParamValue("rpm", p, 3000)).toEqual({ ok: true, vars: { rpm: 3000 } });
+  expect(validateParamValue("rpm", p, 9000).ok).toBe(false);
+  expect(validateParamValue("rpm", p, "fast").ok).toBe(false);
+  expect(paramDefaults({ n: { type: "number", label: "N", min: 1, max: 9 } as Param })).toEqual({ n: 1 });
+});

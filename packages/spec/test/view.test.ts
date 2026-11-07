@@ -33,3 +33,13 @@ test("ViewSchema rejects items without a component type", () => {
   const view = { v: 2, id: "x", title: "T", sections: [{ id: "s", layout: "grid", items: [{ id: "d1", c: { source: "x" } }] }] };
   expect(ViewSchema.safeParse(view).success).toBe(false);
 });
+
+test("a story section, with steps that set focus and state, is a valid view", async () => {
+  const { ViewSchema } = await import("../src/index.ts");
+  const v = ViewSchema.parse({ v: 2, id: "s", title: "Story", sections: [{ id: "a", layout: "story", items: [
+    { id: "visual", c: { type: "text", md: "x" } },
+    { id: "s1", c: { type: "text", md: "Intake" }, story: { focus: "intake valve", state: { phase: 0 } } },
+  ] }] });
+  expect(v.sections[0].layout).toBe("story");
+  expect(v.sections[0].items[1].story).toEqual({ focus: "intake valve", state: { phase: 0 } });
+});

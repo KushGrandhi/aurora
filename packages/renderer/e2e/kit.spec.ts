@@ -187,3 +187,23 @@ export default function App() {
   await page.locator('[data-item="t"] tr', { hasText: "East" }).hover();
   await expect(f.locator("#v")).toHaveText("East");
 });
+
+test("useStory and useParam give a kit scene the story step and the view's params", async ({ page, request }) => {
+  const app = `import { useStory, useParam } from "aurora/kit";
+export default function App() {
+  const story = useStory();
+  const rpm = useParam<number>("rpm");
+  return <div style={{ height: 300 }}><p id="s">{story ? story.index + ":" + (story.state as any)?.phase : "none"}</p><p id="r">{String(rpm)}</p></div>;
+}`;
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/#kit12");
+  await expect(page.locator(".conn.up")).toBeVisible();
+  const steps = [0, 1].map((i) => ({ id: `s${i}`, c: { type: "text", md: `Step ${i}. ` + "words ".repeat(80) }, story: { state: { phase: i } } }));
+  const r = await request.post("/api/views", { data: { view: { v: 2, id: "kit12", title: "Kit", params: { rpm: { type: "number", label: "Speed", min: 0, max: 10, default: 4 } },
+    sections: [{ id: "a", layout: "story", items: [{ id: "d", c: design(app) }, ...steps] }] } } });
+  expect(r.status(), await r.text()).toBe(200);
+  const f = frame(page);
+  await expect(f.locator("#r")).toHaveText("4");
+  await page.locator('[data-item="s1"]').evaluate((el) => el.scrollIntoView({ block: "center" }));
+  await expect(f.locator("#s")).toHaveText("1:1");
+});

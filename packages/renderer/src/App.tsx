@@ -133,15 +133,21 @@ export function App() {
   const theme = useMemo(() => themeFor(mode, palette), [mode, paletteKey]);
   // The view's palette also reaches the screen's own CSS (accents, sparklines, focus) as variables.
   const paletteVars = useMemo(() => palette ? Object.fromEntries([...(palette.accent ? [["--accent", palette.accent]] : []), ...(palette.series ?? []).map((c, i) => [`--s${i + 1}`, c])]) : undefined, [paletteKey]);
+  const paramState = currentId ? state.params[currentId] : undefined;
+  const setParam = useCallback((name: string, value: unknown) => { if (currentId && !showing) send({ t: "param", viewId: currentId, name, value }); }, [currentId, showing]);
   const ctxFor = useCallback((item: ViewItem, hero: boolean): RenderCtx => ({
     results, mode, theme, palette, hero, motion: { spring: SPRING, reduced },
+    params: paramState?.values ?? {}, paramDefs: view?.params, paramOptions: paramState?.options ?? {}, setParam,
     media: (src) => media?.[src],
     send: (name, payload) => { if (currentId && !showing) send({ t: "event", viewId: currentId, itemId: item.id, name, payload }); },
     ...(item.c.type === "design" || item.c.type === "custom" ? { openPage: () => setOpened(item.id) } : {}),
     report: (ok, message, retract) => { if (currentId && !showing) report(currentId, version, item.id, ok, message, retract); },
     warn: (messages) => { if (currentId && !showing) warn(currentId, version, item.id, messages); },
-  }), [results, mode, theme, palette, media, currentId, version, showing, report, warn, reduced]);
-  const params = currentId ? state.params[currentId] : undefined;
+  }), [results, mode, theme, palette, media, currentId, version, showing, report, warn, reduced, paramState, view?.params, setParam]);
+  const params = paramState;
+  // Params the prose already offers as inline controls (`{{name}}`) don't repeat in the filter row.
+  const inProse = useMemo(() => new Set((view?.sections ?? []).flatMap((s) => s.items).flatMap((i) => i.c.type === "text" && typeof (i.c as { md?: unknown }).md === "string" ? [...((i.c as unknown as { md: string }).md.matchAll(/\{\{([A-Za-z_]\w*)\}\}/g))].map((m) => m[1]) : [])), [view]);
+  const barParams = view?.params ? Object.fromEntries(Object.entries(view.params).filter(([n]) => !inProse.has(n))) : undefined;
 
   const viewProblems = problems.filter((p) => !p.itemId && p.severity !== "unverified");
   // Page display: a view whose only item is a design with display "page", or a design opened full screen.
@@ -180,8 +186,8 @@ export function App() {
     let n = 0;
     return (view?.sections ?? []).map((s, i) => (s.title && !heroOnly(i) ? ++n : undefined));
   }, [view, heroItem]);
-  const filters = (variant?: "pill") => view?.params && Object.keys(view.params).length > 0 && currentId ? (
-    <FilterBar variant={variant} params={view.params} values={params?.values ?? {}} options={params?.options ?? {}} onChange={(name, value) => send({ t: "param", viewId: currentId, name, value })} />
+  const filters = (variant?: "pill") => barParams && Object.keys(barParams).length > 0 && currentId ? (
+    <FilterBar variant={variant} params={barParams} values={params?.values ?? {}} options={params?.options ?? {}} onChange={(name, value) => send({ t: "param", viewId: currentId, name, value })} />
   ) : undefined;
   const status = activity || (live ? `v${live.version} · ${live.source === "screen" ? "chosen on screen" : `from ${live.source}`}` : "");
 

@@ -16,7 +16,7 @@ const SEND_PER_SECOND = 20;
  * shows aurora's document. A srcdoc frame loads exactly once; a second load means the code navigated the frame
  * somewhere else, so the frame is blanked and nothing more is sent to or accepted from it.
  */
-export function mountFrame(iframe: HTMLIFrameElement, srcdoc: string, h: FrameHandlers): { setData(d: Record<string, unknown[]>): void; setTheme(m: "light" | "dark"): void; setFocus(v: string | null): void; destroy(): void } {
+export function mountFrame(iframe: HTMLIFrameElement, srcdoc: string, h: FrameHandlers): { setData(d: Record<string, unknown[]>): void; setTheme(m: "light" | "dark"): void; setFocus(v: string | null): void; setStory(s: { index: number; state: unknown } | null): void; setParams(p: Record<string, unknown>): void; destroy(): void } {
   let dead = false;
   let loads = 0;
   let windowStart = 0;
@@ -24,6 +24,8 @@ export function mountFrame(iframe: HTMLIFrameElement, srcdoc: string, h: FrameHa
   let data: Record<string, unknown[]> | undefined;
   let mode: "light" | "dark" | undefined;
   let focus: string | null = null;
+  let story: { index: number; state: unknown } | null | undefined;
+  let params: Record<string, unknown> | undefined;
   const send = (msg: Record<string, unknown>) => { if (!dead) iframe.contentWindow?.postMessage({ __aurora: true, ...msg }, "*"); };
 
   const onMessage = (e: MessageEvent) => {
@@ -35,6 +37,8 @@ export function mountFrame(iframe: HTMLIFrameElement, srcdoc: string, h: FrameHa
       if (data) send({ type: "data", data });
       if (mode) send({ type: "theme", mode });
       if (focus !== null) send({ type: "focus", value: focus });
+      if (story !== undefined) send({ type: "story", story });
+      if (params) send({ type: "params", params });
       h.onReady();
     } else if (m.type === "error") h.onError(String(m.message ?? "error"));
     else if (m.type === "height" && typeof m.px === "number") h.onHeight(m.px);
@@ -63,6 +67,8 @@ export function mountFrame(iframe: HTMLIFrameElement, srcdoc: string, h: FrameHa
   return {
     setData: (d) => { data = d; send({ type: "data", data: d }); },
     setTheme: (m) => { mode = m; send({ type: "theme", mode: m }); },
+    setStory: (s) => { story = s; send({ type: "story", story: s }); },
+    setParams: (p) => { params = p; send({ type: "params", params: p }); },
     setFocus: (v) => { if (v === focus) return; focus = v; send({ type: "focus", value: v }); },
     destroy: () => {
       dead = true;

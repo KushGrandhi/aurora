@@ -70,6 +70,7 @@ Before using a component for the first time, read its fields and example in `ref
 - **Everything is linked.** Pointing at a value anywhere (a bar, a table row, a part in a design) lights the same value up in every item: charts dim the rest, tables mark the row, prose highlights the word. Use the same names across items (the chart's category, the table's column, the design's part) and mention them in prose, so a view explores as one thing.
 - `palette` (optional): `{"accent": "#hex", "series": ["#hex", …]}` gives the view colours drawn from its subject; the screen, charts and designs all use it.
 - `layout: "grid"` places items on 12 columns with `span`. `layout: "tabs"` shows each item as a tab named by its `title`.
+- `layout: "story"` is a guided explanation, the best way to explain a process: the **first item stays pinned** (a design, a chart, a diagram) while the other items scroll past as steps. Each step can carry `"story": {"focus": "compression", "state": {"phase": 1}}`: when it reaches the middle of the screen, `focus` lights that value up across the view and `state` reaches a design as `aurora.story.state` (kit: `useStory()`). Write each step as two or three sentences about one moment; let the visual show it. Prefer a story over a sandbox scene with a list of steps under it.
 - A section may start with `"items": []`; you fill it with patches.
 - `c.type` picks the component. All other fields of `c` belong to that component.
 
