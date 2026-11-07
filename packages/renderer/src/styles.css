@@ -3,7 +3,7 @@
   --hair: rgba(11, 11, 11, 0.08); --grid: #e1e0d9; --accent: #2a78d6; --good: #006300; --bad: #d03b3b; --warn: #b87a00; --violet: #6250d6;
   --shadow: 0 1px 2px rgba(16, 16, 12, 0.04), 0 8px 24px -12px rgba(16, 16, 12, 0.10);
   --shadow-hover: 0 2px 4px rgba(16, 16, 12, 0.05), 0 18px 40px -16px rgba(16, 16, 12, 0.18);
-  --skeleton-a: #f0efec; --skeleton-b: #f7f6f3; --side: rgba(249, 249, 247, 0.72);
+  --skeleton-a: #f0efec; --skeleton-b: #f7f6f3; --side: rgba(249, 249, 247, 0.72); --band: #f2f1ed;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   color-scheme: light;
 }
@@ -13,7 +13,7 @@
     --hair: rgba(255, 255, 255, 0.08); --grid: #2c2c2a; --accent: #3987e5; --good: #0ca30c; --bad: #e66767; --warn: #e0a106; --violet: #9085e9;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
     --shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.35), 0 18px 40px -16px rgba(0, 0, 0, 0.7);
-    --skeleton-a: #222220; --skeleton-b: #2a2a27; --side: rgba(13, 13, 13, 0.7);
+    --skeleton-a: #222220; --skeleton-b: #2a2a27; --side: rgba(13, 13, 13, 0.7); --band: #141413;
     color-scheme: dark;
   }
 }
@@ -22,7 +22,7 @@
   --hair: rgba(255, 255, 255, 0.08); --grid: #2c2c2a; --accent: #3987e5; --good: #0ca30c; --bad: #e66767; --warn: #e0a106; --violet: #9085e9;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
   --shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.35), 0 18px 40px -16px rgba(0, 0, 0, 0.7);
-  --skeleton-a: #222220; --skeleton-b: #2a2a27; --side: rgba(13, 13, 13, 0.7);
+  --skeleton-a: #222220; --skeleton-b: #2a2a27; --side: rgba(13, 13, 13, 0.7); --band: #141413;
   color-scheme: dark;
 }
 
@@ -76,13 +76,16 @@ h1 { font-size: clamp(28px, 3.2vw, 40px); line-height: 1.1; letter-spacing: -0.0
 .summary { font-size: 17px; color: var(--ink2); margin: 0 0 32px; max-width: 72ch; }
 
 .grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; }
-.card {
-  background: var(--raised); border-radius: 18px; padding: 20px 22px; min-width: 0; box-shadow: var(--shadow);
-  outline: 1px solid var(--hair); outline-offset: -1px;
-  transition: box-shadow 0.3s var(--ease);
+/* Items sit straight on the page, like an article. Only dense data (tables, JSON, maps, graphs, designs shown as
+   cards) keeps a quiet surface so its edges read. */
+.card { min-width: 0; border-radius: 18px; }
+.card:is([data-type="table"], [data-type="json"], [data-type="map"], [data-type="graph"], [data-type="design"], [data-type="custom"]),
+.tab-panel:is([data-type="table"], [data-type="json"], [data-type="map"], [data-type="graph"], [data-type="design"], [data-type="custom"]) {
+  background: var(--raised); padding: 20px 22px; box-shadow: var(--shadow); outline: 1px solid var(--hair); outline-offset: -1px; border-radius: 18px;
 }
-.card:hover { box-shadow: var(--shadow-hover); }
-.card.default { background: transparent; box-shadow: none; outline-style: dashed; }
+.card[data-type="kpi"] { border-top: 1px solid var(--hair); border-radius: 0; padding-top: 18px; }
+.card-title { color: var(--ink2); }
+.card.default { background: transparent; box-shadow: none; outline: 1px dashed var(--hair); padding: 20px 22px; }
 .card-title { font-size: 14px; font-weight: 600; margin: 0 0 12px; letter-spacing: -0.005em; }
 
 /* KPI */
@@ -156,8 +159,11 @@ td:first-child { font-weight: 550; }
 }
 
 /* v2: sections, tabs, fallbacks, json, versions */
-.section { margin-bottom: 28px; }
-.section-title { font-size: 13px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
+.section { margin-bottom: 96px; }
+.section-eyebrow { font-size: 12px; font-weight: 550; letter-spacing: 0.2em; color: var(--muted); font-variant-numeric: tabular-nums; margin-bottom: 10px; }
+.section-title { font-size: clamp(28px, 2.6vw, 38px); font-weight: 650; line-height: 1.12; letter-spacing: -0.03em; color: var(--ink); margin: 0 0 32px; text-wrap: balance; }
+/* Every other titled section sits on a full-width band, so a long page has a rhythm. */
+.section.band { background: var(--band); box-shadow: 0 0 0 100vmax var(--band); clip-path: inset(-64px -100vmax); margin-top: 160px; margin-bottom: 160px; }
 .tab-list { display: flex; gap: 4px; margin-bottom: 10px; flex-wrap: wrap; }
 .tab { position: relative; border: 0; background: transparent; padding: 7px 14px; border-radius: 999px; font: inherit; font-size: 14px; color: var(--ink2); cursor: pointer; }
 .tab:hover { background: var(--hair); }

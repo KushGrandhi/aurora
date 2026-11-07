@@ -18,6 +18,8 @@ export type SectionProps = {
   leads?: boolean;
   /** Position of this section in the view, for the opening stagger. */
   order?: number;
+  /** Reading number of a titled section (1, 2, …): shown above its heading; even ones sit on a band. */
+  number?: number;
 };
 
 /**
@@ -56,9 +58,10 @@ function Grid({ section, version, problems, ctxFor, heroId, viewId, changed, lea
 }
 
 export function Section(props: SectionProps) {
-  const { section } = props;
+  const { section, number } = props;
   return (
-    <motion.div layout="position" className="section" data-section={section.id}>
+    <motion.div layout="position" className={`section${number && number % 2 === 0 ? " band" : ""}`} data-section={section.id}>
+      {section.title && number && <div className="section-eyebrow">{String(number).padStart(2, "0")}</div>}
       {section.title && <h2 className="section-title">{section.title}</h2>}
       {section.layout === "tabs" ? <Tabs {...props} /> : <Grid {...props} />}
     </motion.div>

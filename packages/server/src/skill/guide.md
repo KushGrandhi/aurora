@@ -66,6 +66,7 @@ Before using a component for the first time, read its fields and example in `ref
 ```
 
 - Every id (view, section, item, query, dataset) matches `^[A-Za-z_]\w*$` and is unique in the view. Patches find things by id, so keep ids stable.
+- The screen reads like an article: the view `title` and `summary` are the page headline (on a hero they sit on the stage), and each section `title` is a large numbered heading. Write them as short headlines that say the point ("East leads, barely"), not labels ("Data"). Items sit on the page without boxes.
 - `layout: "grid"` places items on 12 columns with `span`. `layout: "tabs"` shows each item as a tab named by its `title`.
 - A section may start with `"items": []`; you fill it with patches.
 - `c.type` picks the component. All other fields of `c` belong to that component.
