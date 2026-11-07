@@ -15,10 +15,13 @@ patches, queries and linked focus keep working; a story can drop aurora's chrome
 - [x] 1. Art direction instead of rules: rewrite `design-language.md` so the model picks mood, type pairing, palette
   and motion personality from the subject; keep only real guardrails (contrast, legibility, honest data, no motion over
   text). Remove the fixed type scale, the one entrance, the bans, the section-by-section landing script.
-  Done in `5648fb5`. Skill tests pass; a before/after model eval is still to run (after item 4).
+  Done in `5648fb5`. Haiku eval on the Jarvis Inspector data (2026-11-07, before = main, after = items 1-4): the
+  after story has a point-making headline, a clear arc with an ending, its own paper palette and Fraunces/Inter;
+  but it is still catalog-only (KPI hook, no visual, no story section) and one callout contradicts its numbers.
+  Not cinematic yet: that needs items 5-7 and 10.
 - [x] 2. A story-shaping step: before any component, the model writes a short outline that covers the 5 Ws and H
   silently, picks an opening hook, one signature moment, pacing and an ending.
-  Done in `5648fb5` (`references/story.md`, loop step 1). Same eval pending.
+  Done in `5648fb5` (`references/story.md`, loop step 1). Same eval (above).
 - [x] 3. Palette sets the whole stage: background, ink and surfaces, not just accent and series (dark cinematic,
   paper editorial…).
   Done in `a329fd9`: `palette.page`/`ink`, contrast-solved stage in OKLab, reaches screen, charts, Mermaid, maps,
