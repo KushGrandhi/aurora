@@ -23,7 +23,9 @@ patches, queries and linked focus keep working; a story can drop aurora's chrome
   paper editorial…).
   Done in `a329fd9`: `palette.page`/`ink`, contrast-solved stage in OKLab, reaches screen, charts, Mermaid, maps,
   code, designs and variants; unit and browser tests pass.
-- [ ] 4. More fonts (Kush wants more than 12; options to discuss): about 12 free, offline fonts (display serifs, condensed, mono, a couple of characterful faces).
+- [x] 4. More fonts: Kush chose Google Fonts. Any of 1,957 families by name (`fonts: {display, body, mono, extra}`),
+  fetched once by the server and cached in `~/.aurora/fonts`; the three bundled faces stand in offline.
+  Done in `b05b06c`; unit and browser tests pass, live fetch checked (4 families in 0.9 s).
 
 ## Core capability (a week or two each)
 
