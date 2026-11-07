@@ -12,4 +12,6 @@ export const IMPORT_MAP: Record<string, string> = {
   three: "three.js",
   d3: "d3.js",
   gsap: "gsap.js",
+  "@react-three/fiber": "r3f.js",
+  "@react-three/drei": "drei.js",
 };

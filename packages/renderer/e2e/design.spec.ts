@@ -211,3 +211,12 @@ test("a slow design that finishes after the stuck warning clears it", async ({ p
   await expect(frame(page).locator("h1")).toHaveText("late", { timeout: 10_000 });
   await expect.poll(async () => (await status(request, "ds17")).problems).toEqual([]);
 });
+
+test("react three fiber and drei render a lit scene offline", async ({ page, request }) => {
+  await show(page, request, "ds3d", react({
+    "App.tsx": "import { Canvas } from '@react-three/fiber';\nimport { OrbitControls } from '@react-three/drei';\nexport default function App() { return <div style={{ height: 320 }}><Canvas><ambientLight /><mesh><boxGeometry /><meshStandardMaterial color='orange' /></mesh><OrbitControls /></Canvas></div>; }",
+  }));
+  await expect(frame(page).locator("canvas")).toHaveCount(1);
+  await expect.poll(async () => (await status(request, "ds3d")).unverified).toEqual([]);
+  expect((await status(request, "ds3d")).problems).toEqual([]);
+});

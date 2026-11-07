@@ -2,7 +2,7 @@ import { z } from "zod";
 import { IdSchema } from "../base.ts";
 import type { ComponentDef } from "../registry.ts";
 
-export const DESIGN_LIBRARIES = ["react", "react-dom", "motion", "lucide-react", "three", "d3", "gsap"] as const;
+export const DESIGN_LIBRARIES = ["react", "react-dom", "motion", "lucide-react", "three", "d3", "gsap", "@react-three/fiber", "@react-three/drei"] as const;
 const MAX_FILES = 100;
 const MAX_BYTES = 2_000_000;
 const PathSchema = z.string().regex(/^[\w./-]+\.(tsx|ts|jsx|js|css|json|html|svg|md)$/, "file paths use letters, digits, _ . / - and end in tsx, ts, jsx, js, css, json, html, svg or md")

@@ -6,7 +6,7 @@ import path from "node:path";
 import { defineConfig, type Plugin } from "vite";
 
 const require = createRequire(import.meta.url);
-const ESM_ENTRIES = ["motion", "motion-react", "lucide-react", "three", "d3", "gsap"];
+const ESM_ENTRIES = ["motion", "motion-react", "lucide-react", "three", "d3", "gsap", "r3f", "drei"];
 // CommonJS packages: `export *` would drop their named exports, so each entry re-exports them by name.
 const CJS_ENTRIES: Record<string, string> = {
   react: "react",
