@@ -24,6 +24,7 @@ House-style building blocks for a `design`. **Assemble these instead of drawing 
 | `Glow` | `<Glow color="--bad" intensity={0.8} />`: a glowing, see-through fill. For what is hot, live or flowing: burning gas, blood, current, fluid. `color` is a token name; `intensity` 0..1. |
 | `Paint` | `<Paint color="--accent" />`: a glossy painted surface. For the one part that should draw the eye. |
 | `Label` | `<Label at={[x, y, z]} side="left">piston</Label>`: a dot, a leader line and plain text pinned to a point, set off so it never sits on a moving part. Label four to six parts, not everything. |
+| `useFocus` | `const [focus, setFocus] = useFocus()`: linked focus with the rest of the view. `onPointerOver={() => setFocus("West")}`, `onPointerOut={() => setFocus(null)}` on a mesh, and light the part up when `focus === "West"`. Hovering West in a chart or table below then lights the same part. |
 | `useToken` | `const c = useToken("--s1")`: a three.js Color that follows the theme, for materials you write yourself. |
 
 ## Time and controls

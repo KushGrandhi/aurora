@@ -51,12 +51,27 @@ export function auroraBootstrap(): void {
 
   const dataListeners = new Set<Listener<Record<string, unknown[]>>>();
   const themeListeners = new Set<Listener<"light" | "dark">>();
+  const focusListeners = new Set<Listener<string | null>>();
   let windowStart = 0;
   let sentInWindow = 0;
   let warned = false;
   const aurora = {
     data: project.data as Record<string, unknown[]>,
     theme: project.mode as "light" | "dark",
+    /** Linked focus: what the reader is pointing at anywhere on the view (a region, a part), or null. */
+    focus: null as string | null,
+    onFocus(cb: Listener<string | null>) {
+      focusListeners.add(cb);
+      return () => focusListeners.delete(cb);
+    },
+    /** Point at something: every item of the view lights it up. null lets go. */
+    setFocus(value: string | null) {
+      const v = value == null || value === "" ? null : String(value).slice(0, 200);
+      if (v === aurora.focus) return;
+      aurora.focus = v;
+      for (const cb of focusListeners) cb(v);
+      post({ type: "focus", value: v });
+    },
     onData(cb: Listener<Record<string, unknown[]>>) {
       dataListeners.add(cb);
       return () => dataListeners.delete(cb);
@@ -88,11 +103,15 @@ export function auroraBootstrap(): void {
 
   addEventListener("message", (e) => {
     if (e.source !== window.parent) return;
-    const m = e.data as { __aurora?: boolean; type?: string; data?: Record<string, unknown[]>; mode?: "light" | "dark" };
+    const m = e.data as { __aurora?: boolean; type?: string; data?: Record<string, unknown[]>; mode?: "light" | "dark"; value?: string | null };
     if (!m?.__aurora) return;
     if (m.type === "data" && m.data) {
       aurora.data = m.data;
       for (const cb of dataListeners) cb(m.data);
+    } else if (m.type === "focus" && m.value !== undefined) {
+      if (m.value === aurora.focus) return;
+      aurora.focus = m.value;
+      for (const cb of focusListeners) cb(m.value);
     } else if (m.type === "theme" && m.mode) {
       aurora.theme = m.mode;
       document.documentElement.classList.toggle("dark", m.mode === "dark");

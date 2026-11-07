@@ -7,3 +7,4 @@ export { useClock, ControlBar, type Clock } from "./controls.tsx";
 export { Reveal, Stagger, EASE } from "./Reveal.tsx";
 export { PhaseDial, Legend } from "./PhaseDial.tsx";
 export { useToken, readToken, onTheme } from "./tokens.ts";
+export { useFocus } from "./focus.ts";

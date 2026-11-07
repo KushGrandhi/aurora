@@ -491,3 +491,9 @@ figcaption { font-size: 12px; color: var(--ink2); margin-top: 6px; }
   .app.immersive { grid-template-columns: minmax(0, 1fr); }
   .app.immersive .side { display: none; }
 }
+
+/* Linked focus: what the reader points at, lit up in every item. */
+::highlight(aurora-focus) { background-color: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--ink); }
+tbody tr { transition: opacity 180ms var(--ease), background 180ms var(--ease); }
+tbody:has(tr.focused) tr:not(.focused) { opacity: 0.45; }
+tbody tr.focused td { background: color-mix(in srgb, var(--accent) 9%, transparent); }

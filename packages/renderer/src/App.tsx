@@ -7,6 +7,7 @@ import { ENTER_EASE, MotionRoot, SPRING } from "./motion.tsx";
 import { VersionStrip } from "./components/VersionStrip.tsx";
 import { FilterBar } from "./components/FilterBar.tsx";
 import { Hero } from "./components/Hero.tsx";
+import { FocusProvider } from "./focus.tsx";
 import { PageView } from "./components/PageView.tsx";
 import { ItemFrame } from "./components/ItemFrame.tsx";
 import { Variants } from "./components/Variants.tsx";
@@ -186,6 +187,7 @@ export function App() {
 
   return (
     <MotionRoot>
+    <FocusProvider resetKey={currentId}>
     <div className={`app${pageItem ? " page-mode" : heroItem ? " immersive" : ""}`} style={paletteVars as React.CSSProperties | undefined}>
       <aside className="side">
         <div className="brand"><span className="mark" />aurora<span className={`conn${up ? " up" : ""}`} title={up ? "connected" : "reconnecting"} /></div>
@@ -269,6 +271,7 @@ export function App() {
           onChoose={(i) => { send({ t: "pick", viewId: compare.viewId, version: compare.items[i].version }); setCompare(undefined); }} onClose={() => setCompare(undefined)} />
       )}
     </AnimatePresence>
+    </FocusProvider>
     </MotionRoot>
   );
 }

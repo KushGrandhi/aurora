@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Maximize2, Monitor, Smartphone, Tablet } from "lucide-react";
 import type { Custom, Design as DesignC } from "@aurora/spec";
 import { mountFrame } from "../design/bridge.ts";
+import { useFocus } from "../focus.tsx";
 import { compileProject } from "../design/compile.ts";
 import { buildSrcdoc } from "../design/srcdoc.ts";
 import type { RenderCtx, Viewport } from "../registry.tsx";
@@ -19,7 +20,7 @@ const heroHeight = () => Math.round(Math.max(420, window.innerHeight));
 function Frame({ spec, ready, on }: {
   spec: FrameSpec;
   ready: boolean;
-  on: React.RefObject<{ ready(id: number): void; error(id: number, m: string): void; navigate(id: number): void; height(id: number, px: number): void; send(name: string, p: unknown): void; stuck(id: number): void; lint(id: number, w: string[]): void; register(id: number, c: Controller | undefined): void }>;
+  on: React.RefObject<{ ready(id: number): void; error(id: number, m: string): void; navigate(id: number): void; height(id: number, px: number): void; send(name: string, p: unknown): void; stuck(id: number): void; lint(id: number, w: string[]): void; focus(v: string | null): void; register(id: number, c: Controller | undefined): void }>;
 }) {
   const ref = useRef<HTMLIFrameElement>(null);
   useEffect(() => {
@@ -31,6 +32,7 @@ function Frame({ spec, ready, on }: {
       onSend: (name, payload) => h().send(name, payload),
       onNavigate: () => h().navigate(spec.id),
       onLint: (w) => h().lint(spec.id, w),
+      onFocus: (v) => h().focus(v),
     });
     h().register(spec.id, ctl);
     const timer = setTimeout(() => h().stuck(spec.id), STUCK_MS);
@@ -64,8 +66,9 @@ export default function Design({ c, ctx }: { c: DesignC | Custom; ctx: RenderCtx
   const seq = useRef(0);
   const stuckIds = useRef(new Set<number>());
   const controllers = useRef(new Map<number, Controller>());
-  const latest = useRef({ ctx, data, mode: ctx.mode, assets, fixedHeight: ctx.page ? 0 : c.height ?? (ctx.bleed ? heroHeight() : undefined) });
-  latest.current = { ctx, data, mode: ctx.mode, assets, fixedHeight: ctx.page ? 0 : c.height ?? (ctx.bleed ? heroHeight() : undefined) };
+  const focus = useFocus();
+  const latest = useRef({ ctx, data, mode: ctx.mode, assets, focus, fixedHeight: ctx.page ? 0 : c.height ?? (ctx.bleed ? heroHeight() : undefined) });
+  latest.current = { ctx, data, mode: ctx.mode, assets, focus, fixedHeight: ctx.page ? 0 : c.height ?? (ctx.bleed ? heroHeight() : undefined) };
 
   // Compile and start a new frame whenever the files change; the old frame stays until the new one is ready.
   useEffect(() => {
@@ -129,13 +132,18 @@ export default function Design({ c, ctx }: { c: DesignC | Custom; ctx: RenderCtx
       // Drawn and checked. A design that finishes after its stuck warning is working after all: take the warning back.
       latest.current.ctx.report(true, undefined, stuckIds.current.has(id));
     },
+    focus(v: string | null) {
+      latest.current.focus.set(v);
+    },
     register(id: number, ctl: Controller | undefined) {
+      if (ctl) ctl.setFocus(latest.current.focus.value);
       if (ctl) controllers.current.set(id, ctl);
       else controllers.current.delete(id);
     },
   });
 
   useEffect(() => { controllers.current.get(newest())?.setData(data); }, [dataKey]);
+  useEffect(() => { for (const ctl of controllers.current.values()) ctl.setFocus(focus.value); }, [focus.value]);
   useEffect(() => { for (const ctl of controllers.current.values()) ctl.setTheme(ctx.mode); }, [ctx.mode]);
   useEffect(() => { if (c.height !== undefined) setHeight(c.height); }, [c.height]);
 

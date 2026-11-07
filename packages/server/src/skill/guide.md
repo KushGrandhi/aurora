@@ -67,6 +67,7 @@ Before using a component for the first time, read its fields and example in `ref
 
 - Every id (view, section, item, query, dataset) matches `^[A-Za-z_]\w*$` and is unique in the view. Patches find things by id, so keep ids stable.
 - The screen reads like an article: the view `title` and `summary` are the page headline (on a hero they sit on the stage), and each section `title` is a large heading. Write them as short headlines that say the point ("East leads, barely"), not labels ("Data"). Items sit on the page without boxes.
+- **Everything is linked.** Pointing at a value anywhere (a bar, a table row, a part in a design) lights the same value up in every item: charts dim the rest, tables mark the row, prose highlights the word. Use the same names across items (the chart's category, the table's column, the design's part) and mention them in prose, so a view explores as one thing.
 - `palette` (optional): `{"accent": "#hex", "series": ["#hex", …]}` gives the view colours drawn from its subject; the screen, charts and designs all use it.
 - `layout: "grid"` places items on 12 columns with `span`. `layout: "tabs"` shows each item as a tab named by its `title`.
 - A section may start with `"items": []`; you fill it with patches.

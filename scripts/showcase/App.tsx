@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Legend, Panel, Scene, Stage, Stat, useClock } from "aurora/kit";
+import { Legend, Panel, Scene, Stage, Stat, useClock, useFocus } from "aurora/kit";
 import Bars, { type Row } from "./Bars";
 
 type Bridge = { data?: Record<string, unknown[]>; onData?(cb: (d: Record<string, unknown[]>) => void): (() => void) | void; send?(name: string, payload: unknown): void };
@@ -20,17 +20,21 @@ const money = (n: number) => n.toLocaleString("en-US", { style: "currency", curr
 export default function App() {
   const rows = useRows("by_region");
   const clock = useClock();
-  const [selected, setSelected] = useState<string | null>(null);
+  // Pointing at a column focuses its region across the whole view (the chart, the table and the prose below light it
+  // up); a click pins it and tells the caller.
+  const [focus, setFocus] = useFocus();
+  const [pinned, setPinned] = useState<string | null>(null);
+  const selected = focus ?? pinned;
   const pick = (region: string) => {
-    const next = selected === region ? null : region;
-    setSelected(next);
+    const next = pinned === region ? null : region;
+    setPinned(next);
     bridge()?.send?.("region", { region: next }); // the caller hears the click through aurora's events
   };
   const total = rows.reduce((n, r) => n + r.revenue, 0);
   const sel = rows.find((r) => r.region === selected);
 
   return (
-    <Stage scene={<Scene camera={[7, 4.2, 10.5]} target={[0, 0.4, 0]}><Bars rows={rows} selected={selected} onPick={pick} clock={clock} /></Scene>}>
+    <Stage scene={<Scene camera={[7, 4.2, 10.5]} target={[0, 0.4, 0]}><Bars rows={rows} selected={selected} onPick={pick} onHover={setFocus} clock={clock} /></Scene>}>
       {/* In a hero the screen shows the view's title and summary on the left: the design adds only what changes. */}
       <Panel at="top-right">
         <Stat label={sel ? sel.region : "All regions"} value={money(sel ? sel.revenue : total)}

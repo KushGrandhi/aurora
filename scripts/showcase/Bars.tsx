@@ -8,7 +8,7 @@ const COLORS = ["--s1", "--s2", "--s3", "--s4", "--s5", "--s6"];
 
 // One bar: a glass column with a glowing fill that grows to its value. Height eases toward the target every frame,
 // so when a filter changes the data the bars glide to their new size instead of jumping.
-function Bar({ x, target, color, active, onPick }: { x: number; target: number; color: string; active: boolean; onPick(): void }) {
+function Bar({ x, target, color, active, onPick, onHover }: { x: number; target: number; color: string; active: boolean; onPick(): void; onHover(on: boolean): void }) {
   const fill = useRef<Group>(null);
   useFrame((_, dt) => {
     const g = fill.current!;
@@ -17,7 +17,8 @@ function Bar({ x, target, color, active, onPick }: { x: number; target: number; 
     g.position.y = h / 2;
   });
   return (
-    <group position-x={x} onClick={(e) => (e.stopPropagation(), onPick())}>
+    <group position-x={x} onClick={(e) => (e.stopPropagation(), onPick())}
+      onPointerOver={(e) => (e.stopPropagation(), onHover(true))} onPointerOut={() => onHover(false)}>
       <mesh position-y={1.6}>
         <boxGeometry args={[0.8, 3.2, 0.8]} />
         <Glass opacity={active ? 0.2 : 0.08} />
@@ -37,7 +38,7 @@ function Bar({ x, target, color, active, onPick }: { x: number; target: number; 
 }
 
 /** Revenue by region as glowing glass columns. Reads rows from the view's query, so filters reshape it live. */
-export default function Bars({ rows, selected, onPick }: { rows: Row[]; selected: string | null; onPick(region: string): void; clock: Clock }) {
+export default function Bars({ rows, selected, onPick, onHover }: { rows: Row[]; selected: string | null; onPick(region: string): void; onHover(region: string | null): void; clock: Clock }) {
   const max = Math.max(1, ...rows.map((r) => r.revenue));
   const gap = 1.3;
   const x0 = -((rows.length - 1) * gap) / 2;
@@ -49,7 +50,7 @@ export default function Bars({ rows, selected, onPick }: { rows: Row[]; selected
       </mesh>
       {rows.map((r, i) => (
         <group key={r.region}>
-          <Bar x={x0 + i * gap} target={(r.revenue / max) * 3} color={COLORS[i % COLORS.length]} active={selected === r.region} onPick={() => onPick(r.region)} />
+          <Bar x={x0 + i * gap} target={(r.revenue / max) * 3} color={COLORS[i % COLORS.length]} active={selected === r.region} onPick={() => onPick(r.region)} onHover={(on) => onHover(on ? r.region : null)} />
           <Label at={[x0 + i * gap, (r.revenue / max) * 3 + 0.25, 0.45]}>{r.region}</Label>
         </group>
       ))}

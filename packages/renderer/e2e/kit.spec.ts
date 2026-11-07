@@ -168,3 +168,22 @@ export default function App() { return <Stage scene={<Scene><mesh><boxGeometry /
   const { left, width } = await f.locator("#tl").evaluate((el) => ({ left: (el.closest("[data-kit-panel]") as HTMLElement).getBoundingClientRect().left, width: innerWidth }));
   expect(left).toBeGreaterThanOrEqual(width * 0.18);
 });
+
+test("useFocus links a kit scene to the rest of the view", async ({ page, request }) => {
+  const app = `import { useFocus } from "aurora/kit";
+export default function App() {
+  const [focus, setFocus] = useFocus();
+  return <div><p id="v">{focus ?? "none"}</p><button id="b" onMouseEnter={() => setFocus("West")} onMouseLeave={() => setFocus(null)}>West</button></div>;
+}`;
+  await page.goto("/#kit11");
+  await expect(page.locator(".conn.up")).toBeVisible();
+  const r = await request.post("/api/views", { data: { view: { v: 2, id: "kit11", title: "Kit", datasets: { d: { inline: [{ region: "East" }, { region: "West" }] } }, queries: { q: { sql: "SELECT region FROM d ORDER BY region" } },
+    sections: [{ id: "s", layout: "grid", items: [{ id: "d", span: 6, c: design(app, { height: 200 }) }, { id: "t", span: 6, c: { type: "table", query: "q" } }] }] } } });
+  expect(r.status()).toBe(200);
+  const f = frame(page);
+  await expect(f.locator("#v")).toHaveText("none");
+  await f.locator("#b").hover();
+  await expect(page.locator('[data-item="t"] tr.focused')).toContainText("West");
+  await page.locator('[data-item="t"] tr', { hasText: "East" }).hover();
+  await expect(f.locator("#v")).toHaveText("East");
+});

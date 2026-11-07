@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { flexRender, getCoreRowModel, getSortedRowModel, useReactTable, type ColumnDef, type SortingState } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { useFocus } from "../focus.tsx";
 import { humanizeField, inferFormat, type Component, type Format, type QueryResult } from "@aurora/spec";
 import { formatValue } from "../format.ts";
 
@@ -19,7 +20,15 @@ function cell(v: unknown, type: string, fmt: Format | undefined): string {
   return String(v);
 }
 
+/** The value a row stands for in linked focus: its first name-like text cell (not a date, not a number). */
+const rowKey = (row: Record<string, unknown>) => {
+  const v = Object.values(row).find((x) => typeof x === "string" && x.trim() !== "" && !/^\d{4}-\d{2}(-\d{2})?/.test(x) && isNaN(Number(x)));
+  return v === undefined ? null : String(v);
+};
+const rowHas = (row: Record<string, unknown>, focus: string) => Object.values(row).some((x) => x != null && String(x) === focus);
+
 export function Table({ c, result }: { c: TableC; result: QueryResult }) {
+  const focus = useFocus();
   const [sorting, setSorting] = useState<SortingState>([]);
   const cols = useMemo<ColumnDef<Row>[]>(() => {
     const wanted = c.columns?.length ? result.columns.filter((x) => c.columns!.includes(x.name)) : result.columns;
@@ -66,7 +75,8 @@ export function Table({ c, result }: { c: TableC; result: QueryResult }) {
             {items.map((vi) => {
               const r = rows[vi.index];
               return (
-                <tr key={r.id}>
+                <tr key={r.id} className={focus.value !== null && rowHas(r.original as Record<string, unknown>, focus.value) ? "focused" : undefined}
+                  onMouseEnter={() => focus.set(rowKey(r.original as Record<string, unknown>))} onMouseLeave={() => focus.set(null)}>
                   {r.getVisibleCells().map((cl) => (
                     <td key={cl.id} className={(cl.column.columnDef.meta as { numeric?: boolean })?.numeric ? "num" : undefined}>
                       {flexRender(cl.column.columnDef.cell, cl.getContext())}

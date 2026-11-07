@@ -3,23 +3,58 @@ import embed from "vega-embed";
 import type { Component, QueryResult } from "@aurora/spec";
 import { vegaConfig, type Mode } from "../theme.ts";
 import { prepareVegaLite } from "../vegaPrep.ts";
+import { useFocus } from "../focus.tsx";
 
 type ChartC = Extract<Component, { type: "chart" }>;
+type Spec = Record<string, unknown> & { encoding?: Record<string, { field?: string; type?: string } | undefined>; params?: unknown[] };
+
+/**
+ * Linked focus for a single-view chart: the field that names each mark (its first nominal or ordinal channel). Marks
+ * whose value isn't focused dim through a Vega signal, so focusing never redraws the chart.
+ */
+function focusField(spec: Spec): string | undefined {
+  if (!spec.encoding || "layer" in spec || "concat" in spec || "hconcat" in spec || "vconcat" in spec || "facet" in spec || "repeat" in spec || spec.encoding.opacity) return undefined;
+  for (const ch of ["y", "x", "color", "theta", "row", "column"]) {
+    const e = spec.encoding[ch];
+    if (e?.field && (e.type === "nominal" || e.type === "ordinal")) return e.field;
+  }
+  return undefined;
+}
+function withFocus(spec: Spec, field: string): Spec {
+  const test = `aurora_focus === null || datum[${JSON.stringify(field)}] + '' === aurora_focus`;
+  return { ...spec, params: [...(spec.params ?? []), { name: "aurora_focus", value: null }], encoding: { ...spec.encoding, opacity: { condition: { test, value: 1 }, value: 0.22 } as never } };
+}
 
 export function Chart({ c, result, mode, series, onDrawn }: { c: ChartC; result: QueryResult; mode: Mode; series?: readonly string[]; onDrawn?: (ok: boolean, message?: string) => void }) {
   const seriesKey = series?.join(",");
+  const focus = useFocus();
+  const setFocus = useRef(focus.set);
+  setFocus.current = focus.set;
+  const viewRef = useRef<{ signal(n: string, v: unknown): { runAsync(): Promise<unknown> } } | undefined>();
+  const focusValue = useRef(focus.value);
+  focusValue.current = focus.value;
   const ref = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string>();
   const drawn = useRef(false);
   useEffect(() => {
     if (!ref.current) return;
     let view: { finalize(): void } | undefined;
+    const base = { autosize: { type: "fit-x", contains: "padding" }, height: 260, ...prepareVegaLite(c.vegaLite, result.rows), width: "container", data: { values: result.rows } } as Spec;
+    const field = focusField(base);
     let cancelled = false;
-    const spec = { autosize: { type: "fit-x", contains: "padding" }, height: 260, ...prepareVegaLite(c.vegaLite, result.rows), width: "container", data: { values: result.rows } };
+    const spec = field ? withFocus(base, field) : base;
     embed(ref.current, spec as never, { actions: false, renderer: "svg", config: vegaConfig(mode, series) as never, tooltip: { theme: mode } as never })
       .then((r) => {
         if (cancelled) return r.finalize();
         view = r;
+        if (field) {
+          const v = r.view as unknown as { signal(n: string, v: unknown): { runAsync(): Promise<unknown> }; addEventListener(t: string, h: (e: unknown, item?: { datum?: Record<string, unknown> }) => void): void };
+          viewRef.current = v;
+          v.addEventListener("mouseover", (_e, item) => { const d = item?.datum?.[field]; if (d != null) setFocus.current(String(d)); });
+          v.addEventListener("mouseout", () => setFocus.current(null));
+          const now = focusValue.current;
+          if (now !== null && result.rows.some((row) => Object.values(row).some((x) => x != null && String(x) === now))) void v.signal("aurora_focus", now).runAsync();
+        }
         setError(undefined);
         onDrawn?.(true);
         if (!drawn.current) {
@@ -33,9 +68,13 @@ export function Chart({ c, result, mode, series, onDrawn }: { c: ChartC; result:
       });
     return () => {
       cancelled = true;
+      viewRef.current = undefined;
       view?.finalize();
     };
   }, [c, result, mode, seriesKey]);
+  // Dim only when this chart shows the focused value; otherwise it has nothing to point at and stays fully lit.
+  const shown = (v: string | null) => v !== null && result.rows.some((r) => Object.values(r).some((x) => x != null && String(x) === v)) ? v : null;
+  useEffect(() => { void viewRef.current?.signal("aurora_focus", shown(focus.value)).runAsync().catch(() => {}); }, [focus.value, result]);
   return error ? <div className="note">Couldn't draw this chart: {error}</div> : <div className="chart" ref={ref} />;
 }
 
