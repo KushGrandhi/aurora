@@ -74,8 +74,9 @@ export function App() {
   const conn = useRef<Conn>();
   const [up, setUp] = useState(false);
   const [picked, setPicked] = useState<string | undefined>(() => location.hash.slice(1) || undefined);
-  // #/views is the list of every view; any other hash is a view, shown on the whole screen.
-  const onViews = picked === "/views";
+  // A bare address (or #/views) is the list of every view; #<id> is that view, on the whole screen.
+  const onViews = !picked || picked === "/views";
+  const [listed, setListed] = useState(false); // the server has sent the list of views
   const [preview, setPreview] = useState<{ viewId: string; version: number; view: View }>();
   const [opened, setOpened] = useState<string>(); // design item opened as the whole screen
   const [variantsClosed, setVariantsClosed] = useState<string>(); // key of the variants set the person dismissed
@@ -91,6 +92,7 @@ export function App() {
     setState(r.state);
     if (r.reload) return location.reload(); // the server now serves a newer screen
     if (r.need) send(r.need);
+    if (e.t === "list") setListed(true);
     if (r.follow) {
       location.hash = r.follow;
       setPicked(r.follow);
@@ -109,7 +111,12 @@ export function App() {
   }, []);
 
   const list = state.list;
-  const currentId = (picked && state.views[picked] ? picked : undefined) ?? list.find((l) => state.views[l.id])?.id;
+  // Only the view the address names: never another one in its place.
+  const currentId = !onViews && picked && state.views[picked] ? picked : undefined;
+  // The screen is sent the newest views when it connects; an older one is fetched when the address names it.
+  const known = !onViews && !!picked && list.some((l) => l.id === picked);
+  const missing = !onViews && !!picked && listed && !known && !state.views[picked];
+  useEffect(() => { if (known && !state.views[picked!] && up) send({ t: "sync", viewId: picked! }); }, [known, picked, up]);
   const live = currentId ? state.views[currentId] : undefined;
   const showing = preview && preview.viewId === currentId ? preview : undefined;
   const view = showing?.view ?? live?.view;
@@ -248,8 +255,13 @@ export function App() {
           {!view || !currentId ? (
             <div className="empty">
               <HomeLink up={up} />
-              <div><div className="big">Nothing on screen yet</div>
-              <p>Ask your assistant to show something with aurora, and it will build itself here.</p></div>
+              {missing ? (
+                <div data-missing={picked}><div className="big">There's no view called “{picked}”</div>
+                <p>It may have been removed, or the address has a typo. <a href="#/views">See every view</a>.</p></div>
+              ) : !listed || known ? null : (
+                <div><div className="big">Nothing on screen yet</div>
+                <p>Ask your assistant to show something with aurora, and it will build itself here.</p></div>
+              )}
             </div>
           ) : (
             <>

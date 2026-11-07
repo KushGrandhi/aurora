@@ -146,3 +146,25 @@ test("on a phone a hero view stacks the title above the stage", async ({ page, r
   expect(scene.width).toBeGreaterThanOrEqual(390 - 60);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
+
+test("the bare address is the list of views; an address names one view and never shows another in its place", async ({ page, request }) => {
+  test.setTimeout(90_000);
+  const plain = (id: string) => ({ v: 2, id, title: `View ${id}`, sections: [{ id: "s", layout: "grid", items: [{ id: "t", c: { type: "text", md: `This is ${id}.` } }] }] });
+  // an older view than the screen is sent on connect (it gets the newest 20)
+  expect((await request.post("/api/views", { data: { view: plain("old0") } })).status()).toBe(200);
+  const posted = await Promise.all(Array.from({ length: 21 }, (_, i) => request.post("/api/views", { data: { view: plain(`newer${i + 1}`) } })));
+  for (const r of posted) expect(r.status()).toBe(200);
+  await page.goto("/");
+  await expect(page.locator(".views-title")).toHaveText("Views");
+  await expect(page.locator(".app")).toHaveCount(0);
+  // a view that isn't loaded yet is fetched, not swapped for the newest
+  await page.goto("/#old0");
+  await expect(page.locator('[data-item="t"]')).toHaveText("This is old0.");
+  await expect(page.locator("h1")).toHaveText("View old0");
+  // an address that names no view says so
+  await page.goto("/#nope_such_view");
+  await expect(page.locator("[data-missing]")).toContainText("no view called “nope_such_view”");
+  await expect(page.locator("h1")).toHaveCount(0);
+  await page.locator('[data-missing] a[href="#/views"]').click();
+  await expect(page.locator(".views-title")).toBeVisible();
+});
