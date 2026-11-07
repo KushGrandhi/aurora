@@ -61,7 +61,7 @@ function bounds(d: MapData): LngLatBoundsLike | undefined {
 
 function style(d: MapData, opts: MapOpts): StyleSpecification {
   const t = opts.theme;
-  const land = opts.mode === "dark" ? "#242422" : "#efeee9";
+  const land = t.stage.skeletonA;
   const { breaks, colors } = choroplethClasses(Object.values(d.choropleth?.values ?? {}), t.sequential);
   const valueColor = breaks.length ? (["step", ["get", "v"], colors[0], ...breaks.flatMap((b, i) => [b, colors[i + 1]])] as never) : colors[2];
   const tiles = d.tiles === "osm";
@@ -79,7 +79,7 @@ function style(d: MapData, opts: MapOpts): StyleSpecification {
       { id: "land", type: "fill", source: "countries", paint: { "fill-color": land } },
       ...(tiles ? [{ id: "osm", type: "raster" as const, source: "osm", paint: { "raster-opacity": 0.85 } }] : []),
       { id: "choropleth", type: "fill", source: "countries", filter: ["has", "v"], paint: { "fill-color": valueColor, "fill-opacity": tiles ? 0.75 : 1 } },
-      { id: "borders", type: "line", source: "countries", paint: { "line-color": opts.mode === "dark" ? "#3a3a37" : t.axis, "line-width": 0.6 } },
+      { id: "borders", type: "line", source: "countries", paint: { "line-color": t.axis, "line-width": 0.6 } },
       { id: "routes", type: "line", source: "routes", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": t.categorical[1], "line-width": 2 } },
       { id: "points", type: "circle", source: "points", paint: {
         "circle-color": t.categorical[0],

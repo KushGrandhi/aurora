@@ -1,4 +1,4 @@
-import { TOKENS } from "../theme.ts";
+import { TOKENS, type Stage } from "../theme.ts";
 
 /**
  * aurora's design language as CSS variables inside every design sandbox, so a design matches the screen around it
@@ -17,6 +17,13 @@ const COLORS = ["page", "surface", "raised", "ink", "ink-2", "muted", "hair", "l
 function vars(mode: "light" | "dark"): string {
   const series = TOKENS[mode].series.map((c, i) => `--s${i + 1}: ${c};`);
   return [...Object.entries(BASE[mode]).map(([k, v]) => `--${k}: ${v};`), ...series].join(" ");
+}
+
+/** A view's own stage as the sandbox's variables (hex throughout, so three.js materials read them exactly). */
+export function stageCss(t: Stage): string {
+  const v: Record<string, string> = { page: t.page, surface: t.surface, raised: t.raised, ink: t.ink, "ink-2": t.ink2, muted: t.muted, hair: t.hair, line: t.line,
+    accent: t.accent, good: t.good, bad: t.bad, warn: t.warn, shadow: t.shadow, ...Object.fromEntries(t.series.map((c, i) => [`s${i + 1}`, c])) };
+  return `${Object.entries(v).map(([k, c]) => `--${k}: ${c};`).join(" ")} color-scheme: ${t.mode};`;
 }
 
 /** Plain CSS: the variables for light (:root) and dark (.dark on <html>, set by aurora's theme). */

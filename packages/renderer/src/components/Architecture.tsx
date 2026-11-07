@@ -125,7 +125,7 @@ export default function Architecture({ c, ctx }: { c: ArchC; ctx: RenderCtx }) {
                 onMouseEnter={() => setHover(n.id)}
                 onMouseLeave={() => setHover(undefined)}
               >
-                <rect width={b.w} height={b.h} rx={14} fill={ctx.mode === "dark" ? "#1f1f1d" : "#ffffff"} stroke={t.hair} filter={`url(#${uid}-shadow)`} />
+                <rect width={b.w} height={b.h} rx={14} fill={t.stage.raised} stroke={t.hair} filter={`url(#${uid}-shadow)`} />
                 <rect x={12} y={(b.h - 32) / 2} width={32} height={32} rx={9} fill={t.categorical[0]} fillOpacity={0.12} />
                 <Icon x={18} y={(b.h - 20) / 2} width={20} height={20} color={t.categorical[0]} strokeWidth={1.9} />
                 <text x={54} y={n.note ? b.h / 2 - 3 : b.h / 2} dy={n.note ? 0 : "0.35em"} className="arch-label" fill={t.ink}>{clip(n.label, maxChars)}</text>

@@ -1,18 +1,20 @@
 // Adapter for text diagrams. Only this file knows the engine (Mermaid); it loads on first use.
-import type { Mode } from "../theme.ts";
-import { TOKENS } from "../theme.ts";
+import type { Stage } from "../theme.ts";
+import { mix } from "@aurora/spec";
 
-export type DiagramEngine = { render(id: string, source: string, mode: Mode): Promise<{ svg: string } | { error: string }> };
+export type DiagramEngine = { render(id: string, source: string, stage: Stage): Promise<{ svg: string } | { error: string }> };
 
 type Mermaid = typeof import("mermaid").default;
 let engine: Promise<Mermaid> | undefined;
-let configured: Mode | undefined;
+let configured: string | undefined; // the stage it was configured for: Mermaid's config is global
 let queue: Promise<unknown> = Promise.resolve(); // Mermaid's config is global: one render at a time
 
-function configure(m: Mermaid, mode: Mode) {
-  if (configured === mode) return;
-  const t = TOKENS[mode];
-  const raised = mode === "dark" ? "#1f1f1d" : "#ffffff";
+function configure(m: Mermaid, t: Stage) {
+  const key = JSON.stringify(t);
+  if (configured === key) return;
+  const mode = t.mode;
+  const raised = t.raised;
+  const tint = (n: number) => mix(t.page, t.ink, n);
   m.initialize({
     startOnLoad: false,
     securityLevel: "strict",
@@ -26,13 +28,13 @@ function configure(m: Mermaid, mode: Mode) {
       primaryColor: raised,
       primaryTextColor: t.ink,
       primaryBorderColor: t.axis,
-      secondaryColor: mode === "dark" ? "#24242a" : "#f2f1ee",
-      tertiaryColor: mode === "dark" ? "#202020" : "#f7f6f3",
+      secondaryColor: tint(0.06),
+      tertiaryColor: tint(0.03),
       lineColor: t.muted,
       textColor: t.ink,
       mainBkg: raised,
       nodeBorder: t.axis,
-      clusterBkg: mode === "dark" ? "#202020" : "#f7f6f3",
+      clusterBkg: tint(0.03),
       clusterBorder: t.grid,
       edgeLabelBackground: t.surface,
       actorBkg: raised,
@@ -40,20 +42,20 @@ function configure(m: Mermaid, mode: Mode) {
       actorTextColor: t.ink,
       signalColor: t.ink2,
       signalTextColor: t.ink,
-      noteBkgColor: mode === "dark" ? "#2a2617" : "#fdf6e3",
+      noteBkgColor: mix(t.surface, t.warn, 0.12),
       noteTextColor: t.ink,
       noteBorderColor: t.axis,
       accent: t.series[0],
     } as Record<string, unknown>,
   });
-  configured = mode;
+  configured = key;
 }
 
 export const mermaidEngine: DiagramEngine = {
-  render(id, source, mode) {
+  render(id, source, stage) {
     const job = queue.then(async () => {
       const m = await (engine ??= import("mermaid").then((x) => x.default));
-      configure(m, mode);
+      configure(m, stage);
       try {
         await m.parse(source);
         const { svg } = await m.render(id, source);

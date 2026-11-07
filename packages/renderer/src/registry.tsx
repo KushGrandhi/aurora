@@ -1,18 +1,21 @@
 import { lazy, type FC } from "react";
 import type { Component, QueryResult, Palette, Param } from "@aurora/spec";
 import type { MotionApi } from "./motion.tsx";
-import { TOKENS, type Mode } from "./theme.ts";
+import { resolveStage, type Stage } from "@aurora/spec";
+import type { Mode } from "./theme.ts";
 import { Json } from "./components/Json.tsx";
 import { Kpi } from "./components/Kpi.tsx";
 import { Text } from "./components/Text.tsx";
 
-export type Theme = { categorical: readonly string[]; sequential: readonly string[]; ink: string; ink2: string; muted: string; surface: string; hair: string; axis: string };
+export type Theme = { categorical: readonly string[]; sequential: readonly string[]; ink: string; ink2: string; muted: string; surface: string; hair: string; axis: string; stage: Stage };
 
-/** The screen's colours for a theme; a view's own palette (if any) replaces the accent and series colours. */
+/**
+ * The screen's colours: the house theme for the person's mode with the palette's accent and series, or, when the
+ * palette has a `page`, the view's whole stage (its mode then follows the page: read `theme.stage.mode`).
+ */
 export function themeFor(mode: Mode, palette?: Palette): Theme {
-  const t = TOKENS[mode];
-  const series = palette?.series ? [...palette.series, ...t.series.slice(palette.series.length)] : t.series;
-  return { categorical: series, sequential: t.ramp, ink: t.ink, ink2: t.ink2, muted: t.muted, surface: t.surface, hair: t.grid, axis: t.axis };
+  const t = resolveStage(mode, palette);
+  return { categorical: t.series, sequential: t.ramp, ink: t.ink, ink2: t.ink2, muted: t.muted, surface: t.surface, hair: t.grid, axis: t.axis, stage: t };
 }
 
 export type Viewport = "desktop" | "tablet" | "phone";

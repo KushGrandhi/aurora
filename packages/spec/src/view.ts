@@ -2,6 +2,7 @@ import { z } from "zod";
 import { IdSchema, QuerySchema } from "./base.ts";
 import { ParamSchema } from "./params.ts";
 import type { Spec } from "./spec.ts";
+import { stageProblem } from "./stage.ts";
 
 export const DataInputJsonSchema = z.union([
   z.string(),
@@ -33,8 +34,12 @@ export const SectionSchema = z.object({
 export type Section = z.infer<typeof SectionSchema>;
 
 const Hex = z.string().regex(/^#[0-9a-fA-F]{6}$/, "a colour like #c2410c");
-/** A view's own colours: an accent and up to eight series colours, chosen to fit its subject. Both themes use them. */
-export const PaletteSchema = z.object({ accent: Hex.optional(), series: z.array(Hex).min(1).max(8).optional() });
+/**
+ * A view's own colours, chosen to fit its subject. `page` (and optionally `ink`) set the whole stage: the mode follows
+ * the page and aurora derives every other colour from them (see stage.ts). `accent` and `series` work with or without a page.
+ */
+export const PaletteSchema = z.object({ page: Hex.optional(), ink: Hex.optional(), accent: Hex.optional(), series: z.array(Hex).min(1).max(8).optional() })
+  .superRefine((p, ctx) => { const m = stageProblem(p); if (m) ctx.addIssue({ code: "custom", message: m }); });
 export type Palette = z.infer<typeof PaletteSchema>;
 
 export const ViewSchema = z.object({

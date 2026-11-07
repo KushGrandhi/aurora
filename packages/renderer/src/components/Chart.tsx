@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import embed from "vega-embed";
 import { changeset } from "vega";
 import type { Component, QueryResult } from "@aurora/spec";
-import { vegaConfig, type Mode } from "../theme.ts";
+import { vegaConfig, type Stage } from "../theme.ts";
 import { prepareVegaLite } from "../vegaPrep.ts";
 import { useFocus } from "../focus.tsx";
 
@@ -50,8 +50,9 @@ function withFocus(spec: Spec, field: string): Spec {
   return { ...spec, params: [...(spec.params ?? []), { name: "aurora_focus", value: null }], encoding: { ...spec.encoding, opacity: { condition: { test, value: 1 }, value: 0.22 } as never } };
 }
 
-export function Chart({ c, result, mode, series, onDrawn }: { c: ChartC; result: QueryResult; mode: Mode; series?: readonly string[]; onDrawn?: (ok: boolean, message?: string) => void }) {
-  const seriesKey = series?.join(",");
+export function Chart({ c, result, stage, onDrawn }: { c: ChartC; result: QueryResult; stage: Stage; onDrawn?: (ok: boolean, message?: string) => void }) {
+  const mode = stage.mode;
+  const seriesKey = JSON.stringify(stage);
   const focus = useFocus();
   const setFocus = useRef(focus.set);
   setFocus.current = focus.set;
@@ -75,7 +76,7 @@ export function Chart({ c, result, mode, series, onDrawn }: { c: ChartC; result:
     const field = focusField(base);
     let cancelled = false;
     const spec = field ? withFocus(base, field) : base;
-    embed(ref.current, spec as never, { actions: false, renderer: "svg", config: vegaConfig(mode, series) as never, tooltip: { theme: mode } as never })
+    embed(ref.current, spec as never, { actions: false, renderer: "svg", config: vegaConfig(stage) as never, tooltip: { theme: mode } as never })
       .then((r) => {
         if (cancelled) return r.finalize();
         view = r;
@@ -120,5 +121,5 @@ export function Chart({ c, result, mode, series, onDrawn }: { c: ChartC; result:
 }
 
 export default function ChartRenderer({ c, ctx }: { c: ChartC; ctx: import("../registry.tsx").RenderCtx }) {
-  return <Chart c={c} result={ctx.results[c.query]} mode={ctx.mode} series={ctx.palette?.series ? ctx.theme.categorical : undefined} onDrawn={ctx.report} />;
+  return <Chart c={c} result={ctx.results[c.query]} stage={ctx.theme.stage} onDrawn={ctx.report} />;
 }

@@ -13,6 +13,7 @@ import { ItemFrame } from "./components/ItemFrame.tsx";
 import { Variants } from "./components/Variants.tsx";
 import { itemProblem } from "./components/Section.tsx";
 import { themeFor, type RenderCtx } from "./registry.tsx";
+import { stageVars } from "./theme.ts";
 import { mergeReport, mergeWarnings, type Pending } from "./reports.ts";
 import { emptyState, reduce, type State } from "./store.ts";
 import type { Mode } from "./theme.ts";
@@ -27,9 +28,6 @@ function useMode(): [Mode, () => void] {
   const media = matchMedia("(prefers-color-scheme: dark)");
   const stored = (() => { try { return localStorage.getItem("aurora-theme") as Mode | null; } catch { return null; } })();
   const [mode, setMode] = useState<Mode>(stored ?? (media.matches ? "dark" : "light"));
-  useEffect(() => {
-    document.documentElement.dataset.theme = mode;
-  }, [mode]);
   useEffect(() => {
     const on = () => { if (!stored) setMode(media.matches ? "dark" : "light"); };
     media.addEventListener("change", on);
@@ -78,7 +76,7 @@ export function App() {
   const [opened, setOpened] = useState<string>(); // design item opened as the whole screen
   const [variantsClosed, setVariantsClosed] = useState<string>(); // key of the variants set the person dismissed
   const [compare, setCompare] = useState<{ viewId: string; items: { label: string; view: View; version: number }[] }>();
-  const [mode, toggleMode] = useMode();
+  const [chosenMode, toggleMode] = useMode();
   const reduced = useReducedMotion() ?? false;
 
   const send = useCallback((m: ScreenMessage) => conn.current?.send(m), []);
@@ -130,9 +128,16 @@ export function App() {
   const media = (currentId && state.media[currentId]) || undefined;
   const palette = view?.palette;
   const paletteKey = JSON.stringify(palette ?? null);
-  const theme = useMemo(() => themeFor(mode, palette), [mode, paletteKey]);
-  // The view's palette also reaches the screen's own CSS (accents, sparklines, focus) as variables.
-  const paletteVars = useMemo(() => palette ? Object.fromEntries([...(palette.accent ? [["--accent", palette.accent]] : []), ...(palette.series ?? []).map((c, i) => [`--s${i + 1}`, c])]) : undefined, [paletteKey]);
+  const theme = useMemo(() => themeFor(chosenMode, palette), [chosenMode, paletteKey]);
+  // A view that sets its own page sets its own mode; otherwise the person's choice holds.
+  const mode = theme.stage.mode;
+  const ownStage = !!palette?.page;
+  // The stage reaches the whole document (body, sidebar, portals), not just the app: the CSS variables and data-theme.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.dataset.theme = mode;
+    for (const [k, v] of Object.entries(stageVars(theme.stage))) root.style.setProperty(k, v);
+  }, [theme, mode]);
   const paramState = currentId ? state.params[currentId] : undefined;
   const setParam = useCallback((name: string, value: unknown) => { if (currentId && !showing) send({ t: "param", viewId: currentId, name, value }); }, [currentId, showing]);
   const ctxFor = useCallback((item: ViewItem, hero: boolean): RenderCtx => ({
@@ -164,12 +169,16 @@ export function App() {
   const pendingKey = pending ? `${currentId}:${pending.baseVersion}:${pending.items.map((i) => i.label).join("|")}` : undefined;
   const showVariants = !!pending && variantsClosed !== pendingKey;
   const quietCtx = (item: ViewItem, hero: boolean): RenderCtx => ({ ...ctxFor(item, hero), report: () => {}, warn: () => {}, send: () => {}, openPage: undefined });
+  // Each option is drawn on its own stage, so options that differ in colours look different.
   const renderVariant = (v: View, i: number) => {
+    const vTheme = themeFor(chosenMode, v.palette);
+    const vCtx = (item: ViewItem, hero: boolean): RenderCtx => ({ ...quietCtx(item, hero), theme: vTheme, mode: vTheme.stage.mode, palette: v.palette });
+    const style = { ...stageVars(vTheme.stage), background: "var(--page)", color: "var(--ink)" } as React.CSSProperties;
     const items = v.sections.flatMap((s) => s.items);
     const one = items.length === 1 ? items[0] : undefined;
     if (one && (one.c.type === "design" || one.c.type === "custom") && one.c.display === "page")
-      return { page: true, body: <div className="variant-page"><ItemFrame item={one} version={version} ctx={{ ...quietCtx(one, false), page: { viewport: "desktop" } }} showTitle={false} /></div> };
-    return { page: false, body: <div className="view-body">{v.sections.map((s) => <Section key={s.id} section={s} version={version} problems={[]} ctxFor={quietCtx} heroId={undefined} viewId={`variant${i}:${currentId}`} changed={{}} />)}</div> };
+      return { page: true, body: <div className="variant-page" style={style}><ItemFrame item={one} version={version} ctx={{ ...vCtx(one, false), page: { viewport: "desktop" } }} showTitle={false} /></div> };
+    return { page: false, body: <div className="view-body" style={style}>{v.sections.map((s) => <Section key={s.id} section={s} version={version} problems={[]} ctxFor={vCtx} heroId={undefined} viewId={`variant${i}:${currentId}`} changed={{}} />)}</div> };
   };
   const openCompare = (vs: number[]) => {
     if (!currentId) return;
@@ -194,7 +203,7 @@ export function App() {
   return (
     <MotionRoot>
     <FocusProvider resetKey={currentId}>
-    <div className={`app${pageItem ? " page-mode" : heroItem ? " immersive" : ""}`} style={paletteVars as React.CSSProperties | undefined}>
+    <div className={`app${pageItem ? " page-mode" : heroItem ? " immersive" : ""}`} >
       <aside className="side">
         <div className="brand"><span className="mark" />aurora<span className={`conn${up ? " up" : ""}`} title={up ? "connected" : "reconnecting"} /></div>
         {list.length > 0 && <h2>Views</h2>}
@@ -208,7 +217,7 @@ export function App() {
             </li>
           ))}
         </ul>
-        <button className="theme-toggle" onClick={toggleMode}>{mode === "dark" ? "☀︎ Light" : "☾ Dark"}</button>
+        <button className="theme-toggle" onClick={toggleMode} disabled={ownStage} title={ownStage ? "This view sets its own colours" : undefined}>{mode === "dark" ? "☀︎ Light" : "☾ Dark"}</button>
       </aside>
       <main>
         {pageItem && view && currentId ? (

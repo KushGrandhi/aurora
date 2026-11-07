@@ -61,6 +61,7 @@ button { font: inherit; color: inherit; }
 @keyframes breathe { 50% { opacity: 0.35; transform: scale(0.8); } }
 .theme-toggle { margin-top: auto; align-self: flex-start; border: 1px solid var(--hair); background: transparent; border-radius: 999px; padding: 6px 12px; font-size: 12px; color: var(--ink2); cursor: pointer; }
 .theme-toggle:hover { background: var(--hair); }
+.theme-toggle:disabled { opacity: 0.5; cursor: default; background: transparent; }
 
 /* Main */
 main { padding: 44px 48px 64px; min-width: 0; }
@@ -319,6 +320,8 @@ figcaption { font-size: 12px; color: var(--ink2); margin-top: 6px; }
 .code .expand { all: unset; display: block; width: 100%; text-align: center; padding: 8px; font-size: 12px; font-weight: 550; color: var(--accent); cursor: pointer; border-top: 1px solid var(--hair); }
 .code .expand:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 :root[data-theme="dark"] .code-body .shiki, :root[data-theme="dark"] .code-body .shiki span { color-scheme: dark; }
+/* Shiki paints its theme's own background; code sits on the stage instead. */
+.code-body .shiki { background: var(--surface) !important; }
 
 /* Diagram (Mermaid) */
 .diagram { margin: 0; }

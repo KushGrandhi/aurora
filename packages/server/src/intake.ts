@@ -1,5 +1,6 @@
 import { validateView } from "@aurora/engine";
 import {
+  paletteWarnings,
   allIds, applyOps, fromPlan1, getComponent, IdSchema, paramDefault, paramValueVars, paramVars, SpecSchema, sqlVars, validateParamValue, ViewSchema,
   type AuroraEvent, type Param, type PatchOp, type Problem, type QueryResult, type ScreenMessage, type Spec, type View, type ViewEvent,
 } from "@aurora/spec";
@@ -410,6 +411,10 @@ export class Intake {
     const checked = validateView(view, { queryRows, querySql });
     const problems = [...r.dataProblems, ...checked.problems];
     for (const [, q] of r.results) if (q.problem) problems.push(q.problem);
+    // Colours the model chose that are hard to see on the stage (in either theme, when the view doesn't set its page).
+    const seen = new Set<string>();
+    for (const m of [...paletteWarnings("light", view.palette), ...paletteWarnings("dark", view.palette)])
+      if (!seen.has(m)) { seen.add(m); problems.push({ severity: "warning", message: m, hint: "choose a colour with more contrast against the page, or leave it out" }); }
     const media: Record<string, string> = {};
     const lead = checked.view.sections[0]?.items[0]?.id;
     for (const s of checked.view.sections)
