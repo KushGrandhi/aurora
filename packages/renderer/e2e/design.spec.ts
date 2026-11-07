@@ -218,7 +218,8 @@ test("react three fiber and drei render a lit scene offline", async ({ page, req
   }));
   await expect(frame(page).locator("canvas")).toHaveCount(1);
   await expect.poll(async () => (await status(request, "ds3d")).unverified).toEqual([]);
-  expect((await status(request, "ds3d")).problems).toEqual([]);
+  // a 3D scene in a card is flagged as a design warning (see the design-check test); nothing may fail
+  expect((await status(request, "ds3d")).problems.filter((p: { severity: string }) => p.severity === "error")).toEqual([]);
 });
 
 test("design checks warn about overflow, flat drawings and 3D in a card", async ({ page, request }) => {
@@ -239,4 +240,37 @@ test("design checks warn about overflow, flat drawings and 3D in a card", async 
   const s = await status(request, "dslint");
   expect(s.unverified).toEqual([]);
   expect(s.problems.filter((p: { severity: string }) => p.severity === "error")).toEqual([]);
+});
+
+test("a design stays unverified until its design checks report", async ({ page, request }) => {
+  await show(page, request, "dspend", react({ "App.tsx": "export default () => <h1 className='p-4'>checked</h1>;" }));
+  await expect(frame(page).locator("h1")).toHaveText("checked");
+  expect((await status(request, "dspend")).unverified).toContain("d");
+  await expect.poll(async () => (await status(request, "dspend")).unverified, { timeout: 10_000 }).toEqual([]);
+});
+
+test("a design that is never scrolled into view is still checked", async ({ page, request }) => {
+  await page.setViewportSize({ width: 1280, height: 700 });
+  const spacer = { id: "sp", span: 12, c: react({ "App.tsx": "export default () => <div style={{ height: 2000 }} />;" }, { height: 2000 }) };
+  await page.goto("/#dsoff");
+  await expect(page.locator(".conn.up")).toBeVisible();
+  const far = { id: "far", span: 12, c: react({ "App.tsx": "export default () => <div className='p-4'><button className='w-24 whitespace-nowrap overflow-visible'>This label is much too long for its button</button></div>;" }) };
+  expect((await request.post("/api/views", { data: { view: { v: 2, id: "dsoff", title: "Off", sections: [{ id: "s", layout: "grid", items: [spacer, far] }] } } })).status()).toBe(200);
+  await expect.poll(async () => JSON.stringify((await status(request, "dsoff")).problems), { timeout: 12_000 }).toContain("text overflows its box");
+});
+
+test("badges, labels and charts don't trip the box and flat checks", async ({ page, request }) => {
+  const badges = Array.from({ length: 12 }, (_, i) => `<span className='rounded-full bg-surface px-2 py-1 text-xs ring-1 ring-hair shadow-card'>tag ${i}</span>`).join("");
+  const bars = Array.from({ length: 8 }, (_, i) => `<rect x='${40 + i * 40}' y='${200 - i * 15}' width='28' height='${i * 15 + 20}' fill='var(--s1)' /><text x='${54 + i * 40}' y='240' fontSize='11'>${2018 + i}</text>`).join("");
+  const app = `export default () => <div className='flex flex-col gap-4 p-4'><div className='flex flex-wrap gap-2'>${badges}</div><svg width='420' height='260' viewBox='0 0 420 260'><path d='M30 20 V220 H410' stroke='gray' fill='none' />${bars}</svg></div>;`;
+  await show(page, request, "dsfalse", react({ "App.tsx": app }));
+  await expect.poll(async () => (await status(request, "dsfalse")).unverified, { timeout: 10_000 }).toEqual([]);
+  await page.waitForTimeout(3500);
+  expect((await status(request, "dsfalse")).problems).toEqual([]);
+});
+
+test("ten small bordered boxes do trip the box check", async ({ page, request }) => {
+  const boxes = Array.from({ length: 10 }, (_, i) => `<div className='rounded-xl border border-line p-3 text-sm'>Readout ${i}</div>`).join("");
+  await show(page, request, "dssoup", react({ "App.tsx": `export default () => <div className='grid grid-cols-5 gap-2 p-4'>${boxes}</div>;` }));
+  await expect.poll(async () => JSON.stringify((await status(request, "dssoup")).problems), { timeout: 10_000 }).toContain("many small boxed panels");
 });

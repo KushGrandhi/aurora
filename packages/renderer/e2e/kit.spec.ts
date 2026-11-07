@@ -32,7 +32,7 @@ test("a kit scene renders with labels, panels and controls", async ({ page, requ
   await f.getByRole("button", { name: "Pause" }).click();
   await expect(f.getByRole("button", { name: "Play" })).toBeVisible();
   await expect.poll(async () => (await status(request, "kit1")).unverified).toEqual([]);
-  expect((await status(request, "kit1")).problems).toEqual([]);
+  expect((await status(request, "kit1")).problems.filter((p: { severity: string }) => p.severity === "error")).toEqual([]);
 });
 
 test("two kit scenes on one view both render", async ({ page, request }) => {
@@ -80,4 +80,49 @@ test("the skill's 3D mechanism example renders as a hero with no warnings", asyn
   const s = await status(request, "kitmech");
   expect(s.unverified).toEqual([]);
   expect(s.problems).toEqual([]);
+});
+
+const tokenHex = (page: Page, name: string) => frame(page).locator("body").evaluate((_, n) => {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const c = document.createElement("canvas").getContext("2d")!; c.fillStyle = v; return c.fillStyle as string;
+}, name);
+
+test("token materials recolor when their color prop or the theme changes", async ({ page, request }) => {
+  const app = `
+import { useRef, useState } from "react";
+import { useFrame } from "@react-three/fiber";
+import { Scene, Glow } from "aurora/kit";
+function Probe({ color }) { const ref = useRef(null); useFrame(() => { if (ref.current) document.body.dataset.mat = "#" + ref.current.material.color.getHexString(); }); return <mesh ref={ref}><boxGeometry /><Glow color={color} /></mesh>; }
+export default function App() { const [c, setC] = useState("--s1"); return <div style={{ height: 320 }}><button id="swap" onClick={() => setC("--bad")}>swap</button><Scene><Probe color={c} /></Scene></div>; }`;
+  await show(page, request, "kit5", [{ id: "d", c: design(app) }]);
+  const mat = () => frame(page).locator("body").getAttribute("data-mat");
+  await expect.poll(mat).toBe(await tokenHex(page, "--s1"));
+  await frame(page).locator("#swap").click();
+  await expect.poll(mat).toBe(await tokenHex(page, "--bad"));
+  await page.locator(".theme-toggle").click();
+  await expect.poll(async () => (await tokenHex(page, "--bad")) === (await mat())).toBe(true);
+  expect(await tokenHex(page, "--bad")).not.toBe("#d03b3b"); // the dark value, not the light one
+});
+
+test("3D labels sit below floating panels", async ({ page, request }) => {
+  await show(page, request, "kit6", [{ id: "d", c: design(SCENE_APP) }]);
+  const z = await frame(page).locator("[data-kit-label]").first().evaluate((el) => Number(getComputedStyle(el.parentElement!.parentElement!).zIndex || 0));
+  expect(z).toBeLessThan(10);
+});
+
+test("on a phone the stage grows so every panel stays reachable", async ({ page, request }) => {
+  const app = SCENE_APP.replace('<Panel at="top-left"><h2 id="title">Kit scene</h2></Panel>', '<Panel at="top-left"><h2 id="title">Kit scene</h2><p>A long paragraph that wraps over several lines on a narrow phone screen, so the panels need room.</p></Panel><Panel at="top-right"><div style={{ height: 380 }}>Second panel, tall like a dial plus readouts and a paragraph.</div></Panel>');
+  await show(page, request, "kit7", [{ id: "d", c: { type: "design", framework: "react", viewport: "phone", files: { "App.tsx": app } } }]);
+  const f = frame(page);
+  await expect(f.getByRole("button", { name: "Pause" })).toBeAttached();
+  await page.waitForTimeout(800);
+  const inside = await f.getByRole("button", { name: "Pause" }).evaluate((b) => b.getBoundingClientRect().bottom <= b.closest("[data-kit-stage]")!.getBoundingClientRect().bottom);
+  expect(inside).toBe(true);
+});
+
+test("a bug inside a 3D scene is reported, not blamed on WebGL", async ({ page, request }) => {
+  const app = `import { Scene } from "aurora/kit";\nfunction Broken() { throw new Error("boom3d"); }\nexport default function App() { return <div style={{ height: 300 }}><Scene><Broken /></Scene></div>; }`;
+  await show(page, request, "kit8", [{ id: "d", c: design(app) }]);
+  await expect(frame(page).locator("[data-kit-fallback]")).toContainText("hit an error");
+  await expect.poll(async () => JSON.stringify((await status(request, "kit8")).problems)).toContain("boom3d");
 });

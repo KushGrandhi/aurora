@@ -8,10 +8,10 @@ export function Stage({ children, scene, className = "" }: { children?: ReactNod
   return (
     <div
       data-kit-stage
-      className={`relative h-screen min-h-[420px] w-full overflow-hidden text-ink ${className}`}
+      className={`relative h-screen min-h-[420px] w-full overflow-hidden text-ink max-sm:h-auto max-sm:overflow-visible max-sm:pb-3 ${className}`}
       style={{ background: "radial-gradient(ellipse at 50% 38%, var(--raised), var(--page) 72%)" }}
     >
-      <div className="absolute inset-0">{scene}</div>
+      <div className="absolute inset-0 isolate max-sm:relative max-sm:h-[60vh]">{scene}</div>
       {children}
     </div>
   );

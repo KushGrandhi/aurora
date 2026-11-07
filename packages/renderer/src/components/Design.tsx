@@ -92,8 +92,7 @@ export default function Design({ c, ctx }: { c: DesignC | Custom; ctx: RenderCtx
     ready(id: number) {
       setReadyIds((s) => new Set(s).add(id));
       setFrames((f) => f.filter((x) => x.id >= id));
-      // A design that finishes after its stuck warning is working after all: take the warning back.
-      if (id === newest()) latest.current.ctx.report(true, undefined, stuckIds.current.has(id));
+      // Not reported yet: the design counts as verified once its design checks come back (lint, below).
     },
     navigate(id: number) {
       const m = "navigated away to another page (the sandbox has no network: keep everything in the design, and link out with aurora.send)";
@@ -124,7 +123,10 @@ export default function Design({ c, ctx }: { c: DesignC | Custom; ctx: RenderCtx
       });
     },
     lint(id: number, w: string[]) {
-      if (id === newest()) latest.current.ctx.warn?.(w);
+      if (id !== newest()) return;
+      latest.current.ctx.warn?.(w);
+      // Drawn and checked. A design that finishes after its stuck warning is working after all: take the warning back.
+      latest.current.ctx.report(true, undefined, stuckIds.current.has(id));
     },
     register(id: number, ctl: Controller | undefined) {
       if (ctl) controllers.current.set(id, ctl);

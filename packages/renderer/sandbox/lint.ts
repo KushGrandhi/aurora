@@ -16,7 +16,7 @@ function overflow(doc: Document): string | undefined {
     const cs = win.getComputedStyle(h);
     if (/auto|scroll/.test(cs.overflowX) || (cs.overflowX === "hidden" && cs.textOverflow === "ellipsis")) continue;
     if (cs.overflowX === "hidden" || cs.overflowX === "clip") continue; // deliberately clipped
-    worst = h; // later elements are deeper in document order: keep the innermost box that overflows
+    worst = h; // the last overflowing box in document order (usually the innermost one holding the text)
   }
   if (!worst) return undefined;
   const tag = worst.tagName.toLowerCase();
@@ -44,8 +44,24 @@ function flatDrawing(doc: Document): string | undefined {
     return r.width > 200 && r.height > 150;
   });
   if (!svgs.length) return undefined;
-  const flat = svgs.every((s) => !s.querySelector(RICH) && s.querySelectorAll("rect").length >= 6 && !Array.from(s.querySelectorAll("path")).some((p) => /[CcQqAaSs]/.test(p.getAttribute("d") ?? "")));
+  // Outline boxes (stroke, no fill) are parts drawn as wireframes; filled bars with value labels are a chart.
+  const outlines = (s: SVGSVGElement) => Array.from(s.querySelectorAll("rect")).filter((r) => {
+    const cs = doc.defaultView!.getComputedStyle(r);
+    return (cs.fill === "none" || /rgba\([^)]*,\s*0\)/.test(cs.fill)) && cs.stroke !== "none";
+  }).length;
+  const flat = svgs.every((s) => !s.querySelector(RICH) && outlines(s) >= 4 && !Array.from(s.querySelectorAll("path")).some((p) => /[CcQqAaSs]/.test(p.getAttribute("d") ?? "")));
   return flat ? "the drawing is flat boxes and lines: for a mechanism, build it as a 3D scene with aurora/kit (Scene, Metal, Glass, Glow)" : undefined;
+}
+
+/** A visible ring: a box-shadow layer with a non-transparent colour and a spread of at least 1px (Tailwind `ring-*`). */
+function hasRing(shadow: string): boolean {
+  if (!shadow || shadow === "none") return false;
+  return shadow.split(/,(?![^(]*\))/).some((layer) => {
+    const color = layer.match(/rgba?\(([^)]*)\)/);
+    const alpha = color ? Number(color[1].split(",")[3] ?? 1) : 1;
+    const px = (layer.replace(/rgba?\([^)]*\)/, "").match(/-?[\d.]+px/g) ?? []).map(parseFloat);
+    return alpha > 0 && px.length >= 4 && px[3] >= 1;
+  });
 }
 
 function boxSoup(doc: Document): string | undefined {
@@ -55,10 +71,11 @@ function boxSoup(doc: Document): string | undefined {
     if (el instanceof SVGElement || el.closest("svg")) continue;
     const r = el.getBoundingClientRect();
     if (!visible(r) || r.width >= 260 || r.height >= 140 || r.width < 40 || r.height < 24) continue;
+    if (el.closest("[data-kit-label], [data-kit-controls], [data-kit-legend]") || el instanceof HTMLButtonElement || el.tagName === "INPUT") continue;
     const cs = win.getComputedStyle(el);
     const radius = parseFloat(cs.borderTopLeftRadius) || 0;
-    const bordered = (parseFloat(cs.borderTopWidth) || 0) > 0 || /\d+px \d+px 0px [1-9]/.test(cs.boxShadow) || cs.boxShadow.includes("0px 0px 0px");
-    if (radius > 0 && bordered && !(el instanceof HTMLButtonElement) && el.tagName !== "INPUT") n++;
+    if (radius <= 0 || radius >= r.height / 2 - 1) continue; // square corners, or a pill: not a panel
+    if ((parseFloat(cs.borderTopWidth) || 0) > 0 || hasRing(cs.boxShadow)) n++;
   }
   return n > 8 ? "many small boxed panels: group related readouts into one panel and let the main visual carry the page" : undefined;
 }

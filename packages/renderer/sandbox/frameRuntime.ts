@@ -60,12 +60,23 @@ const SETTLE_MS = 700;
  * Measures the design as a person sees it: after entrances settle, and only once the frame is actually painted
  * (animation frames are paused while it is off screen, and some content, like a 3D canvas, only starts then).
  */
+const UNSEEN_MS = 1500;
 function lintWhenSeen() {
-  setTimeout(() => requestAnimationFrame(() => setTimeout(() => {
+  let done = false;
+  const run = () => {
+    if (done) return;
+    done = true;
+    let warnings: string[] = [];
     try {
-      post({ type: "lint", warnings: lintDocument(document, { display: project.display ?? "card" }) });
+      warnings = lintDocument(document, { display: project.display ?? "card" });
     } catch { /* checks never break a design */ }
-  }, SETTLE_MS)), LINT_AFTER_MS);
+    post({ type: "lint", warnings }); // always sent, even empty: it is what marks the design as checked
+  };
+  setTimeout(() => {
+    requestAnimationFrame(() => setTimeout(run, SETTLE_MS));
+    // A frame that is never painted (below the fold, a background tab) gets no animation frames: check it anyway.
+    setTimeout(run, SETTLE_MS + UNSEEN_MS);
+  }, LINT_AFTER_MS);
 }
 const ready = () => {
   post({ type: "ready" });

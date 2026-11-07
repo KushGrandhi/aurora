@@ -59,6 +59,7 @@ A `design` item is a small React + Tailwind (or plain HTML/JS) project that runs
 | A 3D scene in a normal card | Warning `a 3D scene is shown in a card`; it looks small and boxed | `display: "hero"` (first item, sections below) or `"page"` (only item) |
 | A row of fixed-width buttons or long labels | Warning `text overflows its box`; text spills out | `flex flex-wrap`, `min-w-0`, shorter labels |
 | Many small stat boxes | Warning `many small boxed panels`; the page looks like a form | One `Panel` with a few readouts; let the main visual carry the page |
+| drei helpers that download (`Environment preset`, `Text`/`Text3D` fonts, `useGLTF(url)`, HDR skies) | Blocked network request | `Scene` already has lighting; build shapes from three.js geometry; put text in panels or `Label` |
 | Motion set from `clock.t` inside 3D | Movement stutters at 20 steps a second | Move meshes in `useFrame` from `clock.ref.current`; use `clock.t` for text and colours |
 
 ## Problems you may see

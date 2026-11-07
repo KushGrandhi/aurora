@@ -56,3 +56,17 @@ test("compare two versions and use one", async ({ page, request }) => {
   await expect(page.frameLocator('[data-item="d"] iframe').locator("h1")).toHaveText("Original");
   expect((await (await request.get("/api/views/vr3/status")).json()).version).toBe(3);
 });
+
+test("variant previews don't change the live view's design warnings", async ({ page, request }) => {
+  await setup(page, request, "vr9");
+  const scene = "import { Scene, Metal } from 'aurora/kit';\nexport default () => <div style={{ height: 400 }}><Scene><mesh><boxGeometry /><Metal /></mesh></Scene></div>;";
+  const r = await request.post("/api/views/vr9/variants", { data: { variants: [
+    { label: "A", ops: [{ op: "editFile", id: "d", path: "App.tsx", content: scene }, { op: "update", id: "d", item: { c: { display: "card" } } }] },
+    { label: "B", ops: [{ op: "editFile", id: "d", path: "App.tsx", content: scene }, { op: "update", id: "d", item: { c: { display: "card" } } }] },
+  ] } });
+  expect(r.status(), await r.text()).toBe(200);
+  await expect(page.locator(".variants .variant")).toHaveCount(2);
+  await page.waitForTimeout(5000);
+  const s = await (await request.get("/api/views/vr9/status")).json();
+  expect(s.problems.filter((p: { message: string }) => p.message.startsWith("design: "))).toEqual([]);
+});

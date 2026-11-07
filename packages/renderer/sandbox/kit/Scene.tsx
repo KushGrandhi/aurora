@@ -15,21 +15,23 @@ function hasWebGL(): boolean {
   }
 }
 
-function Fallback() {
+function Fallback({ error }: { error?: string }) {
   return (
     <div data-kit-fallback className="grid h-full min-h-40 w-full place-items-center rounded-2xl bg-surface p-6 text-center text-sm text-muted ring-1 ring-hair">
-      3D needs WebGL, which this browser has turned off.
+      {error ? `This 3D scene hit an error: ${error}` : "3D needs WebGL, which this browser has turned off."}
     </div>
   );
 }
 
-class Guard extends Component<{ children: ReactNode }, { failed: boolean }> {
-  state = { failed: false };
-  static getDerivedStateFromError() {
-    return { failed: true };
+/** Keeps a crashing scene from blanking the page. The error still reaches aurora (React logs it), so it is reported. */
+class Guard extends Component<{ children: ReactNode }, { error?: string }> {
+  state: { error?: string } = {};
+  static getDerivedStateFromError(e: unknown) {
+    return { error: String((e as Error)?.message ?? e) };
   }
   render() {
-    return this.state.failed ? <Fallback /> : this.props.children;
+    if (this.state.error === undefined) return this.props.children;
+    return /webgl/i.test(this.state.error) ? <Fallback /> : <Fallback error={this.state.error} />;
   }
 }
 

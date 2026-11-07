@@ -41,3 +41,13 @@
 1. **False "many small boxed panels" warning.** The kit's own 3D labels (rounded pills with a ring) count as boxes, so a scene with six labels trips the check. Heart run b got this warning for doing the right thing. → Stage 4's check must skip kit labels and controls.
 2. **The model reads `status` before the design checks arrive.** Checks report about 2 s after a design draws; both heart runs called `status` once, saw nothing, and said "no design warnings". → The skill should tell the model to check `status` again after a few seconds, or `status` should say checks are still pending.
 3. **Labels can land on a panel.** Heart run a's "aorta to the body" label sits over the top-left panel's text. → A check for labels overlapping panels, or kit labels that sit below panels in stacking order.
+
+## Fixed after the review
+
+A fresh reviewer then read the whole change. It found what the eval missed: token colours in 3D materials never updated (`useToken` mutated one Color in place, and React Three Fiber compares props by reference). So the V8 example's gas kept the colour of the stroke it started in. All of these now have a test that failed first:
+
+- 3D materials recolour on a colour change and on a theme switch.
+- Design checks always report. A frame that is never painted is checked after a timeout, and a design stays `unverified` until its checks arrive. The skill now tells models to check `status` again after a few seconds (eval finding 2).
+- The box check ignores kit labels, controls, legends and pills, and Tailwind's transparent shadow layers (eval finding 1). The flat-drawing check ignores filled bar charts.
+- 3D labels sit below panels (eval finding 3). On phones the stage grows so panels and controls stay reachable.
+- Variant previews no longer overwrite the live view's warnings. A bug inside a 3D scene is reported as itself, not as "WebGL is off".

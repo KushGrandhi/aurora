@@ -148,7 +148,7 @@ export function App() {
   const pending = currentId ? state.variants[currentId] : undefined;
   const pendingKey = pending ? `${currentId}:${pending.baseVersion}:${pending.items.map((i) => i.label).join("|")}` : undefined;
   const showVariants = !!pending && variantsClosed !== pendingKey;
-  const quietCtx = (item: ViewItem, hero: boolean): RenderCtx => ({ ...ctxFor(item, hero), report: () => {}, send: () => {}, openPage: undefined });
+  const quietCtx = (item: ViewItem, hero: boolean): RenderCtx => ({ ...ctxFor(item, hero), report: () => {}, warn: () => {}, send: () => {}, openPage: undefined });
   const renderVariant = (v: View, i: number) => {
     const items = v.sections.flatMap((s) => s.items);
     const one = items.length === 1 ? items[0] : undefined;

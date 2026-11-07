@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Color } from "three";
 
 type Bridge = { onTheme?(cb: (mode: "light" | "dark") => void): (() => void) | void };
@@ -17,19 +17,12 @@ export function onTheme(cb: () => void): () => void {
 }
 
 /**
- * A three.js Color that tracks a token. The same Color instance is updated in place when the theme changes, so a
- * material holding it recolors on the next frame without remounting anything.
+ * A three.js Color for a token that follows the theme. It is a new Color whenever the token or the theme changes:
+ * React Three Fiber compares props by reference, so a new instance is what makes a material pick up the new colour
+ * (it is copied into the existing material; nothing remounts).
  */
 export function useToken(name: string): Color {
-  const color = useRef<Color>();
-  if (!color.current) color.current = new Color(readToken(name));
-  const [, rerender] = useState(0);
-  useEffect(() => {
-    color.current!.set(readToken(name));
-    return onTheme(() => {
-      color.current!.set(readToken(name));
-      rerender((n) => n + 1);
-    });
-  }, [name]);
-  return color.current;
+  const [theme, setTheme] = useState(0);
+  useEffect(() => onTheme(() => setTheme((n) => n + 1)), []);
+  return useMemo(() => new Color(readToken(name)), [name, theme]);
 }

@@ -8,7 +8,7 @@ import { Html } from "@react-three/drei";
 export function Label({ at, children, side = "right" }: { at: [number, number, number]; children: ReactNode; side?: "left" | "right" }) {
   const left = side === "left";
   return (
-    <Html position={at} zIndexRange={[20, 0]} style={{ pointerEvents: "none" }}>
+    <Html position={at} zIndexRange={[9, 0]} style={{ pointerEvents: "none" }}>
       <div data-kit-label className={`flex items-center ${left ? "flex-row-reverse" : ""}`} style={{ transform: `translate(${left ? "-100%" : "0"}, -50%)` }}>
         <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-ink-2" />
         <span className="h-px w-7 shrink-0 bg-ink-2/40" />

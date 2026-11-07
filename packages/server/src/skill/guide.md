@@ -15,7 +15,7 @@ Follow these steps in order, every time.
 5. **Review** your work against **Before you finish** at the end of this file. You cannot see the screen, so this checklist is your eyes.
 6. **Tell** the user the URL in one line. Don't repeat the content in the terminal.
 
-`unverified` in a result means no screen has drawn the item yet. It is not an error: give the URL to the user and stop.
+`unverified` in a result means no screen has drawn and checked the item yet. A `design` stays `unverified` for a few seconds after it draws, while aurora runs its design checks: call `status` again after about 3 seconds and fix any `design:` warning. If it is still `unverified` after that, no screen is open: give the URL to the user and stop.
 
 ## Pick components
 
@@ -112,7 +112,7 @@ aurora's screen is calm, warm-neutral and precise. Everything you build should l
 Every result carries `problems`: `{itemId?, severity, message, hint?}`.
 - `error`: the item failed. Read the message (design errors include `file:line:col`), fix it with `editFile`, `update` or `replace`, and check `status` again.
 - `warning`: it rendered, but something needs attention: a missing media file, or a design check (`design: text overflows…`, `design: the drawing is flat…`, `design: a 3D scene is shown in a card…`). Fix design warnings the way the message says.
-- `unverified`: no screen has drawn it yet. Not a failure.
+- `unverified`: no screen has drawn and checked it yet. Not a failure; for a `design`, check `status` again in a few seconds.
 
 ## Without the MCP tools
 
