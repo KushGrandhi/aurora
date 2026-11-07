@@ -8,7 +8,7 @@ export type CompiledProject = { entry: string; modules: Record<string, { code: s
 type Input = { framework: "react" | "html"; files: Record<string, string>; entry?: string };
 
 export const DEP_TOKEN = "__aurora__/";
-const LIBRARIES = "react, react-dom, motion, lucide-react, three, d3, gsap, @react-three/fiber, @react-three/drei";
+const LIBRARIES = "react, react-dom, motion, lucide-react, three, d3, gsap, @react-three/fiber, @react-three/drei, aurora/kit";
 const EXTS = [".tsx", ".ts", ".jsx", ".js"];
 const SYNTHETIC_ENTRY = "__entry__.js";
 

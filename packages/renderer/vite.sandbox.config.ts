@@ -64,6 +64,7 @@ export default defineConfig({
       entry: {
         ...Object.fromEntries(ESM_ENTRIES.map((e) => [e, `sandbox/${e}.ts`])),
         ...Object.fromEntries(Object.entries(CJS_ENTRIES).map(([name, pkg]) => [name, CJS_PREFIX + pkg])),
+        kit: "sandbox/kit/index.ts",
         runtime: "sandbox/frameRuntime.ts",
       },
     },

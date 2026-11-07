@@ -1,0 +1,9 @@
+// aurora/kit: house-style building blocks for designs. Compose these instead of drawing from scratch.
+export { Scene, type SceneProps } from "./Scene.tsx";
+export { Metal, Glass, Glow, Paint } from "./materials.tsx";
+export { Label } from "./Label.tsx";
+export { Stage, Panel } from "./Stage.tsx";
+export { useClock, ControlBar, type Clock } from "./controls.tsx";
+export { Reveal, Stagger, EASE } from "./Reveal.tsx";
+export { PhaseDial, Legend } from "./PhaseDial.tsx";
+export { useToken, readToken, onTheme } from "./tokens.ts";
