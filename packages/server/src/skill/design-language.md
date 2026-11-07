@@ -1,6 +1,6 @@
 # aurora design language
 
-aurora's screen is calm, warm-neutral and precise: soft off-white (or near-black) surfaces, hairline borders, one blue accent, a small fixed palette for categories, Inter type, and motion that explains rather than decorates. A design you build should feel like it belongs on that screen.
+aurora's screen is calm, warm-neutral and precise: soft off-white (or near-black) surfaces, hairline borders, one blue accent, a small fixed palette for categories, Inter type, and motion that explains rather than decorates. A design you build should feel like it belongs on that screen, and like a finished product: **depth, light and motion**, never a wireframe. There is one house style; don't invent a new look per view.
 
 ## Five principles
 
@@ -9,6 +9,21 @@ aurora's screen is calm, warm-neutral and precise: soft off-white (or near-black
 3. **Label the thing itself.** Names sit next to what they name. Don't make the reader match colors against a legend.
 4. **Motion explains.** Animate to show cause and effect, flow or a change of state, never as decoration.
 5. **Let them touch it.** If something changes over time or has parts, let the reader play, pause, step, scrub and select.
+6. **Depth over boxes.** Physical things are lit 3D objects (`aurora/kit`): metal, glass, glow, real shadows. The main visual is big and edge to edge; text floats beside it in a few glass panels.
+
+## Banned defaults
+
+These are what an interface looks like when nobody designed it. Each has a replacement.
+
+| Instead of | Do this |
+|---|---|
+| a machine, organ or process drawn as rectangles in rows | a 3D scene with `aurora/kit`: `Scene`, `Metal`, `Glass`, `Glow`, `Label` |
+| a 3D scene or big visual in a card | `display: "hero"` with sections below it, or `display: "page"` |
+| eight small stat boxes around the visual | one `Panel` with two to four readouts |
+| a flat solid background behind a visual | `Stage`'s soft radial backdrop |
+| motion scattered over every element | one `Stagger` entrance, plus the mechanism's own motion |
+| labels on top of moving parts | `Label` with its leader line, set off to one side |
+| a legend you have to match colours against | colour on the object itself, named by a `Label` or the panel |
 
 ## Tokens
 
@@ -74,7 +89,18 @@ Sentence case everywhere. Keep body lines under about 70 characters (`max-w-xl` 
 - Continuous animation only for a mechanism or flow. Drive it from one `requestAnimationFrame` loop holding a single number (time or angle); compute everything else from that number.
 - Respect reduced motion: start paused when `matchMedia("(prefers-reduced-motion: reduce)").matches`.
 
+## 3D scenes
+
+- Build with `aurora/kit` (`references/kit.md`): `Scene` already has studio light, reflections, soft shadow and orbit controls. Don't add your own lights or cameras.
+- Materials say what a part is: `Metal` for moving mechanical parts, `Glass` for walls you need to see through, `Glow` (with a token colour) for what is hot, live or flowing, `Paint` for the one part to look at.
+- Make the inside visible: glass walls, cut-aways, a translucent shell. The reader came to see how it works.
+- Label four to six parts with `Label`. Put the explanation in panels, not on the model.
+- Frame it: camera about 30° above and to one side, so depth reads. The object fills most of the stage.
+
 ## Drawings (SVG)
+
+For abstract things with no physical form (a protocol, an algorithm, a timeline you draw yourself). Not for machines or organs: those are 3D.
+
 
 - `<svg viewBox="0 0 W H" className="h-auto w-full">`: it scales to any width. **Make W close to the width it is shown at** (about 400 to 600 for a drawing beside a 320px panel) and fill it: a wide viewBox shown small shrinks every label and stroke. Draw the parts big; leave at most about 10% empty margin.
 - Parts: `fill="var(--raised)"` with `stroke="var(--ink-2)"` (strokeWidth 1.5 to 2), or `fill="var(--line)"` for structure such as walls and frames.
@@ -85,7 +111,9 @@ Sentence case everywhere. Keep body lines under about 70 characters (`max-w-xl` 
 
 ## Layout recipes
 
-**Interactive explainer** (see `examples/explainer.md`):
+**Physical mechanism** (see `examples/mechanism.md`): `display: "hero"`, a `Stage` whose `Scene` fills it, `Panel at="top-left"` (eyebrow, headline, what just happened), `Panel at="top-right"` (the part being followed: `PhaseDial`, state, one sentence), `Panel at="bottom"` (`ControlBar` plus selector chips). Below the hero, as ordinary sections: `steps` and a `callout`.
+
+**2D interactive explainer** for an abstract process (see `examples/explainer.md`):
 ```
 [ drawing card (wide)                    ] [ panel 320px          ]
 [                                        ] [ Play  Next step      ]

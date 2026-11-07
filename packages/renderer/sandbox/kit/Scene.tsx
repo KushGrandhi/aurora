@@ -1,7 +1,7 @@
 import { Component, useEffect, useRef, useState, type ReactNode } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { ContactShadows, Environment, Lightformer, OrbitControls } from "@react-three/drei";
-import { Box3, type Group } from "three";
+import { BackSide, Box3, type Group } from "three";
 
 type Vec3 = [number, number, number];
 export type SceneProps = { children: ReactNode; camera?: Vec3; target?: Vec3; autoRotate?: boolean; shadows?: boolean; className?: string };
@@ -37,6 +37,11 @@ class Guard extends Component<{ children: ReactNode }, { failed: boolean }> {
 function Studio() {
   return (
     <Environment resolution={256}>
+      {/* a soft grey room behind the light panels, so metal never reflects pure black */}
+      <mesh scale={40}>
+        <sphereGeometry args={[1, 32, 16]} />
+        <meshBasicMaterial color={[0.22, 0.22, 0.24]} side={BackSide} />
+      </mesh>
       <Lightformer form="rect" intensity={4} position={[0, 6, 1]} rotation-x={Math.PI / 2} scale={[12, 4, 1]} />
       <Lightformer form="rect" intensity={2} position={[-7, 2, 2]} rotation-y={Math.PI / 2} scale={[4, 10, 1]} />
       <Lightformer form="rect" intensity={1.6} position={[7, 2, -2]} rotation-y={-Math.PI / 2} scale={[4, 10, 1]} />
@@ -90,7 +95,7 @@ export function Scene({ children, camera = [6, 4, 8], target = [0, 0, 0], autoRo
       <Guard>
         <Canvas shadows={shadows} dpr={[1, 2]} camera={{ position: camera, fov: 35 }} gl={{ antialias: true, alpha: true }} style={{ touchAction: "none" }}>
           <Studio />
-          <ambientLight intensity={0.15} />
+          <ambientLight intensity={0.25} />
           <directionalLight castShadow={shadows} position={[5, 9, 6]} intensity={1.5} shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004}>
             <orthographicCamera attach="shadow-camera" args={[-8, 8, 8, -8, 0.5, 40]} />
           </directionalLight>

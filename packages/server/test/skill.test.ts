@@ -74,3 +74,27 @@ test("examples and component docs use tokens, never raw colors", () => {
     expect(ex).not.toMatch(RAW);
   }
 });
+
+test("the skill routes mechanisms to a 3D kit recipe", () => {
+  expect(skill).toContain("examples/mechanism.md");
+  expect(skill).toContain("aurora/kit");
+  expect(skill).toContain('"hero"');
+  expect(all).not.toContain("Draw visuals with SVG");
+});
+
+test("kit reference documents every kit export", () => {
+  const md = files["references/kit.md"];
+  for (const name of ["Scene", "Metal", "Glass", "Glow", "Paint", "useToken", "Label", "Stage", "Panel", "useClock", "ControlBar", "Reveal", "Stagger", "PhaseDial", "Legend"]) expect(md).toContain(`\`${name}\``);
+});
+
+test("the mechanism example is a hero kit scene", () => {
+  const md = files["examples/mechanism.md"];
+  expect(md).toContain('from "aurora/kit"');
+  expect(md).toContain('"display": "hero"');
+  for (const f of readdirSync(new URL("../src/skill/examples/mechanism/", import.meta.url))) expect(md).toContain(`### \`${f}\``);
+});
+
+test("design-canvas lists the 3D libraries and the design-check warnings", () => {
+  const md = files["references/design-canvas.md"];
+  for (const s of ["@react-three/fiber", "@react-three/drei", "aurora/kit", "text overflows its box", "a 3D scene is shown in a card", "the drawing is flat boxes and lines", "many small boxed panels"]) expect(md).toContain(s);
+});

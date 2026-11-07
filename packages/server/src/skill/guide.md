@@ -35,18 +35,21 @@ Follow these steps in order, every time.
 | a collection: projects, people, files | `cards` | 12 |
 | images or video that already exist | `media` | 12 |
 | prose, or JSON to inspect | `text`, `json` | 6 to 12 |
-| **how something physical works, a simulation, a game, a landing page, a product mockup, anything custom** | `design` | 12 |
+| **how something physical works: an engine, a heart, a machine, the solar system** | `design`: a 3D scene built with `aurora/kit`, `display: "hero"` (copy `examples/mechanism.md`) | 12 |
+| **a landing page or product mockup** | `design` with `display: "page"` (copy `examples/landing.md`) | 12 |
+| **an abstract process with no physical shape (an algorithm, a protocol), a simulation, a game** | `design` | 12 |
 
 Good combinations:
-- **Explain how something works:** the mechanism first, as an interactive `design` or a `diagram` (span 12), then `steps` (span 7) and a `callout` (span 5) side by side.
+- **Explain how something physical works:** the mechanism first, as a 3D `aurora/kit` scene with `display: "hero"`, then `steps` (span 7) and a `callout` (span 5) side by side below it.
 - **Explain a system:** `architecture`, then a `diagram` for its main request, then a `callout` for the key decision.
 - **Analyse data:** a row of `kpi`, then a `chart`, then a `table`; add filters when the reader will want to slice it.
 - **A page or product:** one `design` with `display: "page"`, as the only item in the view.
 
 Before using a component for the first time, read its fields and example in `references/components.md`.
 
-**Before writing any `design`:** read `references/design-canvas.md` and `references/design-language.md`, then open the closest example and copy its structure:
-- `examples/explainer.md`: an interactive mechanism (a car engine) with play, step and speed controls and live readouts.
+**Before writing any `design`:** read `references/design-canvas.md`, `references/design-language.md` and `references/kit.md`, then open the closest example and copy its structure:
+- `examples/mechanism.md`: **start here for anything physical.** A 3D V8 engine built from `aurora/kit`: glass cylinders, glowing gas, labels, floating panels and controls, shown as a hero.
+- `examples/explainer.md`: a 2D interactive drawing with play, step and speed controls, for a process that has no physical shape.
 - `examples/landing.md`: a full landing page with nav, hero, proof, features, how it works, pricing, FAQ and a closing call to action.
 
 ## The view
@@ -101,13 +104,14 @@ aurora's screen is calm, warm-neutral and precise. Everything you build should l
 7. **Generous space.** Cards are `rounded-2xl bg-surface p-6 ring-1 ring-hair shadow-card`, gaps are `gap-4` or `gap-6`, and page sections are `py-20`.
 8. **Motion explains.** Things enter with a fade and an 8px rise over 0.3 to 0.5 s; state changes take 0.2 s. Continuous animation is only for showing a mechanism.
 9. **No fixed height.** A design card grows and shrinks with its content. Leave out `height`.
-10. **Real content.** Use specific, believable words and numbers. No lorem ipsum and no empty image boxes; draw visuals with SVG, tokens and icons.
+10. **Real content.** Use specific, believable words and numbers. No lorem ipsum and no empty image boxes.
+11. **Depth, not boxes.** A physical thing is a 3D scene built with `aurora/kit` (metal, glass, glow, light and shadow), never rectangles in rows. The scene carries the page; readouts live in at most three floating panels.
 
 ## Problems
 
 Every result carries `problems`: `{itemId?, severity, message, hint?}`.
 - `error`: the item failed. Read the message (design errors include `file:line:col`), fix it with `editFile`, `update` or `replace`, and check `status` again.
-- `warning`: it rendered, but something needs attention, such as a missing media file.
+- `warning`: it rendered, but something needs attention: a missing media file, or a design check (`design: text overflows…`, `design: the drawing is flat…`, `design: a 3D scene is shown in a card…`). Fix design warnings the way the message says.
 - `unverified`: no screen has drawn it yet. Not a failure.
 
 ## Without the MCP tools
@@ -118,7 +122,8 @@ The same operations work over HTTP: `POST localhost:4317/api/views {view}`, `POS
 
 Go through every line. Fix what fails, then check `status` once more.
 
-- [ ] `status` shows no `error`.
+- [ ] `status` shows no `error` and no `design:` warning.
+- [ ] A physical mechanism is a 3D `aurora/kit` scene shown with `display: "hero"` or `"page"`, not a flat drawing in a card.
 - [ ] Every item uses the component the table above suggests; a `design` is used only where no catalog component fits.
 - [ ] Designs use only token colors (`bg-surface`, `text-ink-2`, `var(--s1)`…): no `slate`, `gray`, `white`, `black`, hex or `dark:`.
 - [ ] Nothing animated or absolutely positioned overlaps text.

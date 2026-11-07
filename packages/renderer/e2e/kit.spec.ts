@@ -64,3 +64,20 @@ export default function App() {
   await expect.poll(() => t.evaluate((el) => getComputedStyle(el.closest("[data-kit-panel]")!).color)).not.toBe(colorBefore);
   expect(await t.getAttribute("data-mounts")).toBe("1");
 });
+
+test("the skill's 3D mechanism example renders as a hero with no warnings", async ({ page, request }) => {
+  const { readFileSync } = await import("node:fs");
+  const dir = new URL("../../server/src/skill/examples/mechanism/", import.meta.url);
+  const files = Object.fromEntries(["App.tsx", "Engine.tsx", "model.ts"].map((f) => [f, readFileSync(new URL(f, dir), "utf8")]));
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/#kitmech");
+  await expect(page.locator(".conn.up")).toBeVisible();
+  const view = { v: 2, id: "kitmech", title: "V8", sections: [{ id: "s", layout: "grid", items: [{ id: "d", span: 12, c: { type: "design", framework: "react", display: "hero", files } }] }, { id: "t", layout: "grid", items: [{ id: "x", span: 12, c: { type: "text", md: "below" } }] }] };
+  expect((await request.post("/api/views", { data: { view } })).status()).toBe(200);
+  await expect(frame(page).locator("canvas")).toHaveCount(1);
+  await expect(frame(page).getByText("crankshaft", { exact: true })).toBeVisible();
+  await page.waitForTimeout(3500); // design checks run after the frame settles
+  const s = await status(request, "kitmech");
+  expect(s.unverified).toEqual([]);
+  expect(s.problems).toEqual([]);
+});

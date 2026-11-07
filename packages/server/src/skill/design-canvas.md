@@ -16,9 +16,9 @@ A `design` item is a small React + Tailwind (or plain HTML/JS) project that runs
 
 ## What's available
 
-- **Libraries**, bundled and offline: `react`, `react-dom`, `motion` / `motion/react`, `lucide-react`, `three`, `d3`, `gsap`. Nothing else can be imported: no `@/` paths, no other npm packages.
+- **Libraries**, bundled and offline: `react`, `react-dom`, `motion` / `motion/react`, `lucide-react`, `three`, `@react-three/fiber`, `@react-three/drei`, `d3`, `gsap`, and **`aurora/kit`** (aurora's own building blocks: 3D scenes, materials, labels, panels, controls; see `references/kit.md`). Nothing else can be imported: no `@/` paths, no other npm packages.
 - **Tailwind** (v4) with aurora's tokens: `bg-surface`, `text-ink-2`, `ring-hair`, `bg-accent`, `fill-s1`… and CSS variables `var(--accent)` etc. The Inter font is loaded.
-- **No network.** `fetch`, external images, fonts and CDNs are blocked and come back as problems. Draw visuals with SVG, CSS and icons.
+- **No network.** `fetch`, external images, fonts, 3D models and CDNs are blocked and come back as problems. Build visuals yourself: physical things as 3D scenes from `aurora/kit` and three.js shapes, abstract diagrams as SVG.
 - **Data:** `"data": ["queryName"]` puts that query's rows in `window.aurora.data.queryName`; `window.aurora.onData(cb)` fires when filters change them.
 - **Local media:** `"assets": {"logo": "/abs/path/logo.png"}`, then `window.aurora.asset("logo")` gives the URL.
 - **Theme:** `window.aurora.theme` is `"light"` or `"dark"` and `onTheme(cb)` reports changes. You rarely need these: the tokens already switch.
@@ -26,8 +26,8 @@ A `design` item is a small React + Tailwind (or plain HTML/JS) project that runs
 
 ## Build it in steps
 
-1. **Start from the closest example** (`examples/explainer.md` or `examples/landing.md`). Keep its structure, layout and controls, and change the content.
-2. **Split by role:** `model.ts` (the state and its math), `Drawing.tsx` (the SVG), `App.tsx` (layout and controls). Keep each file under about 200 lines.
+1. **Start from the closest example** (`examples/mechanism.md` for anything physical, `examples/landing.md` for a page, `examples/explainer.md` for an abstract process). Keep its structure, layout and controls, and change the content.
+2. **Split by role:** `model.ts` (the state and its math), `Engine.tsx` or `Drawing.tsx` (the 3D scene or the SVG), `App.tsx` (stage, panels and controls). Keep each file under about 200 lines.
 3. **Render a working version first**, then improve it with `editFile`. Never resend every file to change a few lines.
 4. After each change, call `mcp__aurora__status`. Problems come with `file:line:col`.
 
@@ -55,8 +55,15 @@ A `design` item is a small React + Tailwind (or plain HTML/JS) project that runs
 | Importing an unlisted package or an image URL | Compile error or blocked request | Use the listed libraries; draw it |
 | One giant file | Hard to fix with `editFile`, and easy to break JSON escaping | Several small files |
 | A static drawing for something that moves | The reader can't see cause and effect | Animate it, with play/pause and step controls |
+| A physical thing drawn as SVG rectangles | Warning `the drawing is flat boxes and lines`; it looks like a wireframe | Build it in 3D: `Scene` with `Metal`, `Glass`, `Glow` (copy `examples/mechanism.md`) |
+| A 3D scene in a normal card | Warning `a 3D scene is shown in a card`; it looks small and boxed | `display: "hero"` (first item, sections below) or `"page"` (only item) |
+| A row of fixed-width buttons or long labels | Warning `text overflows its box`; text spills out | `flex flex-wrap`, `min-w-0`, shorter labels |
+| Many small stat boxes | Warning `many small boxed panels`; the page looks like a form | One `Panel` with a few readouts; let the main visual carry the page |
+| Motion set from `clock.t` inside 3D | Movement stutters at 20 steps a second | Move meshes in `useFrame` from `clock.ref.current`; use `clock.t` for text and colours |
 
 ## Problems you may see
+
+- `design: …` **warnings** are aurora's design checks, measured on the drawn page: `text overflows its box`, `a 3D scene is shown in a card`, `the drawing is flat boxes and lines`, `many small boxed panels`. The design still rendered; fix it as the warning says and check `status` again.
 
 - `design: <file>:<line>:<col> …`: a compile error. Fix that line with `editFile`.
 - `design: <message>`: a runtime error, often reading `undefined`. Look for an index or value out of range.
