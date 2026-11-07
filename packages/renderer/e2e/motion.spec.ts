@@ -59,3 +59,32 @@ test("the screen follows a newly created view", async ({ page, request }) => {
   await expect(page.locator("h1")).toHaveText("Brand new");
   await expect.poll(async () => (await (await request.get("/api/views/mo_new/status")).json()).unverified).toEqual([]);
 });
+
+const twoSections = (id: string) => ({ v: 2, id, title: "Entrance", summary: "One orchestrated reveal.", sections: [
+  { id: "a", title: "First", layout: "grid", items: [{ id: "a1", span: 12, c: { type: "text", md: "first" } }] },
+  { id: "b", title: "Second", layout: "grid", items: [{ id: "b1", span: 12, c: { type: "text", md: "second" } }] },
+] });
+const opacity = (page: import("@playwright/test").Page, sel: string) => page.locator(sel).evaluate((el) => Number(getComputedStyle(el).opacity));
+
+test("a view enters with a staggered reveal", async ({ page, request }) => {
+  await page.goto("/#mo5");
+  await expect(page.locator(".conn.up")).toBeVisible();
+  await request.post("/api/views", { data: { view: twoSections("mo5") } });
+  await page.locator('[data-item="b1"]').waitFor({ state: "attached" });
+  expect(await opacity(page, '[data-item="b1"]')).toBeLessThan(1);
+  expect(await opacity(page, ".view-head")).toBeLessThan(1);
+  await page.waitForTimeout(900);
+  expect(await opacity(page, '[data-item="b1"]')).toBe(1);
+  expect(await opacity(page, ".view-head")).toBe(1);
+});
+
+test("reduced motion shows everything at once", async ({ page, request }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/#mo6");
+  await expect(page.locator(".conn.up")).toBeVisible();
+  await request.post("/api/views", { data: { view: twoSections("mo6") } });
+  await page.locator('[data-item="b1"]').waitFor({ state: "attached" });
+  await page.waitForTimeout(50);
+  expect(await opacity(page, '[data-item="b1"]')).toBe(1);
+  expect(await opacity(page, ".view-head")).toBe(1);
+});

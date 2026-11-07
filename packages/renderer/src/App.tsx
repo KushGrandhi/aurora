@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ScreenMessage, View, ViewEvent, ViewItem } from "@aurora/spec";
 import { fillPlaceholders } from "./format.ts";
-import { AnimatePresence, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Section } from "./components/Section.tsx";
-import { MotionRoot, SPRING } from "./motion.tsx";
+import { ENTER_EASE, MotionRoot, SPRING } from "./motion.tsx";
 import { VersionStrip } from "./components/VersionStrip.tsx";
 import { FilterBar } from "./components/FilterBar.tsx";
 import { PageView } from "./components/PageView.tsx";
@@ -217,14 +217,16 @@ export function App() {
                   <button onClick={() => setPreview(undefined)}>Back to current</button>
                 </div>
               )}
-              <h1>{view.title}</h1>
-              {view.summary && <p className="summary">{fillPlaceholders(view.summary, results)}</p>}
+              <motion.div key={`head:${currentId}`} className="view-head" initial={reduced ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: ENTER_EASE }}>
+                <h1>{view.title}</h1>
+                {view.summary && <p className="summary">{fillPlaceholders(view.summary, results)}</p>}
+              </motion.div>
               {view.params && Object.keys(view.params).length > 0 && (
                 <FilterBar params={view.params} values={params?.values ?? {}} options={params?.options ?? {}} onChange={(name, value) => send({ t: "param", viewId: currentId, name, value })} />
               )}
               <div key={currentId} className="view-body">{/* a different view is a fresh mount, even when ids repeat */}
                 {view.sections.map((s, i) => (
-                  <Section key={s.id} leads={i === 0} section={s} version={version} problems={problems} ctxFor={ctxFor} heroId={heroId} viewId={currentId} changed={showing ? {} : live?.changed ?? {}} />
+                  <Section key={s.id} leads={i === 0} order={i} section={s} version={version} problems={problems} ctxFor={ctxFor} heroId={heroId} viewId={currentId} changed={showing ? {} : live?.changed ?? {}} />
                 ))}
               </div>
               {viewProblems.length > 0 && <div className="errors">{viewProblems.map((p, i) => <div key={i}>{p.message}</div>)}</div>}

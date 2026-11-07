@@ -442,3 +442,7 @@ figcaption { font-size: 12px; color: var(--ink2); margin-top: 6px; }
 .bleed { position: relative; min-width: 0; border-radius: 22px; overflow: hidden; margin-bottom: 8px; }
 .design.in-hero .design-stage { border-radius: 22px; }
 .design .open-page.floating { position: absolute; top: 14px; right: 14px; z-index: 5; margin: 0; background: color-mix(in srgb, var(--raised) 80%, transparent); backdrop-filter: blur(10px); box-shadow: var(--shadow); }
+/* A changed item comes into focus: a short blur-to-sharp as its new version lands. */
+.card[data-glow="true"] > .face, .bleed[data-glow="true"] > .face { animation: sharpen 300ms var(--ease); }
+@keyframes sharpen { from { filter: blur(6px); } to { filter: blur(0); } }
+@media (prefers-reduced-motion: reduce) { .card[data-glow="true"] > .face, .bleed[data-glow="true"] > .face { animation: none; } }
