@@ -62,8 +62,9 @@ test("a hero design spans the page with sections below", async ({ page, request 
   await expect(hero).not.toHaveClass(/\bcard\b/);
   await expect(hero.locator(".design-bar")).toHaveCount(0);
   const h = (await hero.boundingBox())!, t = (await page.locator('[data-item="t"]').boundingBox())!;
-  expect(h.width).toBeGreaterThanOrEqual(t.width - 1);
-  expect(h.height).toBeGreaterThanOrEqual(800 * 0.6);
+  expect(h.x + h.width).toBeGreaterThanOrEqual(1280 - 1); // runs to the window's right edge
+  expect(h.y).toBeLessThanOrEqual(1); // from the very top
+  expect(h.height).toBeGreaterThanOrEqual(800 - 2); // the whole first screen
   expect(t.y).toBeGreaterThan(h.y + h.height - 1);
   await expect.poll(async () => (await (await request.get("/api/views/hero1/status")).json()).unverified).toEqual([]);
   expect((await (await request.get("/api/views/hero1/status")).json()).problems).toEqual([]);
@@ -82,4 +83,58 @@ test("a hero that is not first renders as a card with a warning", async ({ page,
   expect((await request.post("/api/views", { data: { view: heroView("hero2", false) } })).status()).toBe(200);
   await expect(page.locator('[data-item="d"]')).toHaveClass(/\bcard\b/);
   await expect.poll(async () => JSON.stringify((await (await request.get("/api/views/hero2/status")).json()).problems)).toContain("hero only applies");
+});
+
+const sales = new URL("../../engine/test/fixtures/sales.csv", import.meta.url).pathname;
+
+test("a hero view is immersive: a rail, the title on the stage, filters as one pill", async ({ page, request }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/#hero3");
+  await expect(page.locator(".conn.up")).toBeVisible();
+  const view = { ...heroView("hero3", true), title: "Revenue, as light", summary: "One line under the title.", datasets: { data: sales },
+    params: { region: { type: "select", label: "Region", options: { query: "regions", field: "region" } } },
+    queries: { regions: { sql: "SELECT DISTINCT region FROM data ORDER BY region" } } };
+  expect((await request.post("/api/views", { data: { view } })).status()).toBe(200);
+  await expect(page.frameLocator('[data-item="d"] iframe').locator("h1")).toHaveText("Full page");
+  await expect(page.locator(".app")).toHaveClass(/\bimmersive\b/);
+  // the sidebar is a thin rail until hovered
+  expect((await page.locator(".side").boundingBox())!.width).toBeLessThanOrEqual(64);
+  await expect(page.locator(".hist")).toBeHidden();
+  await page.locator(".side").hover();
+  await expect(page.locator(".hist")).toBeVisible();
+  await expect.poll(async () => (await page.locator(".side").boundingBox())!.width).toBeGreaterThan(200);
+  await page.mouse.move(900, 400);
+  // the title, summary and filters sit on the stage, in its first screen
+  const head = page.locator(".hero-head");
+  await expect(head.locator("h1")).toHaveText("Revenue, as light");
+  await expect(head).toContainText("One line under the title.");
+  await expect(page.locator(".view-head")).toHaveCount(0);
+  const hb = (await head.boundingBox())!;
+  expect(hb.y + hb.height).toBeLessThanOrEqual(800);
+  await expect(head.locator(".filterbar.pill select")).toBeVisible();
+  await head.locator(".filterbar.pill select").selectOption("East");
+  await expect.poll(async () => (await (await request.get("/api/views/hero3/status")).json()).params.region).toBe("East");
+  await expect(head.locator(".version-strip, .versions, button").first()).toBeVisible();
+});
+
+test("a view without a hero keeps the normal sidebar", async ({ page, request }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/#hero4");
+  await expect(page.locator(".conn.up")).toBeVisible();
+  expect((await request.post("/api/views", { data: { view: heroView("hero4", false) } })).status()).toBe(200);
+  await expect(page.locator('[data-item="d"]')).toHaveClass(/\bcard\b/);
+  await expect(page.locator(".app")).not.toHaveClass(/\bimmersive\b/);
+  await expect(page.locator(".hist")).toBeVisible();
+});
+
+test("on a phone a hero view stacks the title above the stage", async ({ page, request }) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.goto("/#hero5");
+  await expect(page.locator(".conn.up")).toBeVisible();
+  expect((await request.post("/api/views", { data: { view: heroView("hero5", true) } })).status()).toBe(200);
+  await expect(page.frameLocator('[data-item="d"] iframe').locator("h1")).toHaveText("Full page");
+  const head = (await page.locator(".hero-head").boundingBox())!, scene = (await page.locator('[data-item="d"]').boundingBox())!;
+  expect(scene.y).toBeGreaterThanOrEqual(head.y + head.height - 1);
+  expect(scene.width).toBeGreaterThanOrEqual(390 - 60);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });

@@ -6,6 +6,7 @@ import { Section } from "./components/Section.tsx";
 import { ENTER_EASE, MotionRoot, SPRING } from "./motion.tsx";
 import { VersionStrip } from "./components/VersionStrip.tsx";
 import { FilterBar } from "./components/FilterBar.tsx";
+import { Hero } from "./components/Hero.tsx";
 import { PageView } from "./components/PageView.tsx";
 import { ItemFrame } from "./components/ItemFrame.tsx";
 import { Variants } from "./components/Variants.tsx";
@@ -141,6 +142,9 @@ export function App() {
   // Page display: a view whose only item is a design with display "page", or a design opened full screen.
   const allItems = view ? view.sections.flatMap((s) => s.items) : [];
   const only = allItems.length === 1 ? allItems[0] : undefined;
+  // Immersive: the first item of the first section is a hero design. It becomes the first screen.
+  const first = view?.sections[0];
+  const heroItem = first && first.layout === "grid" && first.items[0] && (first.items[0].c.type === "design" || first.items[0].c.type === "custom") && first.items[0].c.display === "hero" ? first.items[0] : undefined;
   const pageItem = (opened && allItems.find((i) => i.id === opened)) || (only && (only.c.type === "design" || only.c.type === "custom") && only.c.display === "page" ? only : undefined);
   useEffect(() => setOpened(undefined), [currentId]);
 
@@ -164,11 +168,14 @@ export function App() {
       .catch(() => {});
   };
   const reopen = pending && !showVariants ? <button className="variants-open" onClick={() => setVariantsClosed(undefined)}>{pending.items.length} options</button> : null;
+  const filters = (variant?: "pill") => view?.params && Object.keys(view.params).length > 0 && currentId ? (
+    <FilterBar variant={variant} params={view.params} values={params?.values ?? {}} options={params?.options ?? {}} onChange={(name, value) => send({ t: "param", viewId: currentId, name, value })} />
+  ) : undefined;
   const status = activity || (live ? `v${live.version} · ${live.source === "screen" ? "chosen on screen" : `from ${live.source}`}` : "");
 
   return (
     <MotionRoot>
-    <div className={`app${pageItem ? " page-mode" : ""}`}>
+    <div className={`app${pageItem ? " page-mode" : heroItem ? " immersive" : ""}`}>
       <aside className="side">
         <div className="brand"><span className="mark" />aurora<span className={`conn${up ? " up" : ""}`} title={up ? "connected" : "reconnecting"} /></div>
         {list.length > 0 && <h2>Views</h2>}
@@ -206,10 +213,17 @@ export function App() {
             </div>
           ) : (
             <>
-              <div className="topbar">
+              {heroItem && (
+                <Hero key={`hero:${currentId}`} item={heroItem} version={version} ctx={ctxFor(heroItem, false)} problems={problems} changed={showing ? {} : live?.changed ?? {}}
+                  title={view.title} summary={view.summary ? fillPlaceholders(view.summary, results) : undefined}
+                  status={<div className="status">{activity ? <span className="spin" /> : <span className="ok" />}{status}</div>}
+                  versions={<div className="topbar-right">{reopen}<VersionStrip viewId={currentId} version={live?.version ?? version} previewing={showing?.version} onPreview={choosePreview} onCompare={openCompare} /></div>}
+                  filters={filters("pill")} />
+              )}
+              {!heroItem && <div className="topbar">
                 <div className="status">{activity ? <span className="spin" /> : <span className="ok" />}{status}</div>
                 <div className="topbar-right">{reopen}<VersionStrip viewId={currentId} version={live?.version ?? version} previewing={showing?.version} onPreview={choosePreview} onCompare={openCompare} /></div>
-              </div>
+              </div>}
               {showing && (
                 <div className="preview-banner">
                   <span>Viewing v{showing.version} (read-only)</span>
@@ -217,15 +231,13 @@ export function App() {
                   <button onClick={() => setPreview(undefined)}>Back to current</button>
                 </div>
               )}
-              <motion.div key={`head:${currentId}`} className="view-head" initial={reduced ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: ENTER_EASE }}>
+              {!heroItem && <motion.div key={`head:${currentId}`} className="view-head" initial={reduced ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: ENTER_EASE }}>
                 <h1>{view.title}</h1>
                 {view.summary && <p className="summary">{fillPlaceholders(view.summary, results)}</p>}
-              </motion.div>
-              {view.params && Object.keys(view.params).length > 0 && (
-                <FilterBar params={view.params} values={params?.values ?? {}} options={params?.options ?? {}} onChange={(name, value) => send({ t: "param", viewId: currentId, name, value })} />
-              )}
+              </motion.div>}
+              {!heroItem && filters()}
               <div key={currentId} className="view-body">{/* a different view is a fresh mount, even when ids repeat */}
-                {view.sections.map((s, i) => (
+                {view.sections.map((s, i) => i === 0 && heroItem ? (s.items.length > 1 || s.title ? <Section key={s.id} leads={false} order={i} section={{ ...s, items: s.items.slice(1) }} version={version} problems={problems} ctxFor={ctxFor} heroId={heroId} viewId={currentId} changed={showing ? {} : live?.changed ?? {}} /> : null) : (
                   <Section key={s.id} leads={i === 0} order={i} section={s} version={version} problems={problems} ctxFor={ctxFor} heroId={heroId} viewId={currentId} changed={showing ? {} : live?.changed ?? {}} />
                 ))}
               </div>

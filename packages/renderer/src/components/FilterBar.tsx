@@ -6,6 +6,8 @@ type Props = {
   values: Record<string, unknown>;
   options: Record<string, string[]>;
   onChange(name: string, value: unknown): void;
+  /** "pill": one compact floating row, used on an immersive hero. */
+  variant?: "pill";
 };
 
 /** Calls `fn` 250 ms after the last change. */
@@ -47,9 +49,9 @@ function Pair({ kind, label, value, min, max, step, onChange }: {
 }
 
 /** One row of controls above the sections; values come from the server, changes go back as `param` messages. */
-export function FilterBar({ params, values, options, onChange }: Props) {
+export function FilterBar({ params, values, options, onChange, variant }: Props) {
   return (
-    <div className="filterbar" role="group" aria-label="Filters">
+    <div className={`filterbar${variant ? ` ${variant}` : ""}`} role="group" aria-label="Filters">
       {Object.entries(params).map(([name, p]) => (
         <label key={name} className="filter">
           <span className="flabel">{p.label}</span>

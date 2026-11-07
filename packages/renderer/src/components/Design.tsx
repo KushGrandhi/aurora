@@ -12,7 +12,8 @@ type FrameSpec = { id: number; srcdoc: string };
 const WIDTHS: Record<Viewport, number | undefined> = { desktop: undefined, tablet: 820, phone: 390 };
 const STUCK_MS = 8000;
 const clamp = (n: number) => Math.min(2400, Math.max(200, n));
-const heroHeight = () => Math.round(Math.min(900, Math.max(420, window.innerHeight * 0.88)));
+/** A hero is the whole first screen. */
+const heroHeight = () => Math.round(Math.max(420, window.innerHeight));
 
 /** One sandboxed iframe; reports through `on` (always the latest handlers) and hands its controller back. */
 function Frame({ spec, ready, on }: {
