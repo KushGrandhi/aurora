@@ -12,5 +12,5 @@ export const callout: ComponentDef<Callout> = {
     example: { type: "callout", tone: "decision", title: "Why DuckDB", md: "Queries run **in process** over the user's files, so nothing is uploaded and large CSVs stay fast." },
     guidance: "Pick it for the one thing a reader must not miss: a decision and its reason, a risk, a tip. One or two per view. `tone`: `decision` for a choice and its reason, `tip` for advice or a helpful insight, `warning` for a risk or a gotcha, `note` for anything else worth flagging. Figures from data use `{query.field|format}` placeholders.",
   },
-  placeholders: (c) => [c.md],
+  placeholders: (c) => (c.title ? [c.title, c.md] : [c.md]),
 };

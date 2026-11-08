@@ -14,17 +14,32 @@ When the signals disagree, ask what the reader most needs in the first five seco
 
 ## Forms
 
-| The reader wants to… | Form | How it is built | It works when |
+A row of numbers, then a chart, then the table at the bottom is one form (a monitor or an explorer), not the default. Each form opens with what its reader came for:
+
+| The reader wants to… | Form | How it is built, first thing first | It works when |
 |---|---|---|---|
-| get one answer | **Answer** | the number or one chart, with a one-line headline that says it; no sections to scroll | the answer is visible without scrolling |
-| understand a finding | **Story** | `references/story.md`: a hook, beats, a signature moment, an ending; `immersive`, screen moments, pinned visuals | the reader ends knowing one thing they didn't |
+| get one answer | **Answer** | the answer said in the headline with a placeholder and what it is compared with ("{last_week.tickets|integer} support tickets last week, up from {prev.tickets|integer}"), then at most one chart; no sections to scroll | the answer is visible without scrolling |
+| understand a finding | **Story** | `references/story.md`: a hook, beats, a signature moment, an ending; `immersive`, screen moments, the chart pinned with the events that explain it marked on it | the reader ends knowing one thing they didn't |
 | see how something works | **Explainer** | a story whose pinned visual is a design (3D or drawing) driven by the steps and the scroll | the mechanism is visible, not described |
-| watch something over time | **Monitor** | a `density: "compact"` grid section: the few numbers that matter first (tiles with sparklines, up to six a row), then the trends, then what needs attention; no narrative, no immersive opening | it reads in one glance, top left to bottom right |
-| dig in and slice | **Explorer** | a `density: "compact"` section: a few linked charts that answer the obvious questions, the full table last; the view's filters sit at its top and stay on screen while it scrolls | every question the reader has is one click away |
+| watch something over time | **Monitor** | a `density: "compact"` grid section: what needs attention now, named, with its value ("all clear" when nothing is), then one tile or line per thing watched, then the trends; a stable title, since it is opened every day; no narrative, no immersive opening (`examples/monitor.md`) | it reads in one glance, top left to bottom right |
+| dig in and slice | **Explorer** | a `density: "compact"` section: the view's filters at its top (they stay on screen while it scrolls), a few linked charts that answer the obvious questions, the full table last | every question the reader has is one click away |
 | compare and decide | **Comparison** | the options side by side (a grid of equal columns, a `split` story, or a `reel` of options), the same measures in the same order for each, the trade-off stated up front | the difference that decides it is the biggest thing on screen |
-| try what-ifs | **Tool** | numbers the reader drags in the prose (`{{name}}`, `references/data.md`) or a design with controls; the result updates as they change | the reader can change an input and see the result at once |
-| look things up | **Reference** | `tabs`, a table, `cards`; search or a select filter; headings that match what people look for | the reader finds their item in seconds |
+| try what-ifs | **Tool** | the reader's numbers as inputs in a sentence, the result right beside them, then what the result means over time (`examples/tool.md`); or a design with controls | the reader can change an input and see the result at once |
+| look things up | **Reference** | the list itself first (`tabs`, a table, `cards`) with a search or a select filter; headings that match what people look for; counts and charts, if any, after | the reader finds their item in seconds |
 | be persuaded | **Pitch** | a whole-page `design` (`display: "page"`) | one promise, proven, with one thing to do next |
+
+## Show the exception, not the average
+
+The reader is watching or comparing things to find the one that differs. Averaging across them hides it: five stores averaged look fine while one of them is losing money.
+
+- Don't let an average or a total stand in for the things being watched or compared: show each one (a tile, a line or a row each). A total may sit beside them, never instead of them.
+- Put them on one scale: each one's distance from its own normal or limit.
+- Find the exception in a query (the worst, the biggest change, the one over its limit) and say it with placeholders, so it stays true when the data changes. Build the sentence in SQL when it must change with the data (`CASE WHEN over > 0 THEN room || ' is over its limit' ELSE 'All rooms within limits' END AS headline`).
+- Draw the exception in the accent and the rest muted.
+
+## A what-if needs inputs
+
+Build interactivity because the job needs it, not because the request names it. In a what-if ("what happens if", "how long until") the reader's own numbers are inputs: make each one a `number` param and write it into the sentence as `{{name}}`; queries compute the result from the params, so it changes as they drag. No data file is needed: put the fixed assumptions in a one-row `inline` dataset and compute in SQL. Never fix one arbitrary scenario.
 
 ## Blend when it serves the reader
 

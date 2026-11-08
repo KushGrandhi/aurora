@@ -67,3 +67,8 @@ test("query.id is documented as the query's name, not a column", () => {
     expect(g, t).toMatch(/"query":\s*\{\s*"id":/);
   }
 });
+
+test("a callout's title can carry placeholders too", () => {
+  const def = getComponent("callout")!;
+  expect(def.placeholders!({ type: "callout", tone: "warning", title: "{worst.room} is over", md: "It reads {worst.t}." } as never)).toEqual(["{worst.room} is over", "It reads {worst.t}."]);
+});

@@ -1,0 +1,161 @@
+{
+  "v": 2,
+  "id": "solar",
+  "title": "When do the panels pay for themselves?",
+  "summary": "Change the system and your electricity price in the sentence; the payback moves with them.",
+  "palette": {
+    "page": "#fbf7ee",
+    "ink": "#1d2433",
+    "accent": "#b45309",
+    "series": [
+      "#b45309",
+      "#64748b"
+    ]
+  },
+  "fonts": {
+    "display": "Bricolage Grotesque",
+    "body": "Inter"
+  },
+  "datasets": {
+    "assumptions": {
+      "inline": [
+        {
+          "cost_per_kw": 2900,
+          "rebate": 0.3,
+          "kwh_per_kw": 1350,
+          "wear": 0.005,
+          "lifetime": 25
+        }
+      ]
+    }
+  },
+  "params": {
+    "size": {
+      "type": "number",
+      "label": "System size",
+      "min": 2,
+      "max": 12,
+      "step": 0.5,
+      "default": 6,
+      "unit": "kW"
+    },
+    "price": {
+      "type": "number",
+      "label": "Electricity price",
+      "min": 0.1,
+      "max": 0.45,
+      "step": 0.01,
+      "default": 0.22,
+      "unit": "$/kWh"
+    }
+  },
+  "queries": {
+    "result": {
+      "sql": "SELECT round($size * cost_per_kw * (1 - rebate), -1) AS net_cost, $size * kwh_per_kw * $price AS first_year_savings, round(ln(1 - net_cost * wear / first_year_savings) / ln(1 - wear), 1) AS payback_years, round(first_year_savings * (1 - pow(1 - wear, lifetime)) / wear - net_cost, -2) AS lifetime_gain_usd FROM assumptions"
+    },
+    "by_year": {
+      "sql": "SELECT y AS year, $size * kwh_per_kw * $price * (1 - pow(1 - wear, y)) / wear - $size * cost_per_kw * (1 - rebate) AS net_position_usd FROM assumptions, range(0, 26) t(y)"
+    }
+  },
+  "sections": [
+    {
+      "id": "try",
+      "title": "Try your own numbers",
+      "layout": "grid",
+      "items": [
+        {
+          "id": "sentence",
+          "span": 6,
+          "c": {
+            "type": "text",
+            "md": "A **{{size}}** system, with electricity at **{{price}}**, costs {result.net_cost|currency} after the rebate and pays for itself in **{result.payback_years|number} years**."
+          }
+        },
+        {
+          "id": "k_payback",
+          "span": 3,
+          "c": {
+            "type": "kpi",
+            "query": "result",
+            "field": "payback_years",
+            "label": "Years to pay back",
+            "format": "number"
+          }
+        },
+        {
+          "id": "k_gain",
+          "span": 3,
+          "c": {
+            "type": "kpi",
+            "query": "result",
+            "field": "lifetime_gain_usd",
+            "label": "Ahead when the panels retire",
+            "format": "currency"
+          }
+        },
+        {
+          "id": "curve",
+          "span": 12,
+          "title": "Your money, year by year",
+          "c": {
+            "type": "chart",
+            "query": "by_year",
+            "vegaLite": {
+              "layer": [
+                {
+                  "mark": {
+                    "type": "area",
+                    "opacity": 0.18
+                  },
+                  "encoding": {
+                    "x": {
+                      "field": "year",
+                      "type": "quantitative",
+                      "title": "Year"
+                    },
+                    "y": {
+                      "field": "net_position_usd",
+                      "type": "quantitative",
+                      "title": "Net position"
+                    }
+                  }
+                },
+                {
+                  "mark": "line",
+                  "encoding": {
+                    "x": {
+                      "field": "year",
+                      "type": "quantitative",
+                      "title": "Year"
+                    },
+                    "y": {
+                      "field": "net_position_usd",
+                      "type": "quantitative",
+                      "title": "Net position"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "why",
+      "layout": "grid",
+      "items": [
+        {
+          "id": "assume",
+          "span": 12,
+          "c": {
+            "type": "callout",
+            "tone": "note",
+            "title": "What this assumes",
+            "md": "$2,900 per kW installed, a 30% rebate, 1,350 kWh per kW each year, panels losing 0.5% a year, and today's price for 25 years. A rising price pays back sooner."
+          }
+        }
+      ]
+    }
+  ]
+}

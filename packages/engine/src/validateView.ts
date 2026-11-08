@@ -84,7 +84,10 @@ export function validateView(view: View, ctx: ViewValidateCtx): ViewValidation {
       if (PLAN1_TYPES.has(c.type)) {
         const r = validateItem({ id: item.id, span: item.span ?? 12, c } as Item, vctx);
         if (!r.ok) return fail(r.reason, "numbers in data panels must come from queries; headline numbers need single-row queries");
-        return { ...item, c: r.item.c as ViewItem["c"] };
+        const after = r.item.c as ViewItem["c"];
+        if (c.type === "kpi" && c.format === "currency" && (after as typeof c).format !== "currency")
+          problems.push({ itemId: item.id, severity: "warning", message: `kpi: "${c.field}" doesn't say it is money, so it shows as ${(after as typeof c).format ?? "a plain number"}, not currency`, hint: `alias the column with a money word (e.g. ${c.field}_usd, or …_cost, …_revenue)` });
+        return { ...item, c: after };
       }
       return { ...item, c };
     });

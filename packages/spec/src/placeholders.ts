@@ -40,7 +40,7 @@ export function formatValue(v: unknown, format?: Format): string {
       return isNaN(d.getTime()) ? String(v) : d.toLocaleDateString("en-US", { timeZone: "UTC" });
     }
     case "currency":
-      return isNaN(n) ? String(v) : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
+      return isNaN(n) ? String(v) : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", ...(Number.isInteger(n) ? { maximumFractionDigits: 0 } : {}) }).format(n); // whole dollars show no cents
     case "percent":
       return isNaN(n) ? String(v) : new Intl.NumberFormat("en-US", { style: "percent", maximumFractionDigits: 1 }).format(n);
     case "delta": {

@@ -45,7 +45,7 @@ test("data-bound kpi label with digits is invalid", () => {
 
 test("currency on megabytes is corrected", () => {
   const r = validateView(view([{ id: "k", c: { type: "kpi", query: "size", field: "total_size", label: "Total size", format: "currency" } }]), ctx());
-  expect(r.problems).toEqual([]);
+  expect(r.problems.filter((p) => p.severity === "error")).toEqual([]);
   expect(items(r.view)[0].c.format).toBe("megabytes");
 });
 
@@ -106,4 +106,11 @@ test("param options query must exist", () => {
   const r = validateView(view([], { params: { region: { type: "select", label: "Region", options: { query: "regions", field: "region" } } } }), ctx());
   expect(r.problems).toHaveLength(1);
   expect(r.problems[0].message).toContain("regions");
+});
+
+test("a currency format that is dropped says why", () => {
+  const r = validateView(view([{ id: "k", c: { type: "kpi", query: "size", field: "total_size", label: "Total size", format: "currency" } }]), ctx());
+  expect(r.problems).toContainEqual(expect.objectContaining({ itemId: "k", severity: "warning", message: expect.stringContaining("doesn't say it is money") }));
+  const ok = validateView(view([{ id: "k", c: { type: "kpi", query: "total", field: "v", label: "Revenue", format: "currency" } }]), ctx());
+  expect(ok.problems).toEqual([]);
 });

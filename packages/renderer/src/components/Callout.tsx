@@ -21,7 +21,7 @@ export function Callout({ c, results }: { c: CalloutC; results: Record<string, Q
       <div className="callout-head">
         <Icon size={16} strokeWidth={2.2} aria-hidden />
         <span className="tone-word">{word}</span>
-        {c.title && <span className="callout-title">{c.title}</span>}
+        {c.title && <span className="callout-title">{fillPlaceholders(c.title, results)}</span>}
       </div>
       <div className="md" dangerouslySetInnerHTML={{ __html: html }} />
     </div>

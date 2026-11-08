@@ -13,7 +13,7 @@ Follow these steps in order, every time.
 3. **Render** the frame with `mcp__aurora__render`: title, one-line summary and sections (with the first item, or with `"items": []`).
 4. **Add** the remaining items with `mcp__aurora__patch`, **one call at a time**. Each call passes `baseVersion` = the `version` the previous call returned. Two patches sent together collide.
 5. **Check** with `mcp__aurora__status`. Fix every `error` with a patch, then check again.
-6. **Look** at it with `mcp__aurora__look`: pictures of the view as a person sees it, top to bottom, one per story step. Judge them against your outline and the look you chose: is the hook on the first screen and does it grab? One idea per beat? Is the signature moment there? Anything overlapping, cut off, too small, hard to read or empty? Fix it with patches and look again (two or three rounds at most). Add `"sizes": ["desktop", "phone"]` once, before you finish, to check the phone layout; pass `"section"` to look at just one part.
+6. **Look** at it with `mcp__aurora__look`: pictures of the view as a person sees it, top to bottom, one per story step. Judge them against your outline and look: is what the reader needs on the first screen? One idea per beat? Anything overlapping, cut off, too small, hard to read or empty? Fix it with patches and look again (two or three rounds at most). Add `"sizes": ["desktop", "phone"]` once, before you finish, to check the phone layout; pass `"section"` to look at just one part.
 7. **Review** your work against **Before you finish** at the end of this file.
 8. **Tell** the user the URL in one line. Don't repeat the content in the terminal.
 
@@ -44,13 +44,13 @@ Follow these steps in order, every time.
 Good combinations:
 - **Explain how something physical works:** a `story` section: the 3D scene pinned, one short `text` step per moment (each with `"story": {"state": …}`), the last setting it running; then a `callout`. The story *is* the steps: no `steps` list under the scene.
 - **Explain a system:** `architecture`, then a `diagram` for its main request, then a `callout` for the key decision.
-- **Data:** the form decides (`references/forms.md`): a monitor is dense tiles, trends and filters; an explorer is filters, linked charts, the table; a finding is a story (`examples/data-story.md`), often followed by an explorer.
+- **Data:** the reader's job decides the form (`references/forms.md`); a dashboard is only one of them.
 - **A page or product:** one `design` with `display: "page"`, as the only item in the view.
 
 Before using a component for the first time, read its fields and example in `references/components.md`.
 
 **Examples.** Before a story or a `design`, open the closest one (and, for a design, `references/design-canvas.md` and `references/kit.md`). Copy how it works, never its look: each chose a different one on purpose.
-- `examples/data-story.md`: a story from data with catalog parts only: a screen-sized number, a pinned chart that lights up, a reel.
+- `examples/data-story.md`: a story from data, catalog parts only. `examples/monitor.md`: a monitor, exception first. `examples/tool.md`: a what-if with inputs in the sentence.
 - `examples/cinematic.md`: a dark 3D scene behind the steps that moves with the scroll.
 - `examples/blueprint.md`: a drawing that builds itself, split screen.
 - `examples/mechanism.md`: a 3D machine whose steps freeze it on each moment, with a scrubber and a part to grab.

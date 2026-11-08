@@ -32,3 +32,14 @@ test("KPI runs split into balanced rows whose sizes divide twelve", async () => 
   expect(kpiRows(10, 6)).toEqual([3, 2, 3, 2]);
   for (let n = 2; n <= 12; n++) for (const max of [4, 6]) for (const c of kpiRows(n, max)) expect(12 % c, `${n}/${max}`).toBe(0);
 });
+
+test("KPIs that finish a row beside other items keep their spans", () => {
+  expect(spans([it("t", 6), it("a", 3, "kpi"), it("b", 3, "kpi"), it("c", 12)])).toEqual([6, 3, 3, 12]);
+  expect(spans([it("t", 4), it("a", 4, "kpi"), it("b", 4, "kpi")])).toEqual([4, 4, 4]);
+  expect(spans([it("a", 3, "kpi"), it("b", 3, "kpi"), it("t", 6), it("c", 12)])).toEqual([3, 3, 6, 12]);
+  // uneven or too-narrow tiles are balanced as before
+  expect(spans([it("t", 6), it("a", 5, "kpi"), it("b", 1, "kpi")])).toEqual([12, 6, 6]);
+  expect(spans([it("a", 2, "kpi"), it("b", 2, "kpi"), it("t", 4)])).toEqual([6, 6, 12]);
+  // a run that doesn't fit the rest of its row is still balanced on rows of its own
+  expect(spans([it("t", 6), it("a", 4, "kpi"), it("b", 4, "kpi")])).toEqual([12, 6, 6]);
+});

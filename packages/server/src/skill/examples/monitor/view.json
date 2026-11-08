@@ -1,0 +1,325 @@
+{
+  "v": 2,
+  "id": "coldstore",
+  "title": "Cold rooms",
+  "summary": "{counts.rooms_over_limit|integer} of {counts.rooms|integer} rooms over their limit, read every three hours. What needs you comes first.",
+  "palette": {
+    "page": "#eef2f4",
+    "ink": "#14212b",
+    "accent": "#c2410c",
+    "series": [
+      "#c2410c",
+      "#7a8794"
+    ]
+  },
+  "fonts": {
+    "display": "IBM Plex Sans",
+    "body": "IBM Plex Sans",
+    "mono": "IBM Plex Mono"
+  },
+  "datasets": {
+    "readings": {
+      "inline": [
+        {
+          "room": "Freezer A",
+          "hour": 0,
+          "temp_c": -21.2,
+          "limit_c": -18
+        },
+        {
+          "room": "Freezer A",
+          "hour": 3,
+          "temp_c": -21.0,
+          "limit_c": -18
+        },
+        {
+          "room": "Freezer A",
+          "hour": 6,
+          "temp_c": -21.3,
+          "limit_c": -18
+        },
+        {
+          "room": "Freezer A",
+          "hour": 9,
+          "temp_c": -20.9,
+          "limit_c": -18
+        },
+        {
+          "room": "Freezer A",
+          "hour": 12,
+          "temp_c": -21.1,
+          "limit_c": -18
+        },
+        {
+          "room": "Freezer A",
+          "hour": 15,
+          "temp_c": -21.0,
+          "limit_c": -18
+        },
+        {
+          "room": "Freezer A",
+          "hour": 18,
+          "temp_c": -21.2,
+          "limit_c": -18
+        },
+        {
+          "room": "Freezer A",
+          "hour": 21,
+          "temp_c": -21.1,
+          "limit_c": -18
+        },
+        {
+          "room": "Freezer B",
+          "hour": 0,
+          "temp_c": -21.0,
+          "limit_c": -18
+        },
+        {
+          "room": "Freezer B",
+          "hour": 3,
+          "temp_c": -21.1,
+          "limit_c": -18
+        },
+        {
+          "room": "Freezer B",
+          "hour": 6,
+          "temp_c": -20.8,
+          "limit_c": -18
+        },
+        {
+          "room": "Freezer B",
+          "hour": 9,
+          "temp_c": -20.4,
+          "limit_c": -18
+        },
+        {
+          "room": "Freezer B",
+          "hour": 12,
+          "temp_c": -19.2,
+          "limit_c": -18
+        },
+        {
+          "room": "Freezer B",
+          "hour": 15,
+          "temp_c": -17.6,
+          "limit_c": -18
+        },
+        {
+          "room": "Freezer B",
+          "hour": 18,
+          "temp_c": -16.3,
+          "limit_c": -18
+        },
+        {
+          "room": "Freezer B",
+          "hour": 21,
+          "temp_c": -15.2,
+          "limit_c": -18
+        },
+        {
+          "room": "Chiller 1",
+          "hour": 0,
+          "temp_c": 2.6,
+          "limit_c": 4
+        },
+        {
+          "room": "Chiller 1",
+          "hour": 3,
+          "temp_c": 2.4,
+          "limit_c": 4
+        },
+        {
+          "room": "Chiller 1",
+          "hour": 6,
+          "temp_c": 2.7,
+          "limit_c": 4
+        },
+        {
+          "room": "Chiller 1",
+          "hour": 9,
+          "temp_c": 2.9,
+          "limit_c": 4
+        },
+        {
+          "room": "Chiller 1",
+          "hour": 12,
+          "temp_c": 2.5,
+          "limit_c": 4
+        },
+        {
+          "room": "Chiller 1",
+          "hour": 15,
+          "temp_c": 2.6,
+          "limit_c": 4
+        },
+        {
+          "room": "Chiller 1",
+          "hour": 18,
+          "temp_c": 2.8,
+          "limit_c": 4
+        },
+        {
+          "room": "Chiller 1",
+          "hour": 21,
+          "temp_c": 2.6,
+          "limit_c": 4
+        },
+        {
+          "room": "Chiller 2",
+          "hour": 0,
+          "temp_c": 3.0,
+          "limit_c": 4
+        },
+        {
+          "room": "Chiller 2",
+          "hour": 3,
+          "temp_c": 3.1,
+          "limit_c": 4
+        },
+        {
+          "room": "Chiller 2",
+          "hour": 6,
+          "temp_c": 2.9,
+          "limit_c": 4
+        },
+        {
+          "room": "Chiller 2",
+          "hour": 9,
+          "temp_c": 3.3,
+          "limit_c": 4
+        },
+        {
+          "room": "Chiller 2",
+          "hour": 12,
+          "temp_c": 3.2,
+          "limit_c": 4
+        },
+        {
+          "room": "Chiller 2",
+          "hour": 15,
+          "temp_c": 3.0,
+          "limit_c": 4
+        },
+        {
+          "room": "Chiller 2",
+          "hour": 18,
+          "temp_c": 3.1,
+          "limit_c": 4
+        },
+        {
+          "room": "Chiller 2",
+          "hour": 21,
+          "temp_c": 3.2,
+          "limit_c": 4
+        }
+      ]
+    }
+  },
+  "queries": {
+    "attention": {
+      "sql": "SELECT CASE WHEN over_c > 0 THEN room || ' is over its limit' ELSE 'All rooms within their limits' END AS headline, CASE WHEN over_c > 0 THEN 'It reads ' || temp_c || ' °C, ' || round(over_c, 1) || ' °C too warm. Check the door seal and the compressor before the stock thaws.' ELSE 'The closest is ' || room || ', ' || round(-over_c, 1) || ' °C inside its limit.' END AS detail, round(over_c, 1) AS worst_over_c FROM (SELECT room, temp_c, limit_c, temp_c - limit_c AS over_c FROM readings WHERE hour = (SELECT max(hour) FROM readings)) ORDER BY over_c DESC LIMIT 1"
+    },
+    "counts": {
+      "sql": "SELECT count(*) FILTER (WHERE over_c > 0) AS rooms_over_limit, count(*) AS rooms FROM (SELECT room, temp_c, limit_c, temp_c - limit_c AS over_c FROM readings WHERE hour = (SELECT max(hour) FROM readings))"
+    },
+    "now": {
+      "sql": "SELECT room AS \"Room\", temp_c AS \"Now (°C)\", limit_c AS \"Limit (°C)\", round(over_c, 1) AS \"Over limit (°C)\", CASE WHEN over_c > 0 THEN 'over limit' WHEN over_c > -1 THEN 'close' ELSE 'ok' END AS \"Status\" FROM (SELECT room, temp_c, limit_c, temp_c - limit_c AS over_c FROM readings WHERE hour = (SELECT max(hour) FROM readings)) ORDER BY over_c DESC"
+    },
+    "headroom": {
+      "sql": "SELECT r.room, r.hour, round(r.temp_c - r.limit_c, 1) AS above_limit_c, CASE WHEN l.temp_c > l.limit_c THEN 'over limit' ELSE 'ok' END AS state FROM readings r JOIN readings l ON l.room = r.room AND l.hour = (SELECT max(hour) FROM readings) ORDER BY r.room, r.hour"
+    }
+  },
+  "sections": [
+    {
+      "id": "now",
+      "title": "Right now",
+      "layout": "grid",
+      "density": "compact",
+      "items": [
+        {
+          "id": "alert",
+          "span": 12,
+          "c": {
+            "type": "callout",
+            "tone": "note",
+            "title": "{attention.headline}",
+            "md": "{attention.detail}"
+          }
+        },
+        {
+          "id": "k_over",
+          "span": 3,
+          "c": {
+            "type": "kpi",
+            "query": "counts",
+            "field": "rooms_over_limit",
+            "label": "Rooms over their limit",
+            "format": "integer"
+          }
+        },
+        {
+          "id": "k_worst",
+          "span": 3,
+          "c": {
+            "type": "kpi",
+            "query": "attention",
+            "field": "worst_over_c",
+            "label": "Closest room, °C over its limit",
+            "format": "number"
+          }
+        },
+        {
+          "id": "table_now",
+          "span": 6,
+          "c": {
+            "type": "table",
+            "query": "now"
+          }
+        },
+        {
+          "id": "trend",
+          "span": 12,
+          "title": "Each room against its own limit (above zero is too warm)",
+          "c": {
+            "type": "chart",
+            "query": "headroom",
+            "vegaLite": {
+              "mark": "line",
+              "encoding": {
+                "x": {
+                  "field": "hour",
+                  "type": "quantitative",
+                  "title": "Hour"
+                },
+                "y": {
+                  "field": "above_limit_c",
+                  "type": "quantitative",
+                  "title": "°C above limit"
+                },
+                "detail": {
+                  "field": "room",
+                  "type": "nominal"
+                },
+                "color": {
+                  "field": "state",
+                  "type": "nominal",
+                  "title": "Now",
+                  "scale": {
+                    "domain": [
+                      "over limit",
+                      "ok"
+                    ],
+                    "range": [
+                      "#c2410c",
+                      "#7a8794"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

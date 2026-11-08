@@ -75,6 +75,18 @@ export function generateSkillFiles(): Record<string, string> {
       "A technical drawing that builds itself: deep blueprint blue, IBM Plex Mono labels, a yellow accent for the cable and the load. The story is `variant: \"split\"` with the steps on the right. `geometry.ts` holds the bridge as numbers and says when each part is drawn (in story steps); `Drawing.tsx` is one SVG whose strokes are revealed with `span(s.position, from, to)` from one animation loop, and once the load is on, dots run the force's path. Labels appear with their part and stay readable on a phone. It ends on an `accent` ground. Copy this for any process that is built, assembled or flows.",
       ["App.tsx", "Drawing.tsx", "geometry.ts"],
     ),
+    "examples/tool.md": storyExample(
+      "tool",
+      "a what-if tool (when solar panels pay back)",
+      "A tool with no data file: the fixed assumptions sit in a one-row `inline` dataset, the reader's own numbers are `number` params written into the sentence as `{{size}}` and `{{price}}`, and every result is a query over both, so the payback, the money and the chart move as the reader drags. The inputs and their result share the first row; the chart shows where the money crosses from loss to gain; a callout says what is assumed. Copy its shape for any what-if; give it the look your subject needs.",
+      [],
+    ),
+    "examples/monitor.md": storyExample(
+      "monitor",
+      "a monitor that puts the exception first (cold rooms)",
+      "A dense monitor (`density: \"compact\"`) opened every morning: a stable title; a summary and a callout whose sentences are built in SQL (`CASE WHEN … END AS headline`), so they name the room over its limit, or say all is clear when none is; the numbers beside a table sorted worst first; one line per room measured against its own limit, the exception in the accent and the rest muted, so nothing is averaged away. Readable column names come from quoted SQL aliases. Copy how it surfaces the exception; give it the look your subject needs.",
+      [],
+    ),
     "examples/explainer.md": example(
       "explainer",
       "interactive explainer (a car engine)",
