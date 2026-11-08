@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -12,7 +13,7 @@ const DataSchema = z.union([
   z.record(z.string(), z.union([z.string(), z.object({ path: z.string(), format: z.string().optional() }), z.object({ inline: z.array(z.unknown()) })])),
 ]).describe("An absolute file path, {path}, {inline: [rows]}, or a map of dataset name → one of those");
 
-type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean };
+type ToolResult = { content: ({ type: "text"; text: string } | { type: "image"; data: string; mimeType: string })[]; isError?: boolean };
 
 /** aurora's tools for any MCP harness. Each call forwards to the shared local server's HTTP API. */
 export function createAuroraMcpServer(opts: { baseUrl: string; fetch?: typeof fetch; cwd: string }): McpServer {
@@ -51,6 +52,20 @@ export function createAuroraMcpServer(opts: { baseUrl: string; fetch?: typeof fe
     description: "Current version of a view, its problems (validation, data and screen render errors) and items no screen has confirmed yet (unverified). Check after render/patch when problems were reported.",
     inputSchema: { viewId: z.string() },
   }, ({ viewId }) => call("GET", `/api/views/${id(viewId)}/status`));
+  server.registerTool("look", {
+    description: "See the view as a person sees it: screenshots from a headless browser, top to bottom, one per story step. Default: desktop only (about 6 pictures, ~7k tokens); add \"phone\" to sizes to check the phone layout, or pass a section id to look at just that part. Use it after building and after big changes; compare what you see with your story outline and the look you chose, then fix what's off.",
+    inputSchema: { viewId: z.string(), sizes: z.array(z.enum(["desktop", "phone"])).max(2).optional(), section: z.string().optional(), maxShots: z.number().int().min(1).max(12).optional() },
+  }, async ({ viewId, sizes, section, maxShots }) => {
+    const r = await call("POST", `/api/views/${id(viewId)}/look`, { sizes, section, maxShots });
+    if (r.isError) return r;
+    const out = JSON.parse((r.content[0] as { text: string }).text) as { version: number; shots: { file: string; caption: string }[] };
+    const content: ToolResult["content"] = [{ type: "text", text: `v${out.version}: ${out.shots.length} pictures` }];
+    for (const s of out.shots) {
+      content.push({ type: "text", text: s.caption });
+      content.push({ type: "image", data: (await readFile(s.file)).toString("base64"), mimeType: "image/jpeg" });
+    }
+    return { content };
+  });
   server.registerTool("profile", {
     description: "Profile data files before writing queries: column names, types, summary stats and sample rows. Data never needs to pass through your context.",
     inputSchema: { data: DataSchema },

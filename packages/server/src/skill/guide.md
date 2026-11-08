@@ -13,10 +13,11 @@ Follow these steps in order, every time.
 3. **Render** the frame with `mcp__aurora__render`: title, one-line summary and sections (with the first item, or with `"items": []`).
 4. **Add** the remaining items with `mcp__aurora__patch`, **one call at a time**. Each call passes `baseVersion` = the `version` the previous call returned. Two patches sent together collide.
 5. **Check** with `mcp__aurora__status`. Fix every `error` with a patch, then check again.
-6. **Review** your work against **Before you finish** at the end of this file. You cannot see the screen, so this checklist is your eyes.
-7. **Tell** the user the URL in one line. Don't repeat the content in the terminal.
+6. **Look** at it with `mcp__aurora__look`: pictures of the view as a person sees it, top to bottom, one per story step. Judge them against your outline and the look you chose: is the hook on the first screen and does it grab? One idea per beat? Is the signature moment there? Anything overlapping, cut off, too small, hard to read or empty? Fix it with patches and look again (two or three rounds at most). Add `"sizes": ["desktop", "phone"]` once, before you finish, to check the phone layout; pass `"section"` to look at just one part.
+7. **Review** your work against **Before you finish** at the end of this file.
+8. **Tell** the user the URL in one line. Don't repeat the content in the terminal.
 
-`unverified` in a result means no screen has drawn and checked the item yet. A `design` stays `unverified` for a few seconds after it draws, while aurora runs its design checks: call `status` again after about 3 seconds and fix any `design:` warning. If it is still `unverified` after that, no screen is open: give the URL to the user and stop.
+`unverified` in a result means no screen has drawn and checked the item yet. A `design` stays `unverified` for a few seconds after it draws, while aurora runs its design checks: call `status` again after about 3 seconds and fix any `design:` warning. If it is still `unverified` after that, no screen is open: `look` still works (it draws the view itself), so use it to check your work, and give the URL to the user.
 
 ## Pick components
 
@@ -41,7 +42,7 @@ Follow these steps in order, every time.
 | **an abstract process with no physical shape (an algorithm, a protocol), a simulation, a game** | `design` | 12 |
 
 Good combinations:
-- **Explain how something physical works:** a `story` section whose first item is the 3D `aurora/kit` scene and whose other items are short `text` steps, one per moment that matters, each with `"story": {"state": …}` that freezes the scene on that moment; the last step sets it running. Give the view a `palette` drawn from the subject (red and blue for blood, hot orange for combustion) and use `--s1`, `--s2`… in the scene. Then a `callout` for the one thing worth remembering. Don't put a list of `steps` under a sandbox scene: the story *is* the steps.
+- **Explain how something physical works:** a `story` section: the 3D scene pinned, one short `text` step per moment (each with `"story": {"state": …}`), the last setting it running; then a `callout`. The story *is* the steps: no `steps` list under the scene.
 - **Explain a system:** `architecture`, then a `diagram` for its main request, then a `callout` for the key decision.
 - **Analyse data:** for a quick look, a row of `kpi`, then a `chart`, then a `table`, with filters when the reader will want to slice it. For a story about the data, shape it first (`references/story.md`): open on the most surprising number, then a beat per finding.
 - **A page or product:** one `design` with `display: "page"`, as the only item in the view.
@@ -122,13 +123,14 @@ Every result carries `problems`: `{itemId?, severity, message, hint?}`.
 
 ## Without the MCP tools
 
-The same operations work over HTTP: `POST localhost:4317/api/views {view}`, `POST /api/views/<id>/patch {ops, baseVersion}`, `GET /api/views/<id>/status`. Or append JSON lines to `<project>/.aurora/views/<name>.ndjson`: the first line is a view, each later line is `{"ops": [...], "baseVersion": N}`. aurora writes problems to `<name>.problems.json` next to it after every line. The folder is watched only when aurora's MCP server runs in that project, or after `aurora watch <project>`.
+The same operations work over HTTP: `POST localhost:4317/api/views {view}`, `POST /api/views/<id>/patch {ops, baseVersion}`, `GET /api/views/<id>/status`, and `POST /api/views/<id>/look {sizes?, section?}`, which saves the pictures and returns their file paths with a caption each: open them to look. Or append JSON lines to `<project>/.aurora/views/<name>.ndjson`: the first line is a view, each later line is `{"ops": [...], "baseVersion": N}`. aurora writes problems to `<name>.problems.json` next to it after every line. The folder is watched only when aurora's MCP server runs in that project, or after `aurora watch <project>`.
 
 ## Before you finish
 
 Go through every line. Fix what fails, then check `status` once more.
 
 - [ ] `status` shows no `error` and no `design:` warning.
+- [ ] You looked at the latest version with `look` (desktop and phone) and fixed what you saw: nothing cut off, overlapping, too small or spilling sideways on a phone.
 - [ ] The story has a hook on the first screen, one idea per beat, a signature moment and an ending that lands the one sentence; it answers who, what, when, where, why and how without naming them.
 - [ ] The look was chosen for this subject: a `palette` (stage, accent, series), type and motion that fit it, and it doesn't copy the example's or the last view's look.
 - [ ] A physical mechanism is a 3D `aurora/kit` scene pinned in a `story` section with steps that drive it (or a `hero`), not a flat drawing in a card, and the view has a `palette` from its subject.
@@ -136,10 +138,7 @@ Go through every line. Fix what fails, then check `status` once more.
 - [ ] Designs use only token colors (`bg-surface`, `text-ink-2`, `var(--s1)`…): no `slate`, `gray`, `white`, `black`, hex or `dark:`.
 - [ ] Nothing animated or absolutely positioned overlaps text.
 - [ ] Every part of a drawing is labelled where it is.
-- [ ] A drawing fills its card: the SVG `viewBox` width is close to the width it shows at, so 12px labels stay 12px.
-- [ ] Segment and button labels fit; button rows use `flex-wrap`.
 - [ ] An explainer has play/pause, next step and speed controls, a current-step card and live readouts.
-- [ ] Layout works on a phone: grids use `md:grid-cols-*`, rows use `flex-wrap`, and SVGs use `viewBox` with `className="w-full h-auto"`.
 - [ ] No `height` on a design card.
 - [ ] `steps` marks `done`/`current` only when it tracks real progress; an explanation leaves `status` out.
 - [ ] Wording is specific and plain; numbers that come from data come from queries.

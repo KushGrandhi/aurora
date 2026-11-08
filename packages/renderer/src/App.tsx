@@ -43,6 +43,14 @@ function useMode(): [Mode, () => void] {
   return [mode, toggle];
 }
 
+/**
+ * Capture mode (`/?capture#<id>`): the server's headless browser taking pictures for `look`. It shows one view
+ * without the corner chrome, never reports back (so it never changes problems or counts as the person's screen),
+ * never follows other views, and marks <html data-capture-ready> once every item on the page has drawn.
+ */
+const CAPTURE = new URLSearchParams(location.search).has("capture");
+if (CAPTURE) document.documentElement.dataset.capture = "";
+
 /** Collects per-item render reports and design warnings, and sends one `rendered` message per view version (debounced). */
 function useReports(send: (m: ScreenMessage) => void) {
   const pending = useRef(new Map<string, Pending & { timer?: number }>());
@@ -93,7 +101,7 @@ export function App() {
     if (r.reload) return location.reload(); // the server now serves a newer screen
     if (r.need) send(r.need);
     if (e.t === "list") setListed(true);
-    if (r.follow) {
+    if (r.follow && !CAPTURE) {
       location.hash = r.follow;
       setPicked(r.follow);
       setPreview(undefined);
@@ -101,7 +109,7 @@ export function App() {
   }, [send]);
 
   useEffect(() => {
-    conn.current = connect(onEvent, setUp);
+    conn.current = connect(onEvent, setUp, CAPTURE ? "capture" : undefined);
     return () => conn.current?.close();
   }, [onEvent]);
   useEffect(() => {
@@ -172,8 +180,8 @@ export function App() {
     media: (src) => media?.[src],
     send: (name, payload) => { if (currentId && !showing) send({ t: "event", viewId: currentId, itemId: item.id, name, payload }); },
     ...(item.c.type === "design" || item.c.type === "custom" ? { openPage: () => setOpened(item.id) } : {}),
-    report: (ok, message, retract) => { if (currentId && !showing) report(currentId, version, item.id, ok, message, retract); },
-    warn: (messages) => { if (currentId && !showing) warn(currentId, version, item.id, messages); },
+    report: (ok, message, retract) => { if (CAPTURE) drawn.current.add(item.id); else if (currentId && !showing) report(currentId, version, item.id, ok, message, retract); },
+    warn: (messages) => { if (currentId && !showing && !CAPTURE) warn(currentId, version, item.id, messages); },
   }), [results, mode, theme, palette, fonts, media, currentId, version, showing, report, warn, reduced, paramState, view?.params, setParam]);
   const params = paramState;
   // Params the prose already offers as inline controls (`{{name}}`) don't repeat in the filter row.
@@ -225,6 +233,17 @@ export function App() {
     <FilterBar variant={variant} params={barParams} values={params?.values ?? {}} options={params?.options ?? {}} onChange={(name, value) => send({ t: "param", viewId: currentId, name, value })} />
   ) : undefined;
   const status = activity || (live ? `v${live.version} · ${live.source === "screen" ? "chosen on screen" : `from ${live.source}`}` : "");
+
+  // Capture: ready once every item on the page has drawn (and stays ready for this view).
+  const drawn = useRef(new Set<string>());
+  useEffect(() => {
+    if (!CAPTURE || !view) return;
+    const t = setInterval(() => {
+      const ids = [...new Set([...document.querySelectorAll<HTMLElement>("[data-item]")].map((el) => el.dataset.item!))];
+      if (ids.length && ids.every((id) => drawn.current.has(id))) { document.documentElement.dataset.captureReady = ""; clearInterval(t); }
+    }, 200);
+    return () => clearInterval(t);
+  }, [view]);
 
   const themeToggle = <button className="theme-toggle" onClick={toggleMode} disabled={ownStage} title={ownStage ? "This view sets its own colours" : undefined}>{mode === "dark" ? "☀︎ Light" : "☾ Dark"}</button>;
 

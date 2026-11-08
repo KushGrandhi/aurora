@@ -1,4 +1,5 @@
 import { FontStore } from "./fonts.ts";
+import { Looker } from "./look.ts";
 import { spawn } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -29,6 +30,7 @@ export type ServerOpts = {
   secretFile?: string; // media token secret, default ~/.aurora/secret
   fontsDir?: string; // cached Google Fonts, default ~/.aurora/fonts
   fontsOffline?: boolean; // never fetch fonts from Google
+  shotsDir?: string; // pictures from look, default ~/.aurora/shots
 };
 
 const REPLAY_VIEWS = 20;
@@ -87,6 +89,7 @@ function json(res: ServerResponse, status: number, body: unknown) {
 
 const PatchBody = z.object({ ops: z.array(PatchOpSchema), baseVersion: z.number().int().optional() });
 const PickBody = z.object({ version: z.number().int().min(1) });
+const LookBody = z.object({ sizes: z.array(z.enum(["desktop", "phone"])).max(2).optional(), section: z.string().max(64).optional(), maxShots: z.number().int().min(1).max(12).optional() });
 const RevertBody = z.object({ itemId: z.string(), version: z.number().int().min(1) });
 const ParamBody = z.object({ name: z.string(), value: z.unknown() });
 const VariantsBody = z.object({ variants: z.array(z.object({ label: z.string(), ops: z.array(PatchOpSchema) })), baseVersion: z.number().int().optional() });
@@ -119,6 +122,7 @@ export async function startServer(opts: ServerOpts) {
   const cache = new SpecCache();
   const open = opts.openBrowser ?? defaultOpen;
   const clients = new Set<WebSocket>();
+  const captures = new Set<WebSocket>(); // headless capture pages (look): they get every event but are never "the screen"
   let base = "";
   const viewsDir = opts.viewsDir ?? defaultViewsDir();
   const store = new ViewStore(viewsDir);
@@ -132,8 +136,10 @@ export async function startServer(opts: ServerOpts) {
   };
   const broadcast = (e: ViewEvent) => {
     for (const c of clients) send(c, e);
+    for (const c of captures) send(c, e);
   };
   const fonts = new FontStore({ dir: opts.fontsDir ?? path.join(homedir(), ".aurora", "fonts"), libDir: opts.staticDir ? path.join(opts.staticDir, "lib") : undefined, offline: opts.fontsOffline });
+  const looker = new Looker({ base: () => base, dir: opts.shotsDir ?? path.join(homedir(), ".aurora", "shots") });
   const intake = new Intake({
     store, data, emit: broadcast, baseUrl: () => base, screens: () => clients.size, openScreen: open, waitMs: opts.waitMs, media, fonts,
   });
@@ -254,7 +260,7 @@ export async function startServer(opts: ServerOpts) {
       }
     }
     const p = url.pathname;
-    if (p === "/api/health") return [200, { ok: true, provider: opts.provider.name }];
+    if (p === "/api/health") return [200, { ok: true, provider: opts.provider.name, screens: clients.size }];
     if (p === "/api/views" && method === "GET") return [200, store.list()];
     if (p === "/api/views" && method === "POST") {
       const view = (body as { view?: unknown })?.view;
@@ -286,7 +292,7 @@ export async function startServer(opts: ServerOpts) {
       if (!e) throw new HttpError(404, `view "${vm[1]}" has no version ${vm[2]}`);
       return [200, e];
     }
-    const m = p.match(/^\/api\/views\/([A-Za-z_]\w*)(?:\/(patch|status|history|pick|revert|params|events|variants))?$/);
+    const m = p.match(/^\/api\/views\/([A-Za-z_]\w*)(?:\/(patch|status|history|pick|revert|params|events|variants|look))?$/);
     if (m) {
       const [, id, action] = m;
       if (!action && method === "GET") {
@@ -319,6 +325,16 @@ export async function startServer(opts: ServerOpts) {
         const b = parse(ParamBody, body);
         const r = await intake.setParam(id, b.name, b.value);
         return "problem" in r ? [400, { error: r.problem.message, problem: r.problem }] : [200, r];
+      }
+      if (action === "look" && method === "POST") {
+        const cur = store.current(id);
+        if (!cur) throw new HttpError(404, `no view "${id}"`);
+        const b = parse(LookBody, body ?? {});
+        try {
+          return [200, { viewId: id, version: cur.version, shots: await looker.look(id, cur.version, b) }];
+        } catch (e) {
+          throw new HttpError(503, (e as Error).message);
+        }
       }
       if (action === "pick" && method === "POST") return [200, await intake.pick(id, parse(PickBody, body).version)];
       if (action === "revert" && method === "POST") {
@@ -353,9 +369,11 @@ export async function startServer(opts: ServerOpts) {
 
   // Screens send small reports and events; a 1 MB cap keeps one bad message from tying the server up.
   const wss = new WebSocketServer({ server, path: "/ws", maxPayload: 1024 * 1024, verifyClient: ({ req }: { req: IncomingMessage }) => allowed(req) });
-  wss.on("connection", (ws) => {
-    clients.add(ws);
-    ws.on("close", () => clients.delete(ws));
+  wss.on("connection", (ws, req: IncomingMessage) => {
+    const capture = new URL(req.url ?? "/", "http://x").searchParams.get("role") === "capture";
+    const set = capture ? captures : clients;
+    set.add(ws);
+    ws.on("close", () => set.delete(ws));
     ws.on("message", (raw) => {
       let msg: ScreenMessage;
       try {
@@ -369,6 +387,7 @@ export async function startServer(opts: ServerOpts) {
         void intake.refresh(msg.viewId).catch(() => {}).then(() => { for (const e of intake.snapshot(msg.viewId)) send(ws, e); });
         return;
       }
+      if (capture) return; // a capture page only reads: its reports never change a view's problems
       intake.screenMessage(msg).catch(() => {}); // e.g. a pick of a version that doesn't exist: nothing to do
     });
     // A screen loaded from an older build (the server was restarted on a new one) reloads when it sees this change.
@@ -394,6 +413,8 @@ export async function startServer(opts: ServerOpts) {
       watcher.close();
       clearInterval(buildCheck);
       for (const c of clients) c.terminate();
+      for (const c of captures) c.terminate();
+      await looker.close();
       wss.close();
       await new Promise<void>((r) => server.close(() => r()));
       await data.closeAll();

@@ -521,3 +521,6 @@ body.dragging-number { cursor: ew-resize; user-select: none; }
 /* A chart whose data changes moves each mark to its new shape. */
 .chart path { transition: d 650ms var(--ease), opacity 220ms var(--ease); }
 @media (prefers-reduced-motion: reduce) { .chart path { transition: none; } }
+
+/* Capture mode (look): the view only, without aurora's own controls. */
+html[data-capture] .topbar, html[data-capture] .status-row, html[data-capture] .home-link, html[data-capture] .page-bar, html[data-capture] .page-hot { display: none !important; }

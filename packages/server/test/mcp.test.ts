@@ -27,10 +27,10 @@ async function connect(reply: Parameters<typeof fakeFetch>[0]) {
 
 const view = { v: 2, id: "demo", title: "Demo", sections: [{ id: "main", layout: "grid", items: [{ id: "a", c: { type: "text", md: "hi" } }] }] };
 
-test("lists the eight tools", async () => {
+test("lists the nine tools", async () => {
   const { client } = await connect(() => ({ body: {} }));
   const { tools } = await client.listTools();
-  expect(tools.map((t) => t.name).sort()).toEqual(["compose", "events", "patch", "profile", "render", "status", "variants", "version"]);
+  expect(tools.map((t) => t.name).sort()).toEqual(["compose", "events", "look", "patch", "profile", "render", "status", "variants", "version"]);
   for (const t of tools) expect(t.description!.length).toBeGreaterThan(20);
 });
 
@@ -68,4 +68,18 @@ test("registers cwd for watching on start", async () => {
   await new Promise((r) => setTimeout(r, 10));
   const w = calls.find((c) => c.url.endsWith("/api/watch"));
   expect(w).toMatchObject({ method: "POST", body: { dir: "/work/proj" } });
+});
+
+test("look returns each picture as an image the model sees, with its caption", async () => {
+  const { mkdtempSync, writeFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const file = `${mkdtempSync(`${tmpdir()}/look-`)}/desktop-00.jpg`;
+  writeFileSync(file, Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
+  const { client, calls } = await connect(() => ({ body: { viewId: "demo", version: 3, shots: [{ size: "desktop", file, caption: "desktop 1440×900, 0–19% of the page" }] } }));
+  const r = await client.callTool({ name: "look", arguments: { viewId: "demo", sizes: ["desktop", "phone"] } });
+  expect(calls.find((c) => c.url.endsWith("/look"))).toMatchObject({ method: "POST", url: "http://localhost:9/api/views/demo/look", body: { sizes: ["desktop", "phone"] } });
+  const content = r.content as { type: string; text?: string; data?: string; mimeType?: string }[];
+  expect(content.map((c) => c.type)).toEqual(["text", "text", "image"]);
+  expect(content[1].text).toContain("0–19%");
+  expect(content[2]).toMatchObject({ mimeType: "image/jpeg", data: Buffer.from([0xff, 0xd8, 0xff, 0xd9]).toString("base64") });
 });
