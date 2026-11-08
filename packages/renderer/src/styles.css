@@ -600,3 +600,21 @@ html[data-capture] .topbar, html[data-capture] .status-row, html[data-capture] .
 .section.screen .md h1, .reel-panel .md h1 { font-family: var(--aurora-display); font-size: clamp(72px, 14vw, 220px); line-height: 0.9; letter-spacing: -0.05em; margin: 0 0 0.15em; font-weight: 650; }
 .section.screen .md h2, .reel-panel .md h2 { font-family: var(--aurora-display); font-size: clamp(40px, 6vw, 104px); line-height: 0.95; letter-spacing: -0.04em; margin: 0 0 0.3em; font-weight: 650; }
 .section.screen .md p, .reel-panel .md p { font-size: clamp(18px, 1.8vw, 26px); line-height: 1.45; max-width: 36ch; color: var(--ink2); }
+
+/* Compact: a monitor or an explorer. Dense and glanceable: small gaps and headings, short charts, aligned numbers,
+   and the view's filters kept on screen while the section is (selectors outweigh the immersive and ground spacing). */
+.kpi .value { font-variant-numeric: tabular-nums; }
+.section.compact, .app.immersive .section.compact:not(.screen), .section.on-ground.compact { padding-top: 32px; padding-bottom: 40px; margin-top: 0; margin-bottom: 0; }
+.section.compact .grid { gap: 12px; }
+.section.compact .section-title { font-size: 20px; letter-spacing: -0.015em; margin: 0 0 16px; }
+.section.compact .card { padding: 14px 16px; }
+.section.compact .kpi .value { font-size: 30px; }
+.section.compact .kpi .label { font-size: 12.5px; }
+.section-filters { position: sticky; top: 0; z-index: 30; margin: 0 0 16px; padding: 10px 0; background: color-mix(in srgb, var(--page) 92%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 1px 0 var(--hair); }
+.app.immersive .section-filters { top: 56px; }
+@media (max-width: 820px) {
+  /* two tiles a row, and the filters in one line you can swipe */
+  .section.compact .grid > [data-type="kpi"] { grid-column: span 6 !important; }
+  .section-filters .filterbar { flex-wrap: nowrap; overflow-x: auto; }
+  .app.immersive .section-filters { top: 48px; }
+}

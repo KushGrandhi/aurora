@@ -19,8 +19,8 @@ When the signals disagree, ask what the reader most needs in the first five seco
 | get one answer | **Answer** | the number or one chart, with a one-line headline that says it; no sections to scroll | the answer is visible without scrolling |
 | understand a finding | **Story** | `references/story.md`: a hook, beats, a signature moment, an ending; `immersive`, screen moments, pinned visuals | the reader ends knowing one thing they didn't |
 | see how something works | **Explainer** | a story whose pinned visual is a design (3D or drawing) driven by the steps and the scroll | the mechanism is visible, not described |
-| watch something over time | **Monitor** | a dense grid: the few numbers that matter first (tiles with sparklines), then the trends, then what needs attention; filters at the top; no narrative, no immersive opening | it reads in one glance, top left to bottom right |
-| dig in and slice | **Explorer** | filters first, a few linked charts that answer the obvious questions, the full table last; everything follows the filters and linked focus | every question the reader has is one click away |
+| watch something over time | **Monitor** | a `density: "compact"` grid section: the few numbers that matter first (tiles with sparklines, up to six a row), then the trends, then what needs attention; no narrative, no immersive opening | it reads in one glance, top left to bottom right |
+| dig in and slice | **Explorer** | a `density: "compact"` section: a few linked charts that answer the obvious questions, the full table last; the view's filters sit at its top and stay on screen while it scrolls | every question the reader has is one click away |
 | compare and decide | **Comparison** | the options side by side (a grid of equal columns, a `split` story, or a `reel` of options), the same measures in the same order for each, the trade-off stated up front | the difference that decides it is the biggest thing on screen |
 | try what-ifs | **Tool** | numbers the reader drags in the prose (`{{name}}`, `references/data.md`) or a design with controls; the result updates as they change | the reader can change an input and see the result at once |
 | look things up | **Reference** | `tabs`, a table, `cards`; search or a select filter; headings that match what people look for | the reader finds their item in seconds |
@@ -35,6 +35,8 @@ A view is made of sections, and each section can be a different form. Blending i
 - **Monitor with a note:** a dense monitor, with one callout at the top for what changed since yesterday.
 - **Comparison, then a tool:** the options side by side, then a calculator to try your own numbers.
 - **Explainer, then a reference:** how it works, then the parts in a table to look up.
+
+A compact section carries the view's filters at its top (the first compact section, if there are several), so in a story that hands over to an explorer the filters appear where the exploring starts.
 
 Lead with whatever the reader needs first. Don't blend for variety's sake: every section must serve the job.
 

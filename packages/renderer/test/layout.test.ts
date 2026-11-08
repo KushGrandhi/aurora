@@ -20,3 +20,15 @@ test("full rows are untouched", () => {
 test("a lone KPI keeps its span beside other items", () => {
   expect(spans([it("k", 4, "kpi"), it("c", 8)])).toEqual([4, 8]);
 });
+
+test("KPI runs split into balanced rows whose sizes divide twelve", async () => {
+  const { kpiRows } = await import("../src/layout.ts");
+  expect(kpiRows(8)).toEqual([4, 4]);
+  expect(kpiRows(6)).toEqual([3, 3]);
+  expect(kpiRows(6, 6)).toEqual([6]);
+  expect(kpiRows(5)).toEqual([3, 2]);
+  expect(kpiRows(5, 6)).toEqual([3, 2]);
+  expect(kpiRows(7)).toEqual([4, 3]);
+  expect(kpiRows(10, 6)).toEqual([3, 2, 3, 2]);
+  for (let n = 2; n <= 12; n++) for (const max of [4, 6]) for (const c of kpiRows(n, max)) expect(12 % c, `${n}/${max}`).toBe(0);
+});

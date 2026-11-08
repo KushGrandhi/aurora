@@ -141,7 +141,7 @@ export function App() {
 
   const heroId = useMemo(() => {
     const first = view?.sections[0];
-    if (!first || first.layout !== "grid") return undefined;
+    if (!first || first.layout !== "grid" || first.density === "compact") return undefined;
     const k = first.items.find((i) => i.c.type === "kpi");
     return k && (k.span ?? 12) >= 4 ? k.id : undefined;
   }, [view]);
@@ -230,6 +230,8 @@ export function App() {
   // neither do a view's sections once any has its own ground.
   const immersive = !!heroItem || !!view?.immersive;
   const grounds = (view?.sections ?? []).some((s) => s.background);
+  // A monitor or explorer section (compact) carries the filters, kept on screen while it is.
+  const filterHome = (view?.sections ?? []).find((s) => s.density === "compact")?.id;
   const numbers = useMemo(() => {
     let n = 0;
     return (view?.sections ?? []).map((s, i) => (s.title && !heroOnly(i) ? ++n : undefined));
@@ -327,10 +329,10 @@ export function App() {
                 {view.summary && <p className="summary">{fillPlaceholders(view.summary, results)}</p>}
                 {immersive && filters()}
               </motion.div>}
-              {!heroItem && !immersive && filters()}
+              {!heroItem && !immersive && !filterHome && filters()}
               <div key={currentId} className="view-body">{/* a different view is a fresh mount, even when ids repeat */}
-                {view.sections.map((s, i) => i === 0 && heroItem ? (!heroOnly(0) ? <Section key={s.id} leads={false} order={i} number={immersive || grounds ? undefined : numbers[i]} ground={groundFor(s.background, theme, palette, fonts)} section={{ ...s, items: s.items.slice(1) }} version={version} problems={problems} ctxFor={ctxFor} heroId={heroId} viewId={currentId} changed={showing ? {} : live?.changed ?? {}} /> : null) : (
-                  <Section key={s.id} leads={i === 0} order={i} number={immersive || grounds ? undefined : numbers[i]} ground={groundFor(s.background, theme, palette, fonts)} section={s} version={version} problems={problems} ctxFor={ctxFor} heroId={heroId} viewId={currentId} changed={showing ? {} : live?.changed ?? {}} />
+                {view.sections.map((s, i) => i === 0 && heroItem ? (!heroOnly(0) ? <Section key={s.id} leads={false} order={i} number={immersive || grounds || filterHome ? undefined : numbers[i]} ground={groundFor(s.background, theme, palette, fonts)} section={{ ...s, items: s.items.slice(1) }} version={version} problems={problems} ctxFor={ctxFor} heroId={heroId} viewId={currentId} changed={showing ? {} : live?.changed ?? {}} /> : null) : (
+                  <Section key={s.id} leads={i === 0} order={i} number={immersive || grounds || filterHome ? undefined : numbers[i]} ground={groundFor(s.background, theme, palette, fonts)} filters={s.id === filterHome ? filters() : undefined} section={s} version={version} problems={problems} ctxFor={ctxFor} heroId={heroId} viewId={currentId} changed={showing ? {} : live?.changed ?? {}} />
                 ))}
               </div>
               {viewProblems.length > 0 && <div className="errors">{viewProblems.map((p, i) => <div key={i}>{p.message}</div>)}</div>}

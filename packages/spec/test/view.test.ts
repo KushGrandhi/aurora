@@ -54,3 +54,15 @@ test("sections can set a ground, a screen height, a reel layout and story varian
   expect(JSON.stringify(ViewSchema.safeParse(v([{ id: "g", layout: "grid", variant: "behind", items: [] }])).error)).toMatch(/only for story sections/);
   expect(JSON.stringify(ViewSchema.safeParse(v([{ id: "st", layout: "story", height: "screen", items: [] }])).error)).toMatch(/already fill the screen/);
 });
+
+test("compact is for grid and tabs; unknown or misplaced fields come back named, with the right place", async () => {
+  const { unknownFields } = await import("../src/index.ts");
+  const v = (sections: unknown[], extra = {}) => ({ v: 2, id: "x", title: "x", sections, ...extra });
+  expect(ViewSchema.safeParse(v([{ id: "g", layout: "grid", density: "compact", items: [] }])).success).toBe(true);
+  expect(JSON.stringify(ViewSchema.safeParse(v([{ id: "s", layout: "story", density: "compact", items: [] }])).error)).toMatch(/grid and tabs/);
+  const probs = unknownFields(v([{ id: "g", layout: "grid", densty: "compact", items: [{ id: "a", c: { type: "text", md: "x" }, background: "ink" }] }], { density: "compact" }));
+  expect(probs).toContainEqual(expect.stringMatching(/the view has no field "density"; density belongs on a section/));
+  expect(probs).toContainEqual(expect.stringMatching(/section "g" has no field "densty"; did you mean "density"/));
+  expect(probs).toContainEqual(expect.stringMatching(/item "a" has no field "background"; background belongs on a section/));
+  expect(unknownFields(v([{ id: "g", layout: "grid", items: [] }]))).toEqual([]);
+});

@@ -1,6 +1,6 @@
 import { validateView } from "@aurora/engine";
 import {
-  paletteWarnings,
+  paletteWarnings, stripUnknown, unknownFields,
   allIds, applyOps, fromPlan1, getComponent, IdSchema, paramDefault, paramValueVars, paramVars, SpecSchema, sqlVars, validateParamValue, ViewSchema,
   type AuroraEvent, type Param, type PatchOp, type Problem, type QueryResult, type ScreenMessage, type Spec, type View, type ViewEvent,
 } from "@aurora/spec";
@@ -34,6 +34,7 @@ type Runtime = {
   variants?: { baseVersion: number; items: { label: string; view: View }[] }; // pending alternatives (not versions)
   problems: Problem[]; // static + data problems of the current version
   extra: Problem[]; // caller-level notes (e.g. composer errors), cleared on the next render
+  unknown?: Problem[]; // fields the current version was sent that views, sections and items don't have
   report?: Report;
   waiters: { version: number; resolve: () => void }[];
   loaded?: boolean; // data loaded and validated since the server started
@@ -273,6 +274,9 @@ export class Intake {
   private async commit(view: View, source: VersionSource, how: { ops?: PatchOp[]; changed?: string[]; baseVersion?: number; note?: string }): Promise<number> {
     const { store, emit } = this.deps;
     const r = this.runtime(view.id);
+    // A typo or a field in the wrong place is named (the schema keeps unknown fields so this can see them), then dropped.
+    r.unknown = unknownFields(view).map((m): Problem => ({ severity: "warning", message: m, hint: "fix the field name or move it where it belongs; unknown fields are ignored" }));
+    view = stripUnknown(view);
     await this.deps.fonts?.prepare(view.fonts); // on disk before any screen asks for them
     const { checked, fresh } = await this.evaluate(view);
 
@@ -420,6 +424,7 @@ export class Intake {
       const words = md.split(/\s+/).filter(Boolean).length;
       if (words > 70) problems.push({ itemId: it.id, severity: "warning", message: `story step "${it.id}" is ${words} words; a step must fit on one screen`, hint: "keep each step to two or three sentences (about 50 words), and split a long one into two steps" });
     }
+    problems.push(...(r.unknown ?? []));
     for (const m of this.deps.fonts?.problems(view.fonts) ?? []) problems.push({ severity: "warning", message: m, hint: "use an exact Google Fonts family name" });
     // Colours the model chose that are hard to see on the stage (in either theme, when the view doesn't set its page).
     const seen = new Set<string>();

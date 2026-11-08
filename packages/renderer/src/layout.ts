@@ -2,17 +2,24 @@ import type { Item } from "@aurora/spec";
 
 const GRID = 12;
 
-/** Normalize the model's spans: runs of KPIs share a row evenly, and every row fills the full width. */
-export function packRows(items: Item[]): Item[] {
+/** How a run of n KPIs splits into rows of at most `max`: as even as possible, and only sizes that divide 12. */
+export function kpiRows(n: number, max = 4): number[] {
+  const rows = Math.ceil(n / max);
+  const base = Math.floor(n / rows), extra = n % rows;
+  const counts = Array.from({ length: rows }, (_, r) => base + (r < extra ? 1 : 0));
+  return counts.flatMap((c) => (c === 5 ? [3, 2] : [c]));
+}
+
+/** Normalize the model's spans: runs of KPIs share rows evenly (up to 4 a row, or 6 when compact), and every row fills the full width. */
+export function packRows(items: Item[], maxKpis = 4): Item[] {
   const out = items.map((i) => ({ ...i }));
-  // KPI runs: up to 4 per row, equal widths.
   for (let i = 0; i < out.length; ) {
     let j = i;
     while (j < out.length && out[j].c.type === "kpi") j++;
     const n = j - i;
     if (n > 1) {
-      const perRow = Math.min(n, 4);
-      for (let k = i; k < j; k++) out[k].span = GRID / perRow === Math.floor(GRID / perRow) ? GRID / perRow : 3;
+      let k = i;
+      for (const c of kpiRows(n, maxKpis)) for (let m = 0; m < c; m++) out[k++].span = GRID / c;
     }
     i = Math.max(j, i + 1);
   }

@@ -50,7 +50,7 @@ function withFocus(spec: Spec, field: string): Spec {
   return { ...spec, params: [...(spec.params ?? []), { name: "aurora_focus", value: null }], encoding: { ...spec.encoding, opacity: { condition: { test, value: 1 }, value: 0.22 } as never } };
 }
 
-export function Chart({ c, result, stage, font, onDrawn }: { c: ChartC; result: QueryResult; stage: Stage; font?: string; onDrawn?: (ok: boolean, message?: string) => void }) {
+export function Chart({ c, result, stage, font, compact, onDrawn }: { c: ChartC; result: QueryResult; stage: Stage; font?: string; compact?: boolean; onDrawn?: (ok: boolean, message?: string) => void }) {
   const mode = stage.mode;
   const seriesKey = JSON.stringify(stage) + font;
   const focus = useFocus();
@@ -72,7 +72,7 @@ export function Chart({ c, result, stage, font, onDrawn }: { c: ChartC; result: 
   useEffect(() => {
     if (!ref.current) return;
     let view: { finalize(): void } | undefined;
-    const base = { autosize: { type: "fit-x", contains: "padding" }, height: 260, ...prepareVegaLite(c.vegaLite, rows.current), width: "container", data: { name: "aurora_rows", values: rows.current } } as Spec;
+    const base = { autosize: { type: "fit-x", contains: "padding" }, height: compact ? 180 : 260, ...prepareVegaLite(c.vegaLite, rows.current), width: "container", data: { name: "aurora_rows", values: rows.current } } as Spec;
     const field = focusField(base);
     let cancelled = false;
     const spec = field ? withFocus(base, field) : base;
@@ -107,7 +107,7 @@ export function Chart({ c, result, stage, font, onDrawn }: { c: ChartC; result: 
       data.current = undefined;
       view?.finalize();
     };
-  }, [c, mode, seriesKey, columnsKey]);
+  }, [c, mode, seriesKey, columnsKey, compact]);
   const first = useRef(true);
   useEffect(() => {
     if (first.current) { first.current = false; return; }
@@ -121,5 +121,5 @@ export function Chart({ c, result, stage, font, onDrawn }: { c: ChartC; result: 
 }
 
 export default function ChartRenderer({ c, ctx }: { c: ChartC; ctx: import("../registry.tsx").RenderCtx }) {
-  return <Chart c={c} result={ctx.results[c.query]} stage={ctx.theme.stage} font={ctx.theme.font} onDrawn={ctx.report} />;
+  return <Chart c={c} result={ctx.results[c.query]} stage={ctx.theme.stage} font={ctx.theme.font} compact={ctx.compact} onDrawn={ctx.report} />;
 }

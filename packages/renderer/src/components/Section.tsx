@@ -22,6 +22,8 @@ export type SectionProps = {
   order?: number;
   /** Reading number of a titled section (1, 2, …): even ones sit on a band. */
   number?: number;
+  /** The view's filter bar, when this is the first compact section: it stays on screen while the section does. */
+  filters?: React.ReactNode;
   /** The section's own ground (its background): a stage re-derived on it, for its CSS and its items. */
   ground?: { theme: Theme; palette: Palette; vars: Record<string, string> };
 };
@@ -37,7 +39,7 @@ const isBleed = (item: ViewItem) => (item.c.type === "design" || item.c.type ===
 function Grid({ section, version, problems, ctxFor, heroId, viewId, changed, leads, order = 0 }: SectionProps) {
   const reduced = useReducedMotion() ?? false;
   const bleedId = leads && section.items[0] && isBleed(section.items[0]) ? section.items[0].id : undefined;
-  const packed = packRows(section.items.map((i) => ({ ...i, span: i.span ?? 12 })) as Item[]) as (ViewItem & { span: number })[];
+  const packed = packRows(section.items.map((i) => ({ ...i, span: i.span ?? 12 })) as Item[], section.density === "compact" ? 6 : 4) as (ViewItem & { span: number })[];
   return (
     <div className="grid">
       <AnimatePresence initial mode="popLayout">
@@ -66,11 +68,16 @@ export function Section(props: SectionProps) {
   const g = ground;
   // Items on a ground draw with its stage (charts, diagrams, designs), not the view's.
   const base = props.ctxFor;
-  const ctxFor = g ? (item: ViewItem, hero: boolean): RenderCtx => ({ ...base(item, hero), theme: g.theme, mode: g.theme.stage.mode, palette: g.palette }) : base;
+  const compact = section.density === "compact";
+  const ctxFor = (item: ViewItem, hero: boolean): RenderCtx => {
+    const c = base(item, hero && !compact);
+    return { ...c, ...(g ? { theme: g.theme, mode: g.theme.stage.mode, palette: g.palette } : {}), ...(compact ? { compact: true } : {}) };
+  };
   props = { ...props, ctxFor };
-  const cls = ["section", number && number % 2 === 0 ? "band" : "", section.background ? `on-ground bg-${section.background}` : "", section.height === "screen" ? "screen" : ""].filter(Boolean).join(" ");
+  const cls = ["section", compact ? "compact" : "", number && number % 2 === 0 && !compact ? "band" : "", section.background ? `on-ground bg-${section.background}` : "", section.height === "screen" ? "screen" : ""].filter(Boolean).join(" ");
   return (
     <motion.div layout="position" className={cls} data-section={section.id} data-theme-local={g ? g.theme.stage.mode : undefined} style={g?.vars as React.CSSProperties | undefined}>
+      {props.filters && <div className="section-filters">{props.filters}</div>}
       {section.title && <h2 className="section-title">{section.title}</h2>}
       {section.layout === "tabs" ? <Tabs {...props} /> : section.layout === "story" ? <Story {...props} /> : section.layout === "reel" ? <Reel {...props} /> : <Grid {...props} />}
     </motion.div>
