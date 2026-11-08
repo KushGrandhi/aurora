@@ -80,6 +80,19 @@ patches, queries and linked focus keep working; a story can drop aurora's chrome
   (a finding whose events aren't on its chart, a what-if with no inputs, a long list with no search).
   Measured with three runs per request; counts only if the mean moves by more than the spread.
 
+## Track 3: Canvas first (Kush, 2026-11-08)
+
+Evals: views built from catalog parts look generic; whole-page designs were the only consistently designed results.
+Kush's reference is a hand-built interactive inspector, plus procedural backgrounds that make designs less flat.
+
+- [ ] C1. Discriminator review of canvas-first + surfaces + designs that set filters.
+- [ ] C2. Surfaces, first batch (grain, paper, blueprint grid, dot grid, contour lines, halftone, thermal gradient,
+  fluted glass): in designs and as section backgrounds, palette-coloured, text kept legible, static by default.
+- [ ] C3. Designs can change filters (`aurora.setParam`), so a slider or a picked row re-runs the queries.
+- [ ] C4. Canvas-first skill: a whole-page design that reads the queries is the default beyond a one-number answer;
+  drop rules that force sameness; a worked inspector example in another domain.
+- [ ] C5. Eval: the Jarvis prompt and some of the nine on Sonnet, compared by screenshot with today's.
+
 ## Track 2: Quality (every form looks designed, never AI-generated)
 
 - [ ] Q1. A quality rubric per form, and a concrete list of AI tells, so "beautiful and intuitive" is checkable.
