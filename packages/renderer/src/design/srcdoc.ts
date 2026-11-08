@@ -5,7 +5,7 @@ import { TOKEN_CSS, TOKEN_THEME, stageCss } from "./tokens.ts";
 import { resolveStage, type Fonts, type Palette } from "@aurora/spec";
 import { fontHrefs, fontVars } from "../fonts.ts";
 
-export type SrcdocOpts = { origin: string; framework: "react" | "html"; mode: "light" | "dark"; data: Record<string, unknown[]>; assets: Record<string, string>; display?: "card" | "page" | "hero"; palette?: Palette; fonts?: Fonts; params?: Record<string, unknown>; story?: { index: number; state: unknown } | null };
+export type SrcdocOpts = { origin: string; framework: "react" | "html"; mode: "light" | "dark"; data: Record<string, unknown[]>; assets: Record<string, string>; display?: "card" | "page" | "hero"; palette?: Palette; fonts?: Fonts; clear?: "left" | "right"; params?: Record<string, unknown>; story?: { index: number; state: unknown } | null };
 
 /** No network, nothing but aurora's own libraries and media: the sandbox's whole outside world. */
 export function sandboxCsp(origin: string): string {
@@ -31,6 +31,8 @@ const safeJson = (v: unknown) => JSON.stringify(v).replace(/</g, "\\u003c").repl
 const attr = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
+/** How much of the screen a story's step column covers, from the edge (kept in step with .story-behind in styles.css). */
+export const STEP_COLUMN = "calc(max(48px, 5vw) + min(42vw, 520px) + 24px)";
 /** The view's palette as the sandbox's variables: its whole stage when it sets a page, else just its accent and series. */
 const paletteCss = (p: Palette, mode: "light" | "dark") => {
   if (p.page && HEX.test(p.page)) return stageCss(resolveStage(mode, p));
@@ -49,6 +51,8 @@ export function buildSrcdoc(p: CompiledProject, o: SrcdocOpts): string {
     `<link rel="stylesheet" href="${o.origin}/lib/fonts/aurora.css">`,
     // The view's typefaces, served by aurora (never Google), and their roles as variables.
     ...fontHrefs(o.fonts, o.origin).map((h) => `<link rel="stylesheet" href="${attr(h)}">`),
+    // Behind a story's steps: the side they cover (the screen's step column, in the frame's own width) stays clear.
+    ...(o.clear ? [`<style id="aurora-clear">@media (min-width: 860px) { :root { --aurora-clear-${o.clear}: ${STEP_COLUMN}; --aurora-stage-${o.clear}: ${STEP_COLUMN}; } }</style>`] : []),
     `<style id="aurora-fonts">:root { ${Object.entries(fontVars(o.fonts)).map(([k, v]) => `${k}: ${v.replace(/[<>{};]/g, "")};`).join(" ")} }</style>`,
     `<script type="application/json" id="aurora-project">${safeJson(project)}</script>`,
     `<script id="aurora-bootstrap">(${String(auroraBootstrap).replace(/<\/script/gi, "<\\/script")})()</script>`,

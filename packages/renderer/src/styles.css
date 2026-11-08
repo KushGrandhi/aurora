@@ -493,17 +493,43 @@ tbody:has(tr.focused) tr:not(.focused) { opacity: 0.45; }
 tbody tr.focused td { background: color-mix(in srgb, var(--accent) 9%, transparent); }
 
 /* Story: steps scroll on the left, the visual stays pinned on the right and follows the step being read. */
+/* Stories. side: steps beside the pinned visual. behind: the visual fills the screen and the steps pass over it on
+   cards. split: half and half. All full-bleed pieces break out of the page with 100vw (.app clips sideways). */
+.app { overflow-x: clip; }
 .story { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 56px; align-items: start; }
 .story-visual { position: sticky; top: 10vh; height: 80vh; grid-column: 2; grid-row: 1; border-radius: 18px; overflow: hidden; display: flex; flex-direction: column; justify-content: center; }
 .story-visual[data-type="design"] > .face, .story-visual[data-type="custom"] > .face { height: 100%; }
+.story-visual .design, .story-visual .design-stage { height: 100% !important; }
 .story-steps { grid-column: 1; grid-row: 1; padding: 30vh 0; }
 .story-step { min-height: 60vh; display: flex; flex-direction: column; justify-content: center; opacity: 0.3; transition: opacity 400ms var(--ease); font-size: 17px; line-height: 1.65; }
 .story-step.active { opacity: 1; }
+.story.steps-right { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+.story.steps-right .story-steps { grid-column: 2; }
+.story.steps-right .story-visual { grid-column: 1; }
+
+/* behind (keep the step column in step with STEP_COLUMN in design/srcdoc.ts) */
+.story-behind { grid-template-columns: minmax(0, 1fr) !important; gap: 0; }
+.story-behind .story-visual { grid-column: 1 !important; grid-row: 1; align-self: start; top: 0; height: 100vh; width: 100vw; margin-left: calc(50% - 50vw); border-radius: 0; z-index: 0; }
+.story-behind .story-steps { grid-column: 1 !important; grid-row: 1; z-index: 1; position: relative; width: 100vw; margin-left: calc(50% - 50vw); padding: 50vh max(48px, 5vw); box-sizing: border-box; pointer-events: none; display: flex; flex-direction: column; }
+.story-behind.steps-right .story-steps { align-items: flex-end; }
+.story-behind .story-step { width: min(42vw, 520px); min-height: 80vh; opacity: 0.55; }
+.story-behind .story-step.active { opacity: 1; }
+.story-behind .story-step > * { pointer-events: auto; background: color-mix(in srgb, var(--page) 84%, transparent); -webkit-backdrop-filter: blur(16px) saturate(140%); backdrop-filter: blur(16px) saturate(140%); border-radius: 18px; padding: 22px 26px; box-shadow: var(--shadow); }
+
+/* split */
+.story-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important; gap: 0; width: 100vw; margin-left: calc(50% - 50vw); }
+.story-split .story-visual { top: 0; height: 100vh; border-radius: 0; }
+.story-split .story-steps { padding: 40vh clamp(28px, 5vw, 80px); }
+
 @media (max-width: 860px) {
-  .story { grid-template-columns: minmax(0, 1fr); gap: 0; }
-  .story-visual { grid-column: 1; top: 0; height: 46vh; z-index: 3; background: var(--page); border-radius: 0; }
-  .story-steps { grid-row: 2; padding: 10vh 0 30vh; }
-  .story-step { min-height: 50vh; }
+  /* Every story stacks on a phone: the visual full-bleed on top, the step being read below it. The top 40% is the
+     visual, so scrolling something into view centres it in what's left. */
+  :root:has(.story) { scroll-padding-top: 40vh; }
+  .story, .story.steps-right, .story-split, .story-behind { grid-template-columns: minmax(0, 1fr) !important; gap: 0; width: auto; margin-left: 0; }
+  .story-visual, .story-behind .story-visual, .story-split .story-visual { grid-column: 1 !important; grid-row: 1; top: 0; height: 40vh; width: 100vw; margin-left: calc(50% - 50vw); z-index: 3; background: var(--page); border-radius: 0; }
+  .story-steps, .story-behind .story-steps, .story-split .story-steps { grid-column: 1 !important; grid-row: 2; width: auto; margin-left: 0; padding: 6vh 0 30vh; pointer-events: auto; }
+  .story-step, .story-behind .story-step { width: auto; min-height: 55vh; }
+  .story-behind .story-step > * { background: none; backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: none; padding: 0; border-radius: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .story-step { transition: none; } }
 

@@ -30,6 +30,8 @@ export type RenderCtx = {
   setParam?(name: string, value: unknown): void;
   /** For the pinned visual of a story section: the step in view and its state. */
   story?: { index: number; state: unknown } | null;
+  /** A story visual behind its steps: the side the steps are on, which the design keeps clear. */
+  clear?: "left" | "right";
   /** For the pinned visual of a story section: how to measure its scroll value (the section and its steps). */
   scrollMeasure?: Measure;
   /** The view's own colours, if it chose any. */

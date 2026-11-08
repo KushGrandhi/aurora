@@ -11,19 +11,23 @@ export function Stage({ children, scene, className = "" }: { children?: ReactNod
       className={`relative h-screen min-h-[420px] w-full overflow-hidden text-ink max-sm:h-auto max-sm:overflow-visible max-sm:pb-3 ${className}`}
       style={{ background: "radial-gradient(ellipse at 50% 38%, var(--raised), var(--page) 72%)" }}
     >
-      <div className="absolute inset-0 isolate max-sm:relative max-sm:h-[60vh]">{scene}</div>
+      {/* Behind a story's steps the screen says which side to keep clear: the scene centres in the rest. */}
+      <div className="absolute inset-0 isolate max-sm:relative max-sm:h-[60vh]" style={{ left: "var(--aurora-stage-left, 0px)", right: "var(--aurora-stage-right, 0px)" }}>{scene}</div>
       {children}
     </div>
   );
 }
 
-// In a hero the screen sets the view's title over the left of the stage: left panels start past it.
+// In a hero the screen sets the view's title over the left of the stage, and behind a story's steps it covers one
+// side (--aurora-clear-left / --aurora-clear-right): panels start past whatever is there.
+const L = "[[data-display=hero]_&]:left-[var(--aurora-clear-left,24%)]";
+const R = "[[data-display=hero]_&]:right-[var(--aurora-clear-right,2rem)]";
 const AT = {
-  "top-left": "left-8 top-8 [[data-display=hero]_&]:left-[24%]",
-  "top-right": "right-8 top-8",
-  bottom: "inset-x-8 bottom-8 [[data-display=hero]_&]:left-[24%]",
-  "bottom-left": "left-8 bottom-8 [[data-display=hero]_&]:left-[24%]",
-  "bottom-right": "right-8 bottom-8",
+  "top-left": `left-8 top-8 ${L}`,
+  "top-right": `right-8 top-8 ${R}`,
+  bottom: `inset-x-8 bottom-8 ${L} ${R}`,
+  "bottom-left": `left-8 bottom-8 ${L}`,
+  "bottom-right": `right-8 bottom-8 ${R}`,
 } as const;
 
 /**

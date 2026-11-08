@@ -43,7 +43,7 @@ export function planShots(l: Layout, vh: number, max: number, section?: string, 
   const n = Math.max(1, Math.ceil((to - from) / (vh * 0.9)));
   const even: { y: number; step?: string }[] = Array.from({ length: n }, (_, i) => ({ y: clamp(from + (n === 1 ? 0 : ((to - from - vh) * i) / (n - 1))) })).filter((p) => !inStory(p.y));
   // The opening screen always comes first: it is what a reader sees before anything else.
-  const opening = section ? [] : [{ y: 0 }];
+  const opening: { y: number; step?: string }[] = section ? [] : [{ y: 0 }];
   const all = [...opening, ...even, ...steps].sort((a, b) => a.y - b.y).filter((p, i, a) => i === 0 || p.y - a[i - 1].y > vh * 0.25 || p.step);
   if (all.length <= max) return all;
   // too many: keep the first and last, and an even spread between

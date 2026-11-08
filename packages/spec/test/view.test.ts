@@ -43,3 +43,14 @@ test("a story section, with steps that set focus and state, is a valid view", as
   expect(v.sections[0].layout).toBe("story");
   expect(v.sections[0].items[1].story).toEqual({ focus: "intake valve", state: { phase: 0 } });
 });
+
+test("sections can set a ground, a screen height, a reel layout and story variants; misuse names the rule", () => {
+  const v = (sections: unknown[]) => ({ v: 2, id: "x", title: "x", immersive: true, sections });
+  const item = { id: "a", c: { type: "text", md: "hi" } };
+  expect(ViewSchema.safeParse(v([{ id: "s", layout: "grid", background: "ink", height: "screen", items: [item] }, { id: "r", layout: "reel", items: [] }, { id: "st", layout: "story", variant: "split", steps: "right", items: [] }])).success).toBe(true);
+  const bad = ViewSchema.safeParse(v([{ id: "s", layout: "grid", background: "red", items: [] }]));
+  expect(bad.success).toBe(false);
+  expect(JSON.stringify(bad.error)).toMatch(/page.*surface.*ink.*accent/);
+  expect(JSON.stringify(ViewSchema.safeParse(v([{ id: "g", layout: "grid", variant: "behind", items: [] }])).error)).toMatch(/only for story sections/);
+  expect(JSON.stringify(ViewSchema.safeParse(v([{ id: "st", layout: "story", height: "screen", items: [] }])).error)).toMatch(/already fill the screen/);
+});

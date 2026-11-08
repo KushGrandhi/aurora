@@ -29,8 +29,20 @@ export const SectionSchema = z.object({
   id: IdSchema,
   title: z.string().optional(),
   // story: the first item stays pinned while the others scroll past as steps that drive it.
-  layout: z.enum(["grid", "tabs", "story"]),
+  // reel: the section pins and its items are full-screen panels that slide sideways as the reader scrolls down.
+  layout: z.enum(["grid", "tabs", "story", "reel"]),
   items: z.array(ViewItemSchema),
+  /** The section's own ground, edge to edge, from the view's stage; its text, charts and designs follow it. */
+  background: z.enum(["page", "surface", "ink", "accent"]).optional(),
+  /** "screen": at least a full window tall, content centred (one huge number, one sentence). Not for story or reel. */
+  height: z.enum(["screen"]).optional(),
+  /** Story only: the visual "behind" the steps (full screen), "side" by side, or "split" half and half. */
+  variant: z.enum(["behind", "side", "split"]).optional(),
+  /** Story only: which side the steps are on. */
+  steps: z.enum(["left", "right"]).optional(),
+}).superRefine((s, ctx) => {
+  if (s.layout !== "story") for (const k of ["variant", "steps"] as const) if (s[k] !== undefined) ctx.addIssue({ code: "custom", path: [k], message: `${k} is only for story sections (section "${s.id}" is ${s.layout})` });
+  if (s.height && (s.layout === "story" || s.layout === "reel")) ctx.addIssue({ code: "custom", path: ["height"], message: `height "screen" is not for ${s.layout} sections: they already fill the screen` });
 });
 export type Section = z.infer<typeof SectionSchema>;
 
@@ -54,6 +66,8 @@ export const ViewSchema = z.object({
   palette: PaletteSchema.optional(),
   /** Typefaces by Google Fonts family name; the screen and designs use them. */
   fonts: FontsSchema.optional(),
+  /** One designed page instead of an article: edge-to-edge sections, aurora's controls tucked away, a full-screen opening. A hero design implies it. */
+  immersive: z.boolean().optional(),
   sections: z.array(SectionSchema),
 });
 export type View = z.infer<typeof ViewSchema>;

@@ -85,7 +85,7 @@ export default function Design({ c, ctx }: { c: DesignC | Custom; ctx: RenderCtx
       setError(undefined);
       const { mode, data: d, assets: a } = latest.current;
       const display = latest.current.ctx.page ? "page" : latest.current.ctx.bleed ? "hero" : "card";
-      const srcdoc = buildSrcdoc(r, { origin: location.origin, framework: input.framework, mode, data: d, assets: a, display, palette: latest.current.ctx.palette, fonts: latest.current.ctx.fonts, params: latest.current.ctx.params, story: latest.current.ctx.story });
+      const srcdoc = buildSrcdoc(r, { origin: location.origin, framework: input.framework, mode, data: d, assets: a, display, palette: latest.current.ctx.palette, fonts: latest.current.ctx.fonts, clear: latest.current.ctx.clear, params: latest.current.ctx.params, story: latest.current.ctx.story });
       const id = ++seq.current;
       setFrames((f) => [...f.slice(-1), { id, srcdoc }]);
     });

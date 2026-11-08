@@ -85,3 +85,42 @@ test("prose controls: a draggable number and an inline choice set the view's par
   await page.locator('[data-item="prose"] [data-param="gear"] select').selectOption("third");
   await expect.poll(async () => (await (await request.get("/api/views/st2/status")).json()).params.gear).toBe("third");
 });
+
+test("at a laptop size a story's visual fills the screen behind the steps, never a narrow column", async ({ page, request }) => {
+  await page.setViewportSize({ width: 1000, height: 560 });
+  await page.goto("/#st3");
+  await expect(page.locator(".conn.up")).toBeVisible();
+  expect((await request.post("/api/views", { data: { view: { ...view, id: "st3" } } })).status()).toBe(200);
+  const f = page.frameLocator('[data-item="v"] iframe');
+  await expect(f.locator("#story")).toBeVisible();
+  await page.locator('[data-item="s2"]').evaluate((el) => el.scrollIntoView({ block: "center" }));
+  await expect(f.locator("#story")).toHaveText('1:{"phase":1}');
+  // nothing beside the view: the visual spans the screen edge to edge and the full height
+  await expect(page.locator(".side")).toHaveCount(0);
+  const v = (await page.locator('[data-item="v"] iframe').boundingBox())!;
+  expect(v.width).toBeGreaterThanOrEqual(1000 - 2);
+  expect(v.height).toBeGreaterThanOrEqual(560 - 2);
+  expect(v.y).toBeGreaterThanOrEqual(-1);
+  // the step being read is on screen, on the left, over the visual
+  const s = (await page.locator('[data-item="s2"]').boundingBox())!;
+  expect(s.x).toBeLessThan(500);
+  expect(s.y).toBeGreaterThanOrEqual(0);
+  expect(s.y + s.height).toBeLessThanOrEqual(560);
+  // the design is told it is a hero-like stage (kit panels on the left clear the steps)
+  expect(await f.locator("body").evaluate(() => document.documentElement.dataset.display)).toBe("hero");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(1000);
+});
+
+test("on a phone a story stacks: visual on top, the step below it", async ({ page, request }) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.goto("/#st4");
+  await expect(page.locator(".conn.up")).toBeVisible();
+  expect((await request.post("/api/views", { data: { view: { ...view, id: "st4" } } })).status()).toBe(200);
+  const f = page.frameLocator('[data-item="v"] iframe');
+  await page.locator('[data-item="s2"]').evaluate((el) => el.scrollIntoView({ block: "center" }));
+  await expect(f.locator("#story")).toHaveText('1:{"phase":1}');
+  const v = (await page.locator('[data-item="v"] iframe').boundingBox())!, s = (await page.locator('[data-item="s2"]').boundingBox())!;
+  expect(v.width).toBeGreaterThanOrEqual(390 - 2);
+  expect(s.y).toBeGreaterThanOrEqual(v.y + v.height - 1);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+});

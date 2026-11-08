@@ -15,7 +15,8 @@ type Step = ViewItem & { story?: { focus?: string; state?: unknown } };
  * one: its `story.focus` lights a value up across the view and its `story.state` reaches the pinned visual (a design
  * hears it as aurora.story, and the continuous value as aurora.scroll). Scrolling is the explanation.
  */
-export function Story({ section, version, problems, ctxFor, changed }: SectionProps) {
+export function Story({ section, version, problems, ctxFor, changed, viewId }: SectionProps) {
+  const still = viewId.startsWith("variant");
   const [visual, ...steps] = section.items as Step[];
   const [active, setActive] = useState(0);
   const refs = useRef<(HTMLElement | null)[]>([]);
@@ -35,8 +36,18 @@ export function Story({ section, version, problems, ctxFor, changed }: SectionPr
 
   if (!visual) return null;
   const story = { index: active, state: steps[active]?.story?.state ?? null };
+  // behind: the visual fills the screen and the steps pass over it on cards (the default for a design: text over a
+  // chart or diagram would hide it, so those sit beside); side: two columns; split: half and half. A preview (the
+  // variants overlay) is a still picture: stacked.
+  const isDesign = visual.c.type === "design" || visual.c.type === "custom";
+  const variant = still ? "side" : section.variant ?? (isDesign ? "behind" : "side");
+  const side = section.steps ?? "left";
+  const visualCtx = variant === "behind"
+    // A stage behind the steps: the design is told it is a hero, and which side to keep clear for them.
+    ? { ...ctxFor(visual, false), story, scrollMeasure: measure, bleed: true, clear: side, openPage: undefined }
+    : { ...ctxFor(visual, false), story, scrollMeasure: measure, page: { viewport: "desktop" as const }, openPage: undefined };
   return (
-    <div className="story" ref={root}>
+    <div className={`story story-${variant} steps-${side}`} ref={root}>
       <div className="story-steps">
         {steps.map((item, i) => (
           <section key={item.id} ref={(el) => { refs.current[i] = el; }} data-step={i} data-item={item.id} data-type={item.c.type}
@@ -46,7 +57,7 @@ export function Story({ section, version, problems, ctxFor, changed }: SectionPr
         ))}
       </div>
       <div className="story-visual" data-item={visual.id} data-type={visual.c.type}>
-        <ItemFrame item={visual} version={version} changedAt={changed[visual.id]} ctx={{ ...ctxFor(visual, false), story, scrollMeasure: measure, page: { viewport: "desktop" }, openPage: undefined }} problem={itemProblem(problems, visual.id)} showTitle={false} />
+        <ItemFrame item={visual} version={version} changedAt={changed[visual.id]} ctx={visualCtx} problem={itemProblem(problems, visual.id)} showTitle={false} />
       </div>
     </div>
   );
