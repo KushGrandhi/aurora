@@ -106,3 +106,30 @@ the next patch (the text re-ran its control setup on text whose token was alread
 4. A kit panel and control bar are cut off on a phone (two of three 3D fridge runs).
 5. `render` rejected a large design view's JSON; agents fell back to the HTTP API.
 6. The palette can't be changed by a patch (an agent said it needs a full re-render; to check).
+
+## Sonnet vs Haiku (2026-11-08)
+
+Same nine requests, same skill (`d36a4e6` + the prose-control fix), one Sonnet run (`s1`-`s9`) judged side by side with
+Haiku's run `b` by two judges who weren't told which maker made which. Form uses the rubric above; quality (designed
+not generic, craft, intuitive) is judged from desktop and phone pictures.
+
+| request | Haiku form | Sonnet form | Haiku quality | Sonnet quality |
+|---|---|---|---|---|
+| answer | 4 | 5 | 1 | 3 |
+| monitor | 4 | 5 | 4 | 4 |
+| explorer | 5 | 6 | 4 | 4 |
+| comparison | 3 | 6 | 2 | 5 |
+| finding | 3 | 5 | 1 | 5 |
+| explainer (fridge) | 4 | 6 | 2 | 4 |
+| what-if | 1 | 6 | 1 | 4 |
+| pitch | 6 | 6 | 5 | 6 |
+| reference | 5 | 6 | 3 | 4 |
+| **total /54** | **35** | **51** | **23** | **39** |
+
+Sonnet won or tied every pair on both dimensions. The forms Haiku fails every time (finding, what-if) Sonnet builds
+right: a story with the chart pinned, inputs in the sentence. One run each, so only the size of the gap is solid.
+
+**Where Sonnet still falls short (aurora's ceiling, not the model's):** a pinned chart in a story sits small in an
+empty half-screen; empty space under KPI rows; kit 3D is primitive (food as cubes, labels clipped at the cabinet edge);
+the "literal number" check blocked highlighting the Q3 bar; `render` couldn't take a large design, so it used HTTP.
+Quality is 39/54 at best: nobody reaches beautiful yet. Sonnet also invented a named customer testimonial.
