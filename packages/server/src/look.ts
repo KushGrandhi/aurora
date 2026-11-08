@@ -72,7 +72,9 @@ export function planShots(l: Layout, vh: number, max: number, section?: string, 
 
 type Browser = { newContext(o: unknown): Promise<Context>; close(): Promise<void>; isConnected(): boolean };
 type Context = { newPage(): Promise<Page>; close(): Promise<void> };
+type Frame = { evaluate<T>(fn: string): Promise<T> };
 type Page = {
+  mainFrame(): Frame; frames(): Frame[];
   goto(url: string): Promise<unknown>; waitForSelector(s: string, o: unknown): Promise<unknown>; waitForTimeout(ms: number): Promise<void>;
   evaluate<T>(fn: (arg: never) => T, arg?: unknown): Promise<T>; screenshot(o: unknown): Promise<Buffer>;
 };
@@ -130,8 +132,11 @@ export class Looker {
     }
   }
 
+  private active = 0; // looks in flight (running or waiting for a slot): the browser is only closed when none are
+
   private async lookNow(viewId: string, version: number, opts: { sizes?: Size[]; section?: string; maxShots?: number }): Promise<Shot[]> {
-    if (this.idle) clearTimeout(this.idle);
+    this.active++;
+    if (this.idle) { clearTimeout(this.idle); this.idle = undefined; }
     this.browser ??= this.launch();
     let browser: Browser;
     try {
@@ -139,17 +144,21 @@ export class Looker {
       if (!browser.isConnected()) { this.browser = this.launch(); browser = await this.browser; } // it crashed or was closed
     } catch (e) {
       this.browser = undefined;
+      this.active--;
       throw e;
     }
     const out = path.join(this.o.dir, viewId, `v${version}`);
-    await mkdir(out, { recursive: true });
     try {
+      await mkdir(out, { recursive: true });
       const sizes = opts.sizes?.length ? opts.sizes : (["desktop"] as Size[]);
       const per = await Promise.all(sizes.map((size) => this.slot(() => this.shoot(browser, viewId, size, out, opts))));
       return per.flat();
     } finally {
-      this.idle = setTimeout(() => { const b = this.browser; this.browser = undefined; void b?.then((x) => x.close()).catch(() => {}); }, IDLE_MS);
-      this.idle.unref();
+      // Close the browser after a quiet minute, but never under a look that is still running or queued.
+      if (--this.active === 0) {
+        this.idle = setTimeout(() => { if (this.active) return; const b = this.browser; this.browser = undefined; void b?.then((x) => x.close()).catch(() => {}); }, IDLE_MS);
+        this.idle.unref();
+      }
     }
   }
 
@@ -161,6 +170,8 @@ export class Looker {
       await page.goto(`${this.o.base()}/?capture#${viewId}`);
       await page.waitForSelector("html[data-capture-ready]", { timeout: READY_MS }).catch(() => {});
       await page.evaluate("document.fonts.ready.then(() => undefined)" as never);
+      // A whole-page design scrolls inside its own frame, not the window: walk that frame from top to bottom instead.
+      if (await page.evaluate<boolean>("!!document.querySelector('.page-view iframe')" as never)) return await this.shootPage(page, size, out, opts);
       const layout = await page.evaluate<Layout>(LAYOUT_JS as never);
       const plan = planShots(layout, s.height, Math.max(1, Math.min(opts.maxShots ?? s.max, 12)), opts.section, s.width < 860 ? 0.73 : 0.5);
       const shots: Shot[] = [];
@@ -178,6 +189,28 @@ export class Looker {
     } finally {
       await ctx.close().catch(() => {});
     }
+  }
+
+  private async shootPage(page: Page, size: Size, out: string, opts: { maxShots?: number }): Promise<Shot[]> {
+    const s = SIZES[size];
+    const main = page.mainFrame();
+    const frame = page.frames().find((f) => f !== main);
+    if (!frame) return [];
+    const height = await frame.evaluate<number>("document.documentElement.scrollHeight");
+    const vh = s.height, last = Math.max(0, height - vh);
+    const max = Math.max(1, Math.min(opts.maxShots ?? s.max, 12));
+    const n = Math.min(max, Math.max(1, Math.ceil(height / (vh * 0.9))));
+    const shots: Shot[] = [];
+    for (let i = 0; i < n; i++) {
+      const y = Math.round(n === 1 ? 0 : (last * i) / (n - 1));
+      await frame.evaluate(`window.scrollTo(0, ${y})`);
+      await page.waitForTimeout(SETTLE_MS);
+      const file = path.join(out, `${size}-${String(i).padStart(2, "0")}.jpg`);
+      await writeFile(file, await page.screenshot({ type: "jpeg", quality: 70 }));
+      const pct = (v: number) => Math.round((100 * Math.min(v, height)) / height);
+      shots.push({ size, file, caption: `${size} ${s.width}×${s.height}, ${pct(y)}–${pct(y + vh)}% of the page (a whole-page design)` });
+    }
+    return shots;
   }
 
   async close(): Promise<void> {
