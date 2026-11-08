@@ -37,8 +37,10 @@ patches, queries and linked focus keep working; a story can drop aurora's chrome
   Done in `cb4d112` as a separate `look` tool (pictures on every status would cost too many tokens): headless
   system Chrome, opening screen + one shot per story step, desktop ~6 shots (~7k tokens), phone on request;
   the skill's loop has a Look step. Unit and browser tests pass.
-- [ ] 6. Scroll as a continuous value: story sections send 0→1 progress (per step and whole section) to designs every
+- [x] 6. Scroll as a continuous value: story sections send 0→1 progress (per step and whole section) to designs every
   frame (`useScrollProgress`), with kit helpers binding a GSAP timeline or camera to it.
+  Done in `09b3024`: one scheduler, story `position` (1.37 = between steps), eased live `aurora.scroll` in the frame,
+  kit `useScroll`/`span`/`useScrub`/`useScrollStep`, reduced motion snaps. Unit and browser tests pass.
 - [ ] 7. Immersive mode: a view flag hides the sidebar and article chrome; sections bleed edge to edge with their own
   backgrounds; more story layouts (visual full-screen behind text, centred text, horizontal scroll, split).
 - [ ] 8. Varied reference stories: 3–4 deliberately different examples (dark cinematic, editorial data journalism,
