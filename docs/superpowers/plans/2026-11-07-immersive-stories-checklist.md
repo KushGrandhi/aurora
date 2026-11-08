@@ -70,7 +70,9 @@ patches, queries and linked focus keep working; a story can drop aurora's chrome
 - [x] D3. Eval matrix: Haiku on ~8 requests that need different forms (one answer, monitor, explorer, comparison,
   finding, mechanism, what-if, pitch), scored only on whether the form fits the job (blind to looks).
   Round 1 done: 35/54 (`docs/evals/2026-11-forms-diversity.md`). Misses: monitor, what-if, reference, explainer.
-  The judge must see `look` pictures for visual forms (Kush caught the fridge). Round 2 after the D2 fixes.
+  The judge must see `look` pictures for visual forms (Kush caught the fridge).
+  Round 2 (`d36a4e6`, with pictures): 38/54. Monitor 2→5, explainer 2→5; what-if 1 and finding 2 still miss.
+  Cause: Haiku rarely opens `references/forms.md`; the form choice must live in SKILL.md. Round 3 after that.
 
 ## Track 2: Quality (every form looks designed, never AI-generated)
 

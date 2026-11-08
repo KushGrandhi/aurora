@@ -34,3 +34,35 @@ seconds, and use of aurora's form tools where they apply (total /6), blind to lo
 
 **Also found:** `look` closed its browser under concurrent looks (fixed: the idle timer only runs when no look is
 active) and photographed only the first screen of a whole-page design (fixed: it walks the design's own frame).
+
+## Round 2 (2026-11-08)
+
+**Setup:** branch `immersive-stories` at `d36a4e6`: forms.md now gives each form's first screen, "show the exception,
+not the average", "a what-if needs inputs"; new examples `monitor` and `tool`. Same nine requests word for word, fresh
+Haiku agents, view ids `g1`-`g9`. The judge now also read `look` pictures (desktop; phone too for g6 and g8).
+
+| id | request | form chosen | fit | first 5 s | tools | /6 | r1 | most important miss |
+|---|---|---|---|---|---|---|---|---|
+| g1 | Q3 revenue? | answer: the total, then by region | 2 | 2 | 2 | 6 | 5 | none that matters |
+| g2 | keep an eye on our API services | monitor: incident callout from SQL, status table worst first | 2 | 2 | 1 | 5 | 2 | p95 over 24 h still blurs the spike; trends not compact |
+| g3 | dig into orders | explorer: filters, linked charts, table | 2 | 2 | 2 | 6 | 6 | table groups combinations, not orders |
+| g4 | choose between three laptops | comparison: specs table, bars, verdict | 2 | 1 | 2 | 5 | 4 | trade-offs below the fold; winners not marked |
+| g5 | what happened to signups | grid: numbers, chart, separate changelog | 1 | 1 | 0 | 2 | 5 | not a story; events not on the chart |
+| g6 | explain a refrigerator | pinned 3D fridge, seven steps | 2 | 1 | 2 | 5 | 2 | phone: model tiny, step clipped; first screen has no step text |
+| g7 | mortgage, pay faster | static scenarios: KPI, bars, table | 0 | 1 | 0 | 1 | 2 | still no inputs |
+| g8 | landing page for Inkwell | whole-page design | 2 | 2 | 2 | 6* | 6 | none |
+| g9 | look up offices | one plain table, list first | 1 | 1 | 0 | 2 | 3 | no search; table cut off at row 10 |
+
+**Average 38/54** (round 1: 35). Monitor and explainer improved most; finding and what-if got worse or stayed broken.
+
+\* **g8 is contaminated:** its agent read this file (round 1's "no proof or pricing" note) from the repo. Eval agents
+must run where they can't see `docs/evals` or the checklist. The other eight read neither (checked in their transcripts).
+
+**Why the what-if and the finding missed (from the agents' transcripts):** almost none of the nine opened
+`references/forms.md`. g2 opened `examples/monitor.md` and got the incident first; g7 opened neither forms.md nor
+`examples/tool.md`. Haiku acts on SKILL.md and skips the references, so rules that matter must be in SKILL.md itself.
+
+**Patterns (judge):**
+1. Inputs and search are used only when the request names them ("dig into" got filters; a what-if and a lookup did not).
+2. Story layout goes to the physical explainer but not to the data finding.
+3. One summary number flattens the moment that matters (a 24-hour p95; one fixed scenario).
