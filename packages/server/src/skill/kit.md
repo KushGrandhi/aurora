@@ -26,6 +26,10 @@ House-style building blocks for a `design`. **Assemble these instead of drawing 
 | `Label` | `<Label at={[x, y, z]} side="left">piston</Label>`: a dot, a leader line and plain text pinned to a point, set off so it never sits on a moving part. Label four to six parts, not everything. |
 | `useFocus` | `const [focus, setFocus] = useFocus()`: linked focus with the rest of the view. `onPointerOver={() => setFocus("West")}`, `onPointerOut={() => setFocus(null)}` on a mesh, and light the part up when `focus === "West"`. Hovering West in a chart or table below then lights the same part. |
 | `useStory` | `const s = useStory()`: in a `story` section, `{ index, state }` of the step being read (`state` is the step's `story.state`), else null. Drive the scene from it: freeze the engine at `state.phase`, light the valve the step talks about. |
+| `useScroll` | `const s = useScroll()`: scroll as a live value, eased every frame. **Read it inside `useFrame` or an animation loop, never as React state.** `s.progress` 0..1 through the page; in a story `s.position` is where the reader is between steps (1.37 = 37% of the way from step 1 to step 2), `s.index`, `s.count`. With reduced motion it snaps to steps; `useScroll({ motion: "always" })` only for motion that is the point. |
+| `span` | `span(s.position, 1, 2)`: 0..1, how far from step 1 to step 2 (clamped). Keyframe with it: `useFrame(() => cam.position.lerpVectors(a, b, span(s.position, 1, 2)))`. |
+| `useScrub` | `useScrub(tl)`: scrubs a GSAP timeline with scroll (the story from first step to last, or the page); `useScrub(tl, (s) => span(s.position, 2, 3))` plays it between steps 2 and 3. |
+| `useScrollStep` | `const step = useScrollStep()`: the story step being read, as React state, for text and labels. |
 | `useParam` | `const rpm = useParam<number>("rpm")`: the current value of a view param, e.g. a number the reader drags in the prose (`{{rpm}}`). |
 | `useToken` | `const c = useToken("--s1")`: a three.js Color that follows the theme, for materials you write yourself. |
 

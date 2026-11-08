@@ -31,13 +31,14 @@ const SETTLE_MS = 700;
 const IDLE_MS = 60_000;
 
 /** Where to scroll for each shot: every story step centred, the rest of the page spread evenly; at most `max`. */
-export function planShots(l: Layout, vh: number, max: number, section?: string): { y: number; step?: string }[] {
+/** `line` is the reading line as a fraction of the window height: where the screen considers a step "read" (0.73 on a phone, see renderer/src/scroll.ts). */
+export function planShots(l: Layout, vh: number, max: number, section?: string, line = 0.5): { y: number; step?: string }[] {
   const lo = section ? l.sections.find((s) => s.id === section) : undefined;
   if (section && !lo) return [];
   const from = lo ? lo.top : 0, to = lo ? lo.top + lo.height : l.height;
   const last = Math.max(0, l.height - vh);
   const clamp = (y: number) => Math.round(Math.max(0, Math.min(last, y)));
-  const steps = l.steps.filter((s) => s.top >= from && s.top < to).map((s) => ({ y: clamp(s.top + s.height / 2 - vh / 2), step: s.id }));
+  const steps = l.steps.filter((s) => s.top >= from && s.top < to).map((s) => ({ y: clamp(s.top + s.height / 2 - vh * line), step: s.id }));
   const inStory = (y: number) => l.sections.some((sec) => l.steps.some((st) => st.section === sec.id) && y + vh / 2 >= sec.top && y + vh / 2 < sec.top + sec.height);
   const n = Math.max(1, Math.ceil((to - from) / (vh * 0.9)));
   const even: { y: number; step?: string }[] = Array.from({ length: n }, (_, i) => ({ y: clamp(from + (n === 1 ? 0 : ((to - from - vh) * i) / (n - 1))) })).filter((p) => !inStory(p.y));
@@ -139,7 +140,7 @@ export class Looker {
       await page.waitForSelector("html[data-capture-ready]", { timeout: READY_MS }).catch(() => {});
       await page.evaluate("document.fonts.ready.then(() => undefined)" as never);
       const layout = await page.evaluate<Layout>(LAYOUT_JS as never);
-      const plan = planShots(layout, s.height, Math.max(1, Math.min(opts.maxShots ?? s.max, 12)), opts.section);
+      const plan = planShots(layout, s.height, Math.max(1, Math.min(opts.maxShots ?? s.max, 12)), opts.section, s.width < 860 ? 0.73 : 0.5);
       const shots: Shot[] = [];
       for (const [i, p] of plan.entries()) {
         await page.evaluate(`window.scrollTo(0, ${p.y})` as never);

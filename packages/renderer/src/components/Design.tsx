@@ -5,6 +5,7 @@ import { mountFrame } from "../design/bridge.ts";
 import { useFocus } from "../focus.tsx";
 import { compileProject } from "../design/compile.ts";
 import { buildSrcdoc } from "../design/srcdoc.ts";
+import { watchScroll } from "../scroll.ts";
 import type { RenderCtx, Viewport } from "../registry.tsx";
 
 type Controller = ReturnType<typeof mountFrame>;
@@ -137,6 +138,7 @@ export default function Design({ c, ctx }: { c: DesignC | Custom; ctx: RenderCtx
     },
     register(id: number, ctl: Controller | undefined) {
       if (ctl) ctl.setFocus(latest.current.focus.value);
+      if (ctl && lastScroll.current) ctl.setScroll(lastScroll.current);
       if (ctl) controllers.current.set(id, ctl);
       else controllers.current.delete(id);
     },
@@ -149,12 +151,22 @@ export default function Design({ c, ctx }: { c: DesignC | Custom; ctx: RenderCtx
   const storyKey = JSON.stringify(ctx.story ?? null);
   useEffect(() => { for (const ctl of controllers.current.values()) ctl.setStory(ctx.story ?? null); }, [storyKey]);
   useEffect(() => { for (const ctl of controllers.current.values()) ctl.setTheme(ctx.mode); }, [ctx.mode]);
+  // Scroll: the screen's one scheduler measures this design (or, pinned in a story, its section and steps) every
+  // frame the reader scrolls, and every frame of it (the old one too, mid-crossfade) gets the value.
+  const box = useRef<HTMLDivElement>(null);
+  const lastScroll = useRef<unknown>();
+  const measure = useRef(ctx.scrollMeasure);
+  measure.current = ctx.scrollMeasure;
+  useEffect(() => watchScroll(box.current!, (v) => {
+    lastScroll.current = v;
+    for (const ctl of controllers.current.values()) ctl.setScroll(v);
+  }, measure.current ? () => measure.current!() : undefined), [!!ctx.scrollMeasure]);
   useEffect(() => { if (c.height !== undefined) setHeight(c.height); }, [c.height]);
 
   const vp = ctx.page?.viewport ?? viewport;
   const width = WIDTHS[vp];
   return (
-    <div className={`design viewport-${vp}${ctx.page ? " in-page" : ""}${ctx.bleed ? " in-hero" : ""}`}>
+    <div ref={box} className={`design viewport-${vp}${ctx.page ? " in-page" : ""}${ctx.bleed ? " in-hero" : ""}`}>
       {ctx.bleed && !ctx.page && ctx.openPage && <button className="open-page floating" onClick={ctx.openPage} aria-label="Open full screen" title="Open full screen"><Maximize2 size={14} /></button>}
       {!ctx.page && !ctx.bleed && <div className="design-bar">
         <div className="viewports" role="group" aria-label="Viewport">

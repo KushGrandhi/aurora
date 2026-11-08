@@ -29,3 +29,9 @@ test("one section only, and a too-long page keeps first and last", () => {
   expect(all.at(-1)!.y).toBe(20000 - vh);
   expect(planShots(l, vh, 4, "nope")).toEqual([]);
 });
+
+test("on a phone a step is centred on the lower reading line, where the screen reads it", () => {
+  const steps = [{ id: "s0", section: "st", top: 2000, height: 100 }];
+  const plan = planShots({ height: 6000, sections: [{ id: "st", top: 1000, height: 3000 }], steps }, 844, 6, undefined, 0.73);
+  expect(plan).toContainEqual({ y: Math.round(2050 - 844 * 0.73), step: "s0" });
+});

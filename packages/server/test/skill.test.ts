@@ -85,7 +85,7 @@ test("the skill routes mechanisms to a 3D kit recipe", () => {
 
 test("kit reference documents every kit export", () => {
   const md = files["references/kit.md"];
-  for (const name of ["Scene", "Metal", "Glass", "Glow", "Paint", "useToken", "Label", "Stage", "Panel", "Stat", "useClock", "ControlBar", "Scrubber", "Grab", "useFocus", "useStory", "useParam", "Reveal", "Stagger", "PhaseDial", "Legend"]) expect(md).toContain(`\`${name}\``);
+  for (const name of ["Scene", "Metal", "Glass", "Glow", "Paint", "useToken", "Label", "Stage", "Panel", "Stat", "useClock", "ControlBar", "Scrubber", "Grab", "useFocus", "useStory", "useParam", "useScroll", "span", "useScrub", "useScrollStep", "Reveal", "Stagger", "PhaseDial", "Legend"]) expect(md).toContain(`\`${name}\``);
 });
 
 test("the mechanism example is a guided story: a pinned kit scene driven by steps, in the subject's colours", () => {

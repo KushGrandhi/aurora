@@ -55,6 +55,44 @@ export function auroraBootstrap(): void {
   type Story = { index: number; state: unknown } | null;
   const storyListeners = new Set<Listener<Story>>();
   const paramListeners = new Set<Listener<Record<string, unknown>>>();
+  // Scroll: the screen sends exact values as the reader scrolls; this side eases toward them every frame (messages
+  // arrive out of step with this frame's own animation frames, which would stutter), landing exactly on rest values.
+  type Scroll = { progress: number; position: number; index: number; count: number; reduced: boolean; raw: { progress: number; position: number } };
+  const fresh = (): Scroll => ({ progress: 0, position: 0, index: 0, count: 0, reduced: false, raw: { progress: 0, position: 0 } });
+  const target = fresh(), scroll = fresh();
+  const scrollListeners = new Set<Listener<Scroll>>();
+  let easing = false, lastT = 0, inner = false;
+  const TAU = 80;
+  const stepScroll = (t: number) => {
+    const dt = lastT ? Math.min(100, t - lastT) : 16;
+    lastT = t;
+    const k = target.reduced ? 1 : 1 - Math.exp(-dt / TAU);
+    let moving = false;
+    const ease = (o: { progress: number; position: number }, g: { progress: number; position: number }) => {
+      for (const key of ["progress", "position"] as const) {
+        const d = g[key] - o[key];
+        if (Math.abs(d) < 1e-4) o[key] = g[key];
+        else { o[key] += d * k; moving = true; }
+      }
+    };
+    ease(scroll, target);
+    ease(scroll.raw, target.raw);
+    scroll.index = target.index; scroll.count = target.count; scroll.reduced = target.reduced;
+    for (const cb of scrollListeners) cb(scroll);
+    if (moving) requestAnimationFrame(stepScroll);
+    else { easing = false; lastT = 0; }
+  };
+  const kick = () => { if (!easing) { easing = true; requestAnimationFrame(stepScroll); } };
+  // A page that scrolls inside the frame (a whole website, a tall card): its own scroll is its progress.
+  addEventListener("scroll", () => {
+    const max = document.documentElement.scrollHeight - innerHeight;
+    inner = max > 2;
+    if (!inner) return;
+    const p = Math.max(0, Math.min(1, scrollY / max));
+    target.raw.progress = p;
+    target.progress = target.reduced ? Math.round(p * 4) / 4 : p;
+    kick();
+  }, { passive: true });
   let windowStart = 0;
   let sentInWindow = 0;
   let warned = false;
@@ -66,6 +104,16 @@ export function auroraBootstrap(): void {
     onStory(cb: Listener<Story>) {
       storyListeners.add(cb);
       return () => storyListeners.delete(cb);
+    },
+    /**
+     * Scroll as a live value, eased every frame: read it in an animation loop (`useFrame`, a GSAP ticker).
+     * `progress` 0..1 through the page; in a story `position` (1.37 = 37% from step 1 to step 2), `index`, `count`.
+     * With reduced motion the values snap; `raw` keeps them continuous for a design that opts in.
+     */
+    scroll,
+    onScroll(cb: Listener<Scroll>) {
+      scrollListeners.add(cb);
+      return () => scrollListeners.delete(cb);
     },
     /** The view's param values by name (filters, and numbers the reader drags in prose). */
     params: (project.params ?? {}) as Record<string, unknown>,
@@ -118,11 +166,17 @@ export function auroraBootstrap(): void {
 
   addEventListener("message", (e) => {
     if (e.source !== window.parent) return;
-    const m = e.data as { __aurora?: boolean; type?: string; data?: Record<string, unknown[]>; mode?: "light" | "dark"; value?: string | null; story?: Story; params?: Record<string, unknown> };
+    const m = e.data as { __aurora?: boolean; type?: string; data?: Record<string, unknown[]>; mode?: "light" | "dark"; value?: string | null; story?: Story; params?: Record<string, unknown>; scroll?: Scroll };
     if (!m?.__aurora) return;
     if (m.type === "data" && m.data) {
       aurora.data = m.data;
       for (const cb of dataListeners) cb(m.data);
+    } else if (m.type === "scroll" && m.scroll) {
+      const s = m.scroll;
+      if (!inner) { target.progress = s.progress; target.raw.progress = s.raw.progress; }
+      target.position = s.position; target.raw.position = s.raw.position;
+      target.index = s.index; target.count = s.count; target.reduced = s.reduced;
+      kick();
     } else if (m.type === "story" && m.story !== undefined) {
       aurora.story = m.story;
       for (const cb of storyListeners) cb(m.story);

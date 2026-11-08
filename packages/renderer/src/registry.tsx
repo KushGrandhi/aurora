@@ -3,6 +3,7 @@ import type { Component, QueryResult, Palette, Param } from "@aurora/spec";
 import type { MotionApi } from "./motion.tsx";
 import { resolveStage, type Fonts, type Stage } from "@aurora/spec";
 import { fontVars } from "./fonts.ts";
+import type { Measure } from "./scroll.ts";
 import type { Mode } from "./theme.ts";
 import { Json } from "./components/Json.tsx";
 import { Kpi } from "./components/Kpi.tsx";
@@ -29,6 +30,8 @@ export type RenderCtx = {
   setParam?(name: string, value: unknown): void;
   /** For the pinned visual of a story section: the step in view and its state. */
   story?: { index: number; state: unknown } | null;
+  /** For the pinned visual of a story section: how to measure its scroll value (the section and its steps). */
+  scrollMeasure?: Measure;
   /** The view's own colours, if it chose any. */
   palette?: Palette;
   /** The view's typefaces, if it chose any. */
