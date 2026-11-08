@@ -72,7 +72,7 @@ test("the skill's 3D mechanism example is a story: steps drive the pinned scene,
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/#kitmech");
   await expect(page.locator(".conn.up")).toBeVisible();
-  const filler = " Words to give the step some length.".repeat(10);
+  const filler = " Words to give the step some length.".repeat(6); // a real step: under the 70-word warning
   const view = { v: 2, id: "kitmech", title: "V8", palette: { accent: "#e8590c" }, sections: [{ id: "s", title: "Four strokes", layout: "story", items: [
     { id: "d", c: { type: "design", framework: "react", files } },
     { id: "s1", c: { type: "text", md: "**Compression.**" + filler }, story: { state: { cylinder: 1, stroke: 3 } } },

@@ -414,6 +414,12 @@ export class Intake {
     const checked = validateView(view, { queryRows, querySql });
     const problems = [...r.dataProblems, ...checked.problems];
     for (const [, q] of r.results) if (q.problem) problems.push(q.problem);
+    // A story step has to fit on the screen beside or over its visual: two or three sentences.
+    for (const s of view.sections) if (s.layout === "story") for (const it of s.items.slice(1)) {
+      const md = it.c.type === "text" ? String((it.c as { md?: unknown }).md ?? "") : "";
+      const words = md.split(/\s+/).filter(Boolean).length;
+      if (words > 70) problems.push({ itemId: it.id, severity: "warning", message: `story step "${it.id}" is ${words} words; a step must fit on one screen`, hint: "keep each step to two or three sentences (about 50 words), and split a long one into two steps" });
+    }
     for (const m of this.deps.fonts?.problems(view.fonts) ?? []) problems.push({ severity: "warning", message: m, hint: "use an exact Google Fonts family name" });
     // Colours the model chose that are hard to see on the stage (in either theme, when the view doesn't set its page).
     const seen = new Set<string>();

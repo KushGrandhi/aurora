@@ -31,6 +31,18 @@ Pick the one the material wants. These are starting points, not templates; mix t
 
 ## Turn the outline into a view
 
+Set `"immersive": true` on the view for a story: it becomes one designed page instead of an article. Without a hero the title and summary are a full-screen opening; sections run edge to edge with no alternating bands; aurora's own controls tuck away. Then shape each section:
+
+| Field (on a section) | Values | Use it for |
+|---|---|---|
+| `height` | `"screen"` | a full-screen moment: one enormous number (`# 65%` in a text item becomes screen-sized type), one sentence |
+| `background` | `"page"`, `"surface"`, `"ink"`, `"accent"` | a section on its own ground, edge to edge; its text, charts and designs re-colour to read on it. `ink` inverts the page; `accent` is the one loud moment. Use two or three grounds in a story, not every section |
+| `layout: "reel"` | its items | panels that slide sideways as the reader scrolls down: shifts of a day, chapters, three options. Each item is a full screen; a text item's `##` heading becomes display type |
+| `layout: "story"` + `variant` | `"behind"`, `"side"`, `"split"` | how the pinned visual sits: `behind` the steps, full screen (the default for a design; the design's kit Panels keep clear of the steps), `side` by side (the default for a chart or diagram), or `split` half and half |
+| `steps` (story) | `"left"`, `"right"` | which side the steps are on |
+
+Keep each story step to two or three sentences (about 50 words): it has to fit on one screen over or beside the visual.
+
 - **The hook** is the first screen: a `hero` design, or a section whose first item is the big visual. The view `title` and `summary` sit on it as the headline.
 - **Beats that change one visual** are a `story` section: the visual stays pinned and each step moves it (`story.state`, `story.focus`).
 - **Beats that each need their own visual** are their own sections, each with a headline that says its point ("East leads, barely", not "Regional data").

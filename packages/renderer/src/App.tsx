@@ -12,7 +12,8 @@ import { PageView } from "./components/PageView.tsx";
 import { ItemFrame } from "./components/ItemFrame.tsx";
 import { Variants } from "./components/Variants.tsx";
 import { itemProblem } from "./components/Section.tsx";
-import { themeFor, type RenderCtx } from "./registry.tsx";
+import { themeFor, type RenderCtx, type Theme } from "./registry.tsx";
+import { mix, stageProblem, type Fonts, type Palette } from "@aurora/spec";
 import { stageVars } from "./theme.ts";
 import { fontHrefs, fontVars } from "./fonts.ts";
 import { HomeLink, ViewsPage } from "./components/ViewsPage.tsx";
@@ -212,7 +213,7 @@ export function App() {
     const one = items.length === 1 ? items[0] : undefined;
     if (one && (one.c.type === "design" || one.c.type === "custom") && one.c.display === "page")
       return { page: true, body: <div className="variant-page" style={style}><ItemFrame item={one} version={version} ctx={{ ...vCtx(one, false), page: { viewport: "desktop" } }} showTitle={false} /></div> };
-    return { page: false, body: <div className="view-body" style={style}>{v.sections.map((s) => <Section key={s.id} section={s} version={version} problems={[]} ctxFor={vCtx} heroId={undefined} viewId={`variant${i}:${currentId}`} changed={{}} />)}</div> };
+    return { page: false, body: <div className="view-body" style={style}>{v.sections.map((s) => <Section key={s.id} section={s} version={version} problems={[]} ctxFor={vCtx} heroId={undefined} viewId={`variant${i}:${currentId}`} changed={{}} ground={groundFor(s.background, vTheme, v.palette, v.fonts)} />)}</div> };
   };
   const openCompare = (vs: number[]) => {
     if (!currentId) return;
@@ -225,10 +226,29 @@ export function App() {
   // A first section that held only the hero has nothing left to show once the hero leads the page.
   const heroOnly = (i: number) => i === 0 && !!heroItem && view!.sections[0].items.length <= 1;
   // Titled sections are numbered in reading order (01, 02, …).
+  // Immersive: one designed page (asked for, or implied by a hero design). Its sections don't alternate bands, and
+  // neither do a view's sections once any has its own ground.
+  const immersive = !!heroItem || !!view?.immersive;
+  const grounds = (view?.sections ?? []).some((s) => s.background);
   const numbers = useMemo(() => {
     let n = 0;
     return (view?.sections ?? []).map((s, i) => (s.title && !heroOnly(i) ? ++n : undefined));
   }, [view, heroItem]);
+  // A section's ground: the view's stage re-derived on that colour, so its text, charts and designs all follow it.
+  const groundFor = useCallback((bg: string | undefined, base: Theme, pal: Palette | undefined, f: Fonts | undefined) => {
+    if (!bg || bg === "page") return undefined;
+    const t = base.stage;
+    let p: Palette | undefined;
+    if (bg === "ink") p = { ...pal, page: t.ink, ink: t.page };
+    else if (bg === "surface") p = { ...pal, page: t.surface, ink: t.ink };
+    else if (bg === "accent") {
+      // a deep version of the accent, so text on it reads well
+      for (let k = 0; k <= 1 && !p; k += 0.1) { const c = mix(t.accent, t.mode === "dark" ? "#000000" : "#101010", k); if (!stageProblem({ page: c })) p = { ...pal, page: c, ink: undefined }; }
+    }
+    if (!p || stageProblem(p)) return undefined;
+    const th = themeFor(chosenMode, p, f);
+    return { theme: th, palette: p, vars: stageVars(th.stage) };
+  }, [chosenMode]);
   const filters = (variant?: "pill") => barParams && Object.keys(barParams).length > 0 && currentId ? (
     <FilterBar variant={variant} params={barParams} values={params?.values ?? {}} options={params?.options ?? {}} onChange={(name, value) => send({ t: "param", viewId: currentId, name, value })} />
   ) : undefined;
@@ -254,7 +274,7 @@ export function App() {
       <ViewsPage list={list} activity={state.activity} currentId={currentId} up={up} ago={ago}
         themeToggle={themeToggle} />
     ) : (
-    <div className={`app${pageItem ? " page-mode" : heroItem ? " immersive" : ""}`} >
+    <div className={`app${pageItem ? " page-mode" : immersive ? " immersive" : ""}`} >
       <main>
         {pageItem && view && currentId ? (
           <PageView
@@ -302,14 +322,15 @@ export function App() {
                   <button onClick={() => setPreview(undefined)}>Back to current</button>
                 </div>
               )}
-              {!heroItem && <motion.div key={`head:${currentId}`} className="view-head" initial={reduced ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: ENTER_EASE }}>
+              {!heroItem && <motion.div key={`head:${currentId}`} className={`view-head${immersive ? " opening" : ""}`} initial={reduced ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: ENTER_EASE }}>
                 <h1>{view.title}</h1>
                 {view.summary && <p className="summary">{fillPlaceholders(view.summary, results)}</p>}
+                {immersive && filters()}
               </motion.div>}
-              {!heroItem && filters()}
+              {!heroItem && !immersive && filters()}
               <div key={currentId} className="view-body">{/* a different view is a fresh mount, even when ids repeat */}
-                {view.sections.map((s, i) => i === 0 && heroItem ? (!heroOnly(0) ? <Section key={s.id} leads={false} order={i} number={numbers[i]} section={{ ...s, items: s.items.slice(1) }} version={version} problems={problems} ctxFor={ctxFor} heroId={heroId} viewId={currentId} changed={showing ? {} : live?.changed ?? {}} /> : null) : (
-                  <Section key={s.id} leads={i === 0} order={i} number={numbers[i]} section={s} version={version} problems={problems} ctxFor={ctxFor} heroId={heroId} viewId={currentId} changed={showing ? {} : live?.changed ?? {}} />
+                {view.sections.map((s, i) => i === 0 && heroItem ? (!heroOnly(0) ? <Section key={s.id} leads={false} order={i} number={immersive || grounds ? undefined : numbers[i]} ground={groundFor(s.background, theme, palette, fonts)} section={{ ...s, items: s.items.slice(1) }} version={version} problems={problems} ctxFor={ctxFor} heroId={heroId} viewId={currentId} changed={showing ? {} : live?.changed ?? {}} /> : null) : (
+                  <Section key={s.id} leads={i === 0} order={i} number={immersive || grounds ? undefined : numbers[i]} ground={groundFor(s.background, theme, palette, fonts)} section={s} version={version} problems={problems} ctxFor={ctxFor} heroId={heroId} viewId={currentId} changed={showing ? {} : live?.changed ?? {}} />
                 ))}
               </div>
               {viewProblems.length > 0 && <div className="errors">{viewProblems.map((p, i) => <div key={i}>{p.message}</div>)}</div>}

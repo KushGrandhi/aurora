@@ -550,3 +550,53 @@ body.dragging-number { cursor: ew-resize; user-select: none; }
 
 /* Capture mode (look): the view only, without aurora's own controls. */
 html[data-capture] .topbar, html[data-capture] .status-row, html[data-capture] .home-link, html[data-capture] .page-bar, html[data-capture] .page-hot { display: none !important; }
+
+/* A section's own ground: painted edge to edge (the band trick: no 100vw, so no sideways scroll), with its text,
+   charts and designs drawn from a stage re-derived on it (its CSS variables are set on the section). */
+.section.on-ground { background: var(--page); color: var(--ink); box-shadow: 0 0 0 100vmax var(--page); clip-path: inset(0 -100vmax); padding-top: 112px; padding-bottom: 112px; margin-top: 0; margin-bottom: 0; }
+.section.on-ground + .section.on-ground { margin-top: 0; }
+.section.on-ground .section-title { color: var(--ink); }
+/* A full-screen moment: one number, one sentence. */
+.section.screen { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; padding-top: 64px; padding-bottom: 64px; }
+
+/* Immersive: one designed page. Without a hero the title is a full-screen opening; aurora's own controls tuck into
+   a faint cluster at the top that comes forward on hover or focus (and stays faintly visible on touch screens). */
+.app.immersive .view-head.opening { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; margin: 0; padding-bottom: 8vh; }
+.app.immersive .view-head.opening h1 { font-size: clamp(48px, 7.5vw, 120px); line-height: 0.98; letter-spacing: -0.04em; max-width: 16ch; text-wrap: balance; }
+.app.immersive .view-head.opening .summary { font-size: clamp(18px, 1.6vw, 22px); max-width: 52ch; margin-top: 24px; }
+.app.immersive .view-head.opening .filterbar { margin-top: 40px; }
+.app.immersive .topbar { position: fixed; top: 14px; left: 16px; right: 16px; z-index: 60; pointer-events: none; opacity: 0.35; transition: opacity 0.25s var(--ease); max-width: none !important; padding: 0 !important; }
+.app.immersive .topbar > * { pointer-events: auto; }
+.app.immersive .topbar:hover, .app.immersive .topbar:focus-within { opacity: 1; }
+@media (hover: none) { .app.immersive .topbar { opacity: 0.7; } }
+.app.immersive .section:not(.on-ground):not(.screen) { padding-top: 96px; padding-bottom: 96px; margin: 0; }
+
+/* Reel: pinned for one screen per panel; the track slides sideways with scroll (Reel.tsx). */
+.reel { position: relative; height: calc(var(--panels) * 100vh); width: 100vw; margin-left: calc(50% - 50vw); }
+.reel-frame { position: sticky; top: 0; height: 100vh; overflow: hidden; }
+.reel-track { display: flex; height: 100%; width: calc(var(--panels) * 100vw); will-change: transform; }
+.reel-panel { width: 100vw; height: 100%; flex: none; display: flex; align-items: center; justify-content: center; }
+.reel-panel-body { width: min(1240px, 100vw); padding: 0 max(48px, 5vw); box-sizing: border-box; max-height: 100%; overflow: hidden; }
+.reel-panel-body .design, .reel-panel-body .design-stage { max-height: 80vh; }
+@media (max-width: 860px) {
+  .reel { height: auto; }
+  .reel-frame { position: static; height: auto; overflow: visible; }
+  .reel-track { width: auto; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; transform: none !important; }
+  .reel-panel { width: 100vw; height: auto; min-height: 70vh; scroll-snap-align: start; }
+  .reel-panel-body { padding: 24px 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reel { height: auto; }
+  .reel-frame { position: static; height: auto; overflow: visible; }
+  .reel-track { flex-direction: column; width: auto; transform: none !important; }
+  .reel-panel { width: auto; height: auto; min-height: 60vh; }
+}
+.reel.still { height: auto; }
+.reel.still .reel-frame { position: static; height: auto; overflow: visible; }
+.reel.still .reel-track { flex-direction: column; width: auto; transform: none !important; }
+.reel.still .reel-panel { width: auto; height: auto; padding: 24px 0; }
+
+/* A full-screen moment or a reel panel is a moment of display type: its headings are the size of the screen. */
+.section.screen .md h1, .reel-panel .md h1 { font-family: var(--aurora-display); font-size: clamp(72px, 14vw, 220px); line-height: 0.9; letter-spacing: -0.05em; margin: 0 0 0.15em; font-weight: 650; }
+.section.screen .md h2, .reel-panel .md h2 { font-family: var(--aurora-display); font-size: clamp(40px, 6vw, 104px); line-height: 0.95; letter-spacing: -0.04em; margin: 0 0 0.3em; font-weight: 650; }
+.section.screen .md p, .reel-panel .md p { font-size: clamp(18px, 1.8vw, 26px); line-height: 1.45; max-width: 36ch; color: var(--ink2); }

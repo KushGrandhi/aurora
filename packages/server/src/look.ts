@@ -11,7 +11,9 @@ import path from "node:path";
 export type Size = "desktop" | "phone";
 export type Shot = { size: Size; file: string; caption: string };
 type Box = { id: string; top: number; height: number };
-type Layout = { height: number; sections: (Box & { title?: string })[]; steps: (Box & { section: string })[] };
+// A step is a story step, or a reel panel: where to scroll (and, for a reel swiped sideways on a phone, how far).
+type Step = Box & { section: string; label?: string; left?: number };
+type Layout = { height: number; sections: (Box & { title?: string })[]; steps: Step[] };
 
 const SIZES: Record<Size, { width: number; height: number; scale: number; max: number }> = {
   desktop: { width: 1440, height: 900, scale: 0.8334, max: 6 }, // shot at 1200x750: ~1,200 tokens
@@ -24,7 +26,23 @@ const LAYOUT_JS = `(() => {
   return {
     height: document.documentElement.scrollHeight,
     sections: [...document.querySelectorAll("[data-section]")].map((el) => ({ id: el.dataset.section, top: top(el), height: el.getBoundingClientRect().height, title: el.querySelector(".section-title")?.textContent ?? undefined })),
-    steps: [...document.querySelectorAll(".story-step[data-item]")].map((el) => ({ id: el.dataset.item, section: el.closest("[data-section]")?.dataset.section ?? "", top: top(el), height: el.getBoundingClientRect().height })),
+    steps: [
+      ...[...document.querySelectorAll(".story-step[data-item]")].map((el) => ({ id: el.dataset.item, section: el.closest("[data-section]")?.dataset.section ?? "", top: top(el), height: el.getBoundingClientRect().height })),
+      // Reel panels: pinned and slid sideways (scroll to k/(n-1) of the stretch), or swiped on a phone (scroll the track).
+      ...[...document.querySelectorAll(".reel")].flatMap((reel) => {
+        const sec = reel.closest("[data-section]")?.dataset.section ?? "";
+        const panels = [...reel.querySelectorAll(".reel-panel[data-item]")];
+        const track = reel.querySelector(".reel-track");
+        const n = panels.length, t = top(reel), h = reel.getBoundingClientRect().height, vh = innerHeight;
+        const line = (innerWidth < 860 ? 0.73 : 0.5) * vh;
+        const swipe = track && track.scrollWidth > track.clientWidth + 2;
+        const pinned = !swipe && h > vh * 1.5;
+        return panels.map((p, k) => {
+          const y = pinned ? t + (n > 1 ? (k * (h - vh)) / (n - 1) : 0) : swipe ? t : top(p);
+          return { id: p.dataset.item, section: sec, top: y + line - 1, height: 2, label: "panel " + (k + 1) + " of " + n, ...(swipe ? { left: p.offsetLeft } : {}) };
+        });
+      }),
+    ],
   };
 })()`;
 const SETTLE_MS = 700;
@@ -32,18 +50,20 @@ const IDLE_MS = 60_000;
 
 /** Where to scroll for each shot: every story step centred, the rest of the page spread evenly; at most `max`. */
 /** `line` is the reading line as a fraction of the window height: where the screen considers a step "read" (0.73 on a phone, see renderer/src/scroll.ts). */
-export function planShots(l: Layout, vh: number, max: number, section?: string, line = 0.5): { y: number; step?: string }[] {
+export type Planned = { y: number; step?: string; label?: string; section?: string; left?: number };
+export function planShots(l: Layout, vh: number, max: number, section?: string, line = 0.5): Planned[] {
   const lo = section ? l.sections.find((s) => s.id === section) : undefined;
   if (section && !lo) return [];
   const from = lo ? lo.top : 0, to = lo ? lo.top + lo.height : l.height;
   const last = Math.max(0, l.height - vh);
   const clamp = (y: number) => Math.round(Math.max(0, Math.min(last, y)));
-  const steps = l.steps.filter((s) => s.top >= from && s.top < to).map((s) => ({ y: clamp(s.top + s.height / 2 - vh * line), step: s.id }));
+  const steps = l.steps.filter((s) => s.top >= from && s.top < to).map((s): Planned => ({ y: clamp(s.top + s.height / 2 - vh * line), step: s.id, ...(s.label ? { label: s.label } : {}), ...(s.left !== undefined ? { left: s.left, section: s.section } : {}) }));
   const inStory = (y: number) => l.sections.some((sec) => l.steps.some((st) => st.section === sec.id) && y + vh / 2 >= sec.top && y + vh / 2 < sec.top + sec.height);
   const n = Math.max(1, Math.ceil((to - from) / (vh * 0.9)));
-  const even: { y: number; step?: string }[] = Array.from({ length: n }, (_, i) => ({ y: clamp(from + (n === 1 ? 0 : ((to - from - vh) * i) / (n - 1))) })).filter((p) => !inStory(p.y));
+  const even: Planned[] = Array.from({ length: n }, (_, i) => ({ y: clamp(from + (n === 1 ? 0 : ((to - from - vh) * i) / (n - 1))) })).filter((p) => !inStory(p.y));
   // The opening screen always comes first: it is what a reader sees before anything else.
-  const opening: { y: number; step?: string }[] = section ? [] : [{ y: 0 }];
+  // The opening and the closing screens always come in: what a reader sees first, and where the story lands.
+  const opening: Planned[] = section ? [] : [{ y: 0 }, { y: last }];
   const all = [...opening, ...even, ...steps].sort((a, b) => a.y - b.y).filter((p, i, a) => i === 0 || p.y - a[i - 1].y > vh * 0.25 || p.step);
   if (all.length <= max) return all;
   // too many: keep the first and last, and an even spread between
@@ -74,11 +94,13 @@ export class Looker {
     }
     // Software WebGL where there is no GPU (Linux, CI); a fresh temporary profile, never the person's own.
     const args = ["--enable-unsafe-swiftshader"];
+    // Playwright's own signal handlers would keep the server alive on SIGTERM; the browser is closed on exit anyway.
+    const signals = { handleSIGTERM: false, handleSIGINT: false, handleSIGHUP: false };
     try {
-      return await pw.chromium.launch({ channel: "chrome", headless: true, args });
+      return await pw.chromium.launch({ channel: "chrome", headless: true, args, ...signals });
     } catch {
       try {
-        return await pw.chromium.launch({ headless: true, args });
+        return await pw.chromium.launch({ headless: true, args, ...signals });
       } catch {
         throw new Error("no Chrome or Chromium found to take pictures with; install Chrome, or run `npx playwright install chromium`");
       }
@@ -144,12 +166,13 @@ export class Looker {
       const shots: Shot[] = [];
       for (const [i, p] of plan.entries()) {
         await page.evaluate(`window.scrollTo(0, ${p.y})` as never);
+        if (p.left !== undefined) await page.evaluate(`(() => { const t = document.querySelector('[data-section="${p.section}"] .reel-track'); if (t) t.scrollLeft = ${p.left}; })()` as never);
         await page.waitForTimeout(SETTLE_MS);
         const file = path.join(out, `${size}-${String(i).padStart(2, "0")}.jpg`);
         await writeFile(file, await page.screenshot({ type: "jpeg", quality: 70 }));
         const inFrame = layout.sections.filter((sec) => sec.top < p.y + s.height && sec.top + sec.height > p.y).map((sec) => sec.title ? `"${sec.title}"` : sec.id);
         const pct = (y: number) => Math.round((100 * Math.min(y, layout.height)) / layout.height);
-        shots.push({ size, file, caption: `${size} ${s.width}×${s.height}, ${pct(p.y)}–${pct(p.y + s.height)}% of the page${inFrame.length ? `, showing ${inFrame.join(", ")}` : ""}${p.step ? `, story step ${p.step} in view` : ""}` });
+        shots.push({ size, file, caption: `${size} ${s.width}×${s.height}, ${pct(p.y)}–${pct(p.y + s.height)}% of the page${inFrame.length ? `, showing ${inFrame.join(", ")}` : ""}${p.step ? (p.label ? `, ${p.label} (${p.step})` : `, story step ${p.step} in view`) : ""}` });
       }
       return shots;
     } finally {

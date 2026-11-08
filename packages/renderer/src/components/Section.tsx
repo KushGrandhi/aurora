@@ -1,11 +1,12 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import type { Item, Problem, Section as SectionT, ViewItem } from "@aurora/spec";
+import type { Item, Palette, Problem, Section as SectionT, ViewItem } from "@aurora/spec";
 import { packRows } from "../layout.ts";
 import { ENTER_EASE, SPRING, enterDelay, shouldGlow } from "../motion.tsx";
-import type { RenderCtx } from "../registry.tsx";
+import type { RenderCtx, Theme } from "../registry.tsx";
 import { ItemFrame } from "./ItemFrame.tsx";
 import { Tabs } from "./Tabs.tsx";
 import { Story } from "./Story.tsx";
+import { Reel } from "./Reel.tsx";
 
 export type SectionProps = {
   section: SectionT;
@@ -21,6 +22,8 @@ export type SectionProps = {
   order?: number;
   /** Reading number of a titled section (1, 2, …): even ones sit on a band. */
   number?: number;
+  /** The section's own ground (its background): a stage re-derived on it, for its CSS and its items. */
+  ground?: { theme: Theme; palette: Palette; vars: Record<string, string> };
 };
 
 /**
@@ -59,11 +62,17 @@ function Grid({ section, version, problems, ctxFor, heroId, viewId, changed, lea
 }
 
 export function Section(props: SectionProps) {
-  const { section, number } = props;
+  const { section, number, ground } = props;
+  const g = ground;
+  // Items on a ground draw with its stage (charts, diagrams, designs), not the view's.
+  const base = props.ctxFor;
+  const ctxFor = g ? (item: ViewItem, hero: boolean): RenderCtx => ({ ...base(item, hero), theme: g.theme, mode: g.theme.stage.mode, palette: g.palette }) : base;
+  props = { ...props, ctxFor };
+  const cls = ["section", number && number % 2 === 0 ? "band" : "", section.background ? `on-ground bg-${section.background}` : "", section.height === "screen" ? "screen" : ""].filter(Boolean).join(" ");
   return (
-    <motion.div layout="position" className={`section${number && number % 2 === 0 ? " band" : ""}`} data-section={section.id}>
+    <motion.div layout="position" className={cls} data-section={section.id} data-theme-local={g ? g.theme.stage.mode : undefined} style={g?.vars as React.CSSProperties | undefined}>
       {section.title && <h2 className="section-title">{section.title}</h2>}
-      {section.layout === "tabs" ? <Tabs {...props} /> : section.layout === "story" ? <Story {...props} /> : <Grid {...props} />}
+      {section.layout === "tabs" ? <Tabs {...props} /> : section.layout === "story" ? <Story {...props} /> : section.layout === "reel" ? <Reel {...props} /> : <Grid {...props} />}
     </motion.div>
   );
 }
