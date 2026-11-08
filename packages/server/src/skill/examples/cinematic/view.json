@@ -1,0 +1,103 @@
+{
+ "v": 2,
+ "id": "eclipse",
+ "title": "Why the sun goes dark",
+ "summary": "The moon is 400 times smaller than the sun and 400 times closer. Once in a while, it fits exactly.",
+ "immersive": true,
+ "palette": {
+  "page": "#05060a",
+  "ink": "#ece8df",
+  "accent": "#ffb547",
+  "series": [
+   "#ffb547",
+   "#4f8ff7",
+   "#8b8f99"
+  ]
+ },
+ "fonts": {
+  "display": "Space Grotesk",
+  "body": "Inter"
+ },
+ "sections": [
+  {
+   "id": "sky",
+   "layout": "story",
+   "items": [
+    {
+     "id": "scene",
+     "c": {
+      "type": "design",
+      "framework": "react",
+      "files": {
+       "App.tsx": "import { Stage, Scene, Panel, useScrollStep } from \"aurora/kit\";\nimport Sky from \"./Sky\";\nimport { STEPS } from \"./model\";\n\n// Pinned behind a story's steps: the stage fills the screen, and the kit keeps the scene and panels clear of the\n// steps' side. The readout changes with the step (React state); the motion follows the scroll (inside Sky).\nexport default function App() {\n  const step = useScrollStep();\n  return (\n    <Stage scene={<Scene camera={[-1.2, 4.5, 23]} target={[-1.2, 0, 0]} autoRotate={false}><Sky /></Scene>}>\n      <Panel at=\"top-right\">\n        <div className=\"text-sm text-muted\">Step {step + 1} of {STEPS.length}</div>\n        <div className=\"font-display text-3xl tracking-tight\">{STEPS[step]}</div>\n      </Panel>\n    </Stage>\n  );\n}\n",
+       "Sky.tsx": "import { useRef } from \"react\";\nimport { useFrame } from \"@react-three/fiber\";\nimport type { Group, Mesh, MeshStandardMaterial } from \"three\";\nimport { Glow, Label, useScroll, useToken } from \"aurora/kit\";\nimport { at } from \"./model\";\n\nconst SUN: [number, number, number] = [-4.6, 0, 0];\nconst EARTH: [number, number, number] = [3, 0, 0];\nconst ORBIT = 1.8;\n// Where the moon's shadow lands: on the earth's face toward the sun, turned a little toward the camera so it shows.\nconst SPOT: [number, number, number] = [EARTH[0] - 0.62, 0, 0.4];\n\n/** Sun, earth and moon. Every frame the moon's place comes from the scroll position, eased by the kit. */\nexport default function Sky() {\n  const s = useScroll(); // a live value: read it inside useFrame, never as React state\n  const moon = useRef<Group>(null);\n  const shadow = useRef<Mesh>(null);\n  const earthColor = useToken(\"--s2\");\n  const moonColor = useToken(\"--muted\");\n  useFrame(() => {\n    const k = at(s.position);\n    if (moon.current) moon.current.position.set(EARTH[0] + Math.cos(k.angle) * ORBIT, k.tilt, Math.sin(k.angle) * ORBIT);\n    if (shadow.current) {\n      (shadow.current.material as MeshStandardMaterial).opacity = 0.85 * k.shadow;\n      shadow.current.visible = k.shadow > 0.01;\n    }\n  });\n  return (\n    <group>\n      <mesh position={SUN}><sphereGeometry args={[1.5, 64, 64]} /><Glow color=\"--accent\" intensity={1} /></mesh>\n      <mesh position={SUN}><sphereGeometry args={[2.3, 48, 48]} /><Glow color=\"--accent\" intensity={0.12} /></mesh>\n      <pointLight position={SUN} intensity={60} distance={30} />\n      <mesh position={EARTH} castShadow receiveShadow><sphereGeometry args={[0.75, 64, 64]} /><meshStandardMaterial color={earthColor} roughness={0.7} /></mesh>\n      {/* the umbra: a dark patch where the moon's shadow lands */}\n      <mesh ref={shadow} position={SPOT}><sphereGeometry args={[0.2, 32, 32]} /><meshStandardMaterial color=\"#000\" transparent opacity={0} /></mesh>\n      <group ref={moon}><mesh castShadow><sphereGeometry args={[0.22, 48, 48]} /><meshStandardMaterial color={moonColor} roughness={0.9} /></mesh></group>\n      <Label at={[SUN[0] + 1.2, 1.5, 0]} side=\"right\">the sun</Label>\n      <Label at={[EARTH[0] + 0.5, -0.9, 0]} side=\"right\">the earth</Label>\n    </group>\n  );\n}\n",
+       "model.ts": "// The story's moments as keyframes: where the moon is at each step. The scene interpolates between them with the\n// reader's scroll position, so the moon glides from one moment to the next instead of jumping.\nexport type Key = { angle: number; tilt: number; shadow: number };\n\n// angle: the moon's place on its orbit around the earth (radians, 0 = on the far side from the sun).\n// tilt: how far above the sun-earth line it passes (its orbit is tilted about 5\u00b0). shadow: how much of its shadow reaches us.\nexport const KEYS: Key[] = [\n  { angle: Math.PI * 0.5, tilt: 0, shadow: 0 },    // 0: the moon circles us\n  { angle: Math.PI * 0.92, tilt: 0.9, shadow: 0 }, // 1: a new moon passes above the sun\n  { angle: Math.PI * 0.96, tilt: 0.35, shadow: 0 },// 2: the paths begin to cross\n  { angle: Math.PI, tilt: 0, shadow: 1 },          // 3: totality, the shadow touches the earth\n];\n\nexport const STEPS = [\"The moon circles us\", \"New moon, off the line\", \"The paths cross\", \"Totality\"];\n\nconst lerp = (a: number, b: number, t: number) => a + (b - a) * t;\nconst ease = (t: number) => t * t * (3 - 2 * t);\n\n/** The moon's keyframe at a story position (1.4 = 40% of the way from step 1 to step 2). */\nexport function at(position: number): Key {\n  const p = Math.max(0, Math.min(KEYS.length - 1, position));\n  const i = Math.min(KEYS.length - 2, Math.floor(p));\n  const t = ease(p - i);\n  const a = KEYS[i], b = KEYS[i + 1];\n  return { angle: lerp(a.angle, b.angle, t), tilt: lerp(a.tilt, b.tilt, t), shadow: lerp(a.shadow, b.shadow, t) };\n}\n"
+      }
+     }
+    },
+    {
+     "id": "orbit",
+     "c": {
+      "type": "text",
+      "md": "**The moon circles us** every 29.5 days, and once a month it passes between us and the sun."
+     },
+     "story": {
+      "state": {
+       "step": 0
+      }
+     }
+    },
+    {
+     "id": "above",
+     "c": {
+      "type": "text",
+      "md": "**Most months it misses.** Its orbit is tilted about five degrees, so a new moon slides above or below the sun."
+     },
+     "story": {
+      "state": {
+       "step": 1
+      }
+     }
+    },
+    {
+     "id": "cross",
+     "c": {
+      "type": "text",
+      "md": "**Twice a year the paths cross.** If a new moon falls in that window, its shadow can reach the earth."
+     },
+     "story": {
+      "state": {
+       "step": 2
+      }
+     }
+    },
+    {
+     "id": "total",
+     "c": {
+      "type": "text",
+      "md": "**Totality.** The moon covers the sun exactly, and a strip of the earth goes dark for a few minutes."
+     },
+     "story": {
+      "state": {
+       "step": 3
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "fit",
+   "layout": "grid",
+   "height": "screen",
+   "items": [
+    {
+     "id": "big",
+     "c": {
+      "type": "text",
+      "md": "# 400\u00d7\nwider and 400\u00d7 farther away: the sun and the moon look the same size from here."
+     }
+    }
+   ]
+  }
+ ]
+}

@@ -44,15 +44,17 @@ Follow these steps in order, every time.
 Good combinations:
 - **Explain how something physical works:** a `story` section: the 3D scene pinned, one short `text` step per moment (each with `"story": {"state": …}`), the last setting it running; then a `callout`. The story *is* the steps: no `steps` list under the scene.
 - **Explain a system:** `architecture`, then a `diagram` for its main request, then a `callout` for the key decision.
-- **Analyse data:** for a quick look, a row of `kpi`, then a `chart`, then a `table`, with filters when the reader will want to slice it. For a story about the data, shape it first (`references/story.md`): open on the most surprising number, then a beat per finding.
+- **Analyse data:** for a quick look, a row of `kpi`, then a `chart`, then a `table`, with filters when the reader will want to slice it. For a story about the data, shape it first (`references/story.md`) and start from `examples/data-story.md`.
 - **A page or product:** one `design` with `display: "page"`, as the only item in the view.
 
 Before using a component for the first time, read its fields and example in `references/components.md`.
 
-**Before writing any `design`:** read `references/design-canvas.md`, `references/design-language.md` and `references/kit.md`, then open the closest example: copy how it works, and give it the look you chose for this subject:
-- `examples/mechanism.md`: **start here for anything physical.** A 3D V8 engine built from `aurora/kit`, told as a story: the scene stays pinned while steps freeze it on each stroke, with a scrubber, a grabbable crank and a palette. It shows the whole view to send.
-- `examples/explainer.md`: a 2D interactive drawing with play, step and speed controls, for a process that has no physical shape.
-- `examples/landing.md`: a full landing page with nav, hero, proof, features, how it works, pricing, FAQ and a closing call to action.
+**Examples.** Before a story or a `design`, open the closest one (and, for a design, `references/design-canvas.md` and `references/kit.md`). Copy how it works, never its look: each chose a different one on purpose.
+- `examples/data-story.md`: a story from data with catalog parts only: a screen-sized number, a pinned chart that lights up, a reel.
+- `examples/cinematic.md`: a dark 3D scene behind the steps that moves with the scroll.
+- `examples/blueprint.md`: a drawing that builds itself, split screen.
+- `examples/mechanism.md`: a 3D machine whose steps freeze it on each moment, with a scrubber and a part to grab.
+- `examples/explainer.md`: a 2D process with play, step and speed controls. `examples/landing.md`: a whole website.
 
 ## The view
 

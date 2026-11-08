@@ -11,7 +11,8 @@ const src = (p: string) => readFileSync(new URL(`./skill/${p}`, import.meta.url)
 function example(dir: string, title: string, intro: string, item: Record<string, unknown>, files: string[], what: "item" | "view" = "item"): string {
   const lang = (f: string) => (f.endsWith(".tsx") ? "tsx" : f.endsWith(".ts") ? "ts" : f.split(".").pop());
   const body = files.map((f) => `### \`${f}\`\n\n\`\`\`${lang(f)}\n${src(`examples/${dir}/${f}`)}\n\`\`\``).join("\n\n");
-  return `# Example: ${title}\n\n${intro}\n\n## The ${what}\n\n\`\`\`json\n${JSON.stringify(item, null, 2)}\n\`\`\`\n\nEach key in \`files\` holds the full text of the file below.\n\n## Files\n\n${body}\n`;
+  const head = `# Example: ${title}\n\n${intro}\n\n## The ${what}\n\n\`\`\`json\n${JSON.stringify(item, null, 2)}\n\`\`\`\n`;
+  return files.length ? `${head}\nEach key in \`files\` holds the full text of the file below.\n\n## Files\n\n${body}\n` : head;
 }
 
 function components(): string {
@@ -55,6 +56,24 @@ export function generateSkillFiles(): Record<string, string> {
       ["App.tsx", "Engine.tsx", "model.ts"],
       "view",
     ),
+    "examples/data-story.md": storyExample(
+      "data-story",
+      "a data story (bike trips, hour by hour)",
+      "A story told with data and catalog components only, no design: an editorial look (warm paper, Fraunces over Source Serif, one burnt-orange accent). It opens on one enormous number from a query (`height: \"screen\"`), walks through the day with a pinned chart whose bars light up as each step names an hour (`story.focus`), slides through who is riding in a `reel`, lands the one point on an `ink` ground and ends with the full table to explore. Every number is a `{query.field|format}` placeholder, so nothing is typed by hand. Copy its shape for any finding in data; give it the look your subject needs.",
+      [],
+    ),
+    "examples/cinematic.md": storyExample(
+      "cinematic",
+      "a cinematic 3D story (a solar eclipse)",
+      "A dark, cinematic story: near-black stage, Space Grotesk, a warm accent for the sun. A 3D scene from `aurora/kit` sits behind the steps (a design defaults to `variant: \"behind\"`; the kit keeps the scene and panels clear of the steps). `model.ts` holds the moments as keyframes; `Sky.tsx` reads the live scroll value (`useScroll`) inside `useFrame` and interpolates between them, so the moon glides into line as the reader scrolls; `App.tsx` shows the step being read (`useScrollStep`). It ends on a full-screen number. Copy this for anything where motion is the explanation.",
+      ["App.tsx", "Sky.tsx", "model.ts"],
+    ),
+    "examples/blueprint.md": storyExample(
+      "blueprint",
+      "a technical blueprint (how a suspension bridge hangs)",
+      "A technical drawing that builds itself: deep blueprint blue, IBM Plex Mono labels, a yellow accent for the cable and the load. The story is `variant: \"split\"` with the steps on the right. `geometry.ts` holds the bridge as numbers and says when each part is drawn (in story steps); `Drawing.tsx` is one SVG whose strokes are revealed with `span(s.position, from, to)` from one animation loop, and once the load is on, dots run the force's path. Labels appear with their part and stay readable on a phone. It ends on an `accent` ground. Copy this for any process that is built, assembled or flows.",
+      ["App.tsx", "Drawing.tsx", "geometry.ts"],
+    ),
     "examples/explainer.md": example(
       "explainer",
       "interactive explainer (a car engine)",
@@ -70,6 +89,13 @@ export function generateSkillFiles(): Record<string, string> {
       ["App.tsx", "Hero.tsx", "Sections.tsx"],
     ),
   };
+}
+
+/** A whole story from examples/<dir>/view.json; a design's files are shown in full below the view. */
+function storyExample(dir: string, title: string, intro: string, files: string[]): string {
+  const view = JSON.parse(src(`examples/${dir}/view.json`)) as { sections: { items: { c: { type: string; files?: Record<string, string> } }[] }[] };
+  for (const s of view.sections) for (const it of s.items) if (it.c.files) it.c.files = Object.fromEntries(Object.keys(it.c.files).map((k) => [k, "…"]));
+  return example(dir, title, intro, view as unknown as Record<string, unknown>, files, "view");
 }
 
 /** SKILL.md alone, for callers that only want the entry file. */

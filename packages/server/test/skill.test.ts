@@ -1,4 +1,4 @@
-import { readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { expect, test } from "vitest";
 import { fontEntry } from "@aurora/spec";
 import { allComponents } from "@aurora/spec";
@@ -132,4 +132,20 @@ test("every font the skill suggests is a real Google Fonts family", () => {
   expect(names.length).toBeGreaterThan(30);
   for (const n of names) expect(fontEntry(n)?.family, n).toBe(n);
   for (const n of ["Fraunces", "Inter", "JetBrains Mono", "Caveat"]) expect(fontEntry(n)).toBeTruthy();
+});
+
+test("the reference stories are valid views, each with its own look", async () => {
+  const { ViewSchema } = await import("@aurora/spec");
+  const looks = new Set<string>();
+  for (const dir of ["data-story", "cinematic", "blueprint"]) {
+    const view = JSON.parse(readFileSync(new URL(`../src/skill/examples/${dir}/view.json`, import.meta.url), "utf8"));
+    const r = ViewSchema.safeParse(view);
+    expect(r.success, `${dir}: ${JSON.stringify(r.error?.issues)}`).toBe(true);
+    expect(view.immersive).toBe(true);
+    looks.add(`${view.palette.page}|${view.fonts.display}`);
+    // the files shown in the skill are the files the view runs
+    for (const s of view.sections) for (const it of s.items) for (const [f, text] of Object.entries(it.c.files ?? {})) expect(text, `${dir}/${f}`).toBe(readFileSync(new URL(`../src/skill/examples/${dir}/${f}`, import.meta.url), "utf8"));
+    expect(files[`examples/${dir}.md`]).toContain("## The view");
+  }
+  expect(looks.size).toBe(3);
 });

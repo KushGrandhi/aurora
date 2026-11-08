@@ -1,0 +1,90 @@
+{
+ "v": 2,
+ "id": "bridge",
+ "title": "How a bridge hangs",
+ "summary": "A suspension bridge doesn't stand on its deck. It hangs from two cables, and the cables pull on the ground at each end.",
+ "immersive": true,
+ "palette": {
+  "page": "#0f2a4a",
+  "ink": "#e8eef6",
+  "accent": "#ffd166"
+ },
+ "fonts": {
+  "display": "IBM Plex Mono",
+  "body": "IBM Plex Sans",
+  "mono": "IBM Plex Mono"
+ },
+ "sections": [
+  {
+   "id": "build",
+   "title": "Built in the order it carries",
+   "layout": "story",
+   "variant": "split",
+   "steps": "right",
+   "items": [
+    {
+     "id": "sheet",
+     "c": {
+      "type": "design",
+      "framework": "react",
+      "files": {
+       "App.tsx": "import Drawing from \"./Drawing\";\n\n// Split story: the drawing holds one half of the screen; the steps scroll in the other. It sits centred on the\n// page's ground, like a sheet on a drafting table.\nexport default function App() {\n  return (\n    <div className=\"flex h-screen items-center justify-center bg-page p-6 md:p-12\">\n      <div className=\"w-full max-w-3xl\"><Drawing /></div>\n    </div>\n  );\n}\n",
+       "Drawing.tsx": "import { useEffect, useRef } from \"react\";\nimport { useScroll, span } from \"aurora/kit\";\nimport { ANCHORS, BUILD, CABLE, DECK, GROUND, HANGERS, TOP, TOWERS, cableY } from \"./geometry\";\n\nconst mono = { fontFamily: \"var(--aurora-mono)\", fontSize: 12 };\n\n/**\n * The bridge draws itself as the reader scrolls: each part's stroke is revealed between two story positions\n * (BUILD), and once the load is on, dots run the force's path: deck \u2192 hangers \u2192 cable \u2192 towers \u2192 ground.\n * One animation loop reads the live scroll value and writes attributes directly: no React state per frame.\n */\nexport default function Drawing() {\n  const s = useScroll();\n  const svg = useRef<SVGSVGElement>(null);\n  useEffect(() => {\n    let raf = 0;\n    const loop = (t: number) => {\n      const root = svg.current;\n      if (root) {\n        for (const [part, [a, b]] of Object.entries(BUILD)) {\n          const k = span(s.position, a, b);\n          root.querySelectorAll<SVGElement>(`[data-part=\"${part}\"]`).forEach((el) => {\n            if (el.dataset.draw !== undefined) el.style.strokeDashoffset = String(1 - k);\n            else el.style.opacity = String(k);\n          });\n        }\n        // the force's path, only while the load is on\n        const on = span(s.position, ...BUILD.load) > 0.5;\n        root.querySelectorAll<SVGCircleElement>(\"[data-flow]\").forEach((dot, i) => {\n          const u = ((t / 2400 + i / 6) % 1);\n          const x = HANGERS[5] + (TOWERS[1] - HANGERS[5]) * u;\n          dot.setAttribute(\"cx\", String(u < 0.25 ? HANGERS[5] : x));\n          dot.setAttribute(\"cy\", String(u < 0.25 ? DECK - (DECK - cableY(HANGERS[5])) * (u / 0.25) : cableY(x)));\n          dot.style.opacity = on ? \"1\" : \"0\";\n        });\n      }\n      raf = requestAnimationFrame(loop);\n    };\n    raf = requestAnimationFrame(loop);\n    return () => cancelAnimationFrame(raf);\n  }, []);\n  const draw = { pathLength: 1, strokeDasharray: 1, \"data-draw\": \"\" } as const;\n  return (\n    <svg ref={svg} viewBox=\"0 0 800 480\" className=\"h-auto w-full\" role=\"img\" aria-label=\"A suspension bridge, drawn part by part\">\n      {/* labels stay about 12px on screen: on a phone the drawing shrinks, so their size in drawing units grows */}\n      <style>{\"@media (max-width: 640px) { text { font-size: 26px !important; } }\"}</style>\n      <defs>\n        <pattern id=\"grid\" width=\"20\" height=\"20\" patternUnits=\"userSpaceOnUse\"><path d=\"M20 0H0V20\" fill=\"none\" stroke=\"var(--line)\" strokeWidth=\"0.6\" /></pattern>\n      </defs>\n      <rect width=\"800\" height=\"480\" fill=\"url(#grid)\" />\n      <line x1=\"0\" x2=\"800\" y1={GROUND} y2={GROUND} stroke=\"var(--ink-2)\" strokeWidth=\"1.5\" />\n      {TOWERS.map((x) => <path key={x} data-part=\"towers\" {...draw} d={`M${x} ${GROUND} V${TOP - 10}`} stroke=\"var(--ink)\" strokeWidth=\"6\" fill=\"none\" />)}\n      <path data-part=\"cable\" {...draw} d={CABLE} stroke=\"var(--accent)\" strokeWidth=\"3\" fill=\"none\" />\n      {HANGERS.map((x) => <path key={x} data-part=\"hangers\" {...draw} d={`M${x} ${cableY(x)} V${DECK}`} stroke=\"var(--ink-2)\" strokeWidth=\"1.5\" fill=\"none\" />)}\n      <path data-part=\"deck\" {...draw} d={`M${ANCHORS[0]} ${DECK} H${ANCHORS[1]}`} stroke=\"var(--ink)\" strokeWidth=\"5\" fill=\"none\" />\n      <g data-part=\"load\">\n        <rect x={HANGERS[5] - 26} y={DECK - 22} width=\"52\" height=\"18\" rx=\"3\" fill=\"var(--accent)\" />\n        <path d={`M${HANGERS[5]} ${DECK + 8} v28 m-6 -8 l6 8 l6 -8`} stroke=\"var(--accent)\" strokeWidth=\"2\" fill=\"none\" />\n        <text x={HANGERS[5] - 12} y={DECK + 36} textAnchor=\"end\" fill=\"var(--ink-2)\" style={mono}>40 t truck</text>\n      </g>\n      {Array.from({ length: 6 }, (_, i) => <circle key={i} data-flow r=\"3.5\" fill=\"var(--accent)\" />)}\n      <text x={TOWERS[0] - 14} y={TOP - 18} textAnchor=\"end\" fill=\"var(--ink-2)\" style={mono}>tower</text>\n      <text data-part=\"cable\" x={TOWERS[0] + 60} y={cableY(TOWERS[0] + 60) - 14} fill=\"var(--ink-2)\" style={mono}>main cable</text>\n      <text x={ANCHORS[0]} y={GROUND + 24} fill=\"var(--ink-2)\" style={mono}>anchorage</text>\n      <text data-part=\"deck\" x={(TOWERS[1] + ANCHORS[1]) / 2} y={DECK + 22} textAnchor=\"middle\" fill=\"var(--ink-2)\" style={mono}>deck</text>\n    </svg>\n  );\n}\n",
+       "geometry.ts": "// The bridge as numbers, in the drawing's own units (viewBox 0 0 800 480). Pure data: the drawing reads it.\nexport const GROUND = 420, DECK = 330, TOP = 110;\nexport const TOWERS = [230, 570];\nexport const ANCHORS = [40, 760];\n\n/** The main cable between the towers: a parabola, lowest at mid-span, well clear of the deck and what's on it. */\nexport const LOW = DECK - 72;\nexport function cableY(x: number): number {\n  const [a, b] = TOWERS;\n  const mid = (a + b) / 2, sag = LOW - TOP;\n  const u = (x - mid) / ((b - a) / 2);\n  return TOP + sag * (1 - u * u);\n}\n\nexport const CABLE = `M${ANCHORS[0]} ${DECK + 20} L${TOWERS[0]} ${TOP} Q${(TOWERS[0] + TOWERS[1]) / 2} ${2 * LOW - TOP} ${TOWERS[1]} ${TOP} L${ANCHORS[1]} ${DECK + 20}`;\nexport const HANGERS = Array.from({ length: 11 }, (_, i) => TOWERS[0] + 30 + i * ((TOWERS[1] - TOWERS[0] - 60) / 10));\n\n/** When each part is drawn: it starts at `from` and is complete at `to`, in story steps (0 = the first step). */\nexport const BUILD = { towers: [-1, 0], cable: [0.2, 1], hangers: [1.2, 2], deck: [2.2, 3], load: [3.2, 4] } as const;\n"
+      }
+     }
+    },
+    {
+     "id": "towers",
+     "c": {
+      "type": "text",
+      "md": "**Two towers.** They carry almost all of the bridge's weight, straight down into the riverbed."
+     }
+    },
+    {
+     "id": "cable",
+     "c": {
+      "type": "text",
+      "md": "**The main cable** is draped over both towers and tied into concrete anchorages on the banks."
+     }
+    },
+    {
+     "id": "hangers",
+     "c": {
+      "type": "text",
+      "md": "**Hangers** drop from the cable at regular intervals, like the strings of a harp."
+     }
+    },
+    {
+     "id": "deck",
+     "c": {
+      "type": "text",
+      "md": "**The deck** is hung from the hangers. It never pushes on the towers; it pulls on the cable."
+     }
+    },
+    {
+     "id": "load",
+     "c": {
+      "type": "text",
+      "md": "**Add a load.** The truck's weight runs up the hangers, along the cable, over the towers and down into the ground."
+     }
+    }
+   ]
+  },
+  {
+   "id": "why",
+   "layout": "grid",
+   "height": "screen",
+   "background": "accent",
+   "items": [
+    {
+     "id": "big",
+     "c": {
+      "type": "text",
+      "md": "# Tension\nA cable can only pull. That is why it can be so thin and still carry a road."
+     }
+    }
+   ]
+  }
+ ]
+}
