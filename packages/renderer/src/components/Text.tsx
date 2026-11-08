@@ -33,7 +33,10 @@ export function Text({ c, results, ctx }: { c: TextC; results: Record<string, Qu
 
 function mountSlots(root: HTMLElement | null, defs: Record<string, unknown>): { name: string; el: HTMLElement }[] {
   if (!root) return [];
-  const out: { name: string; el: HTMLElement }[] = [];
+  // Slots already in the text (the view changed but this text didn't, so React kept its DOM): keep them, or the
+  // controls would vanish, since their `{{name}}` tokens were replaced the first time.
+  const out: { name: string; el: HTMLElement }[] = [...root.querySelectorAll<HTMLElement>(".prose-slot")]
+    .filter((el) => (el.dataset.name ?? "") in defs).map((el) => ({ name: el.dataset.name!, el }));
   const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   const nodes: Text[] = [];
   for (let n = walk.nextNode(); n; n = walk.nextNode()) if (/\{\{[A-Za-z_]\w*\}\}/.test(n.textContent ?? "")) nodes.push(n as Text);
@@ -45,6 +48,7 @@ function mountSlots(root: HTMLElement | null, defs: Record<string, unknown>): { 
       if (m && m[1] in defs) {
         const el = document.createElement("span");
         el.className = "prose-slot";
+        el.dataset.name = m[1];
         frag.append(el);
         out.push({ name: m[1], el });
       } else frag.append(part);

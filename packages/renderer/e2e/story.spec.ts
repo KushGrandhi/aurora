@@ -86,6 +86,26 @@ test("prose controls: a draggable number and an inline choice set the view's par
   await expect.poll(async () => (await (await request.get("/api/views/st2/status")).json()).params.gear).toBe("third");
 });
 
+test("prose controls survive a patch to their view", async ({ page, request }) => {
+  await page.goto("/#pc1");
+  await expect(page.locator(".conn.up")).toBeVisible();
+  const v = {
+    v: 2, id: "pc1", title: "T", datasets: { d: { inline: [{ a: 1 }] } },
+    params: { extra: { type: "number", label: "Extra", min: 0, max: 900, step: 50, default: 200, unit: "$" } },
+    queries: { r: { sql: "SELECT $extra * a AS total_usd FROM d" } },
+    sections: [{ id: "s", layout: "grid", items: [{ id: "t", span: 12, c: { type: "text", md: "Paying **{{extra}}** more gives {r.total_usd|currency}." } }] }],
+  };
+  const r1 = await request.post("/api/views", { data: { view: v } });
+  const num = page.locator('[data-item="t"] [data-param="extra"]');
+  await expect(num).toContainText("200");
+  // a patch to anything in the view (here: a new item) must keep the control in the sentence
+  const version = (await r1.json()).version;
+  expect((await request.post("/api/views/pc1/patch", { data: { baseVersion: version, ops: [{ op: "add", section: "s", item: { id: "n", span: 12, c: { type: "text", md: "note" } } }] } })).status()).toBe(200);
+  await expect(page.locator('[data-item="n"]')).toBeVisible();
+  await expect(num).toContainText("200");
+  await expect(page.locator('[data-item="t"]')).not.toContainText("{{extra}}");
+});
+
 test("at a laptop size a story's visual fills the screen behind the steps, never a narrow column", async ({ page, request }) => {
   await page.setViewportSize({ width: 1000, height: 560 });
   await page.goto("/#st3");

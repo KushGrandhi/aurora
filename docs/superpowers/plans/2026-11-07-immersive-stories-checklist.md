@@ -72,7 +72,13 @@ patches, queries and linked focus keep working; a story can drop aurora's chrome
   Round 1 done: 35/54 (`docs/evals/2026-11-forms-diversity.md`). Misses: monitor, what-if, reference, explainer.
   The judge must see `look` pictures for visual forms (Kush caught the fridge).
   Round 2 (`d36a4e6`, with pictures): 38/54. Monitor 2→5, explainer 2→5; what-if 1 and finding 2 still miss.
-  Cause: Haiku rarely opens `references/forms.md`; the form choice must live in SKILL.md. Round 3 after that.
+  Cause: Haiku rarely opens `references/forms.md`; the form choice must live in SKILL.md.
+  Baseline, three runs per request (2026-11-08): mean 37/54, spread 33-42, so rounds 1-2 differ by noise only.
+  Reliable: answer, pitch. Failing every run: finding (2), what-if (2.3). Unstable: monitor, explorer, reference.
+- [ ] D4. Aurora's own feedback instead of more prose (Haiku fixes what `status` reports, skips references):
+  fix the six product problems the baseline found (see the eval doc), then checks for the reliable failures
+  (a finding whose events aren't on its chart, a what-if with no inputs, a long list with no search).
+  Measured with three runs per request; counts only if the mean moves by more than the spread.
 
 ## Track 2: Quality (every form looks designed, never AI-generated)
 

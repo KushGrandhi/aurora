@@ -66,3 +66,43 @@ must run where they can't see `docs/evals` or the checklist. The other eight rea
 1. Inputs and search are used only when the request names them ("dig into" got filters; a what-if and a lookup did not).
 2. Story layout goes to the physical explainer but not to the data finding.
 3. One summary number flattens the moment that matters (a 24-hour p95; one fixed scenario).
+
+## Baseline: three runs per request (2026-11-08)
+
+**Why:** one run per request can't tell a change from noise (g5 fell 5 → 2 with nothing aimed at it). Same skill as
+round 2 (`d36a4e6`), each request run three times by fresh Haiku agents (`b`, `c`, `d` 1-9), with `docs/evals` and the
+checklist moved out of the repo during the runs. Three judges, each scoring three requests across all three runs, with
+pictures.
+
+| request | b | c | d | mean | range |
+|---|---|---|---|---|---|
+| answer (Q3 revenue) | 6 | 6 | 6 | 6.0 | 0 |
+| monitor (API services) | 6 | 5 | 1 | 4.0 | 5 |
+| explorer (orders) | 6 | 3 | 6 | 5.0 | 3 |
+| comparison (laptops) | 3 | 5 | 3 | 3.7 | 2 |
+| finding (signups) | 2 | 2 | 2 | 2.0 | 0 |
+| explainer (fridge) | 5 | 3 | 4 | 4.0 | 2 |
+| what-if (mortgage) | 2 | 3† | 2 | 2.3 | 1 |
+| pitch (landing page) | 6 | 6 | 6 | 6.0 | 0 |
+| reference (offices) | 6 | 3 | 3 | 4.0 | 3 |
+| **total /54** | **42** | **36** | **33** | **37** | **9** |
+
+**What this says:**
+- Run-to-run spread on the same skill is 9 points (33-42). Round 1 (35) and round 2 (38) are inside it: the earlier
+  "improvement" is not shown. A change must move the mean of three runs by more than this spread to count.
+- **Reliably solved:** answer and pitch (6, 6, 6).
+- **Reliably failing:** the finding (2, 2, 2: never a story, events never on the chart) and the what-if (two of three
+  runs built no input).
+- **Unstable:** monitor (6 to 1), explorer, reference: the model can do them, but doesn't reliably.
+
+† **c7 was an aurora bug, not the model:** it built a `{{extra}}` input, and aurora removed it from the sentence after
+the next patch (the text re-ran its control setup on text whose token was already replaced). Fixed with a browser test.
+
+**Aurora problems the 27 runs surfaced (product, not model):**
+1. A "Q3" or "2026" in a label is rejected as a typed number (three of three answer runs had to reword it).
+2. A large empty gap under KPI rows on desktop (reported in five runs).
+3. The data profile's distinct count is an estimate shown as exact (1,165 of 1,200 order ids), so two agents
+   reported duplicate orders that don't exist.
+4. A kit panel and control bar are cut off on a phone (two of three 3D fridge runs).
+5. `render` rejected a large design view's JSON; agents fell back to the HTTP API.
+6. The palette can't be changed by a patch (an agent said it needs a full re-render; to check).
