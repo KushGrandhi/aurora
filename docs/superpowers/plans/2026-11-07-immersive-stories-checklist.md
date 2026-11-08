@@ -46,9 +46,11 @@ patches, queries and linked focus keep working; a story can drop aurora's chrome
   Done in `e61b4f6` (story variants behind/side/split, keep-clear contract for kit) and `e2c8e22` (immersive
   flag, section grounds, `height: "screen"`, `layout: "reel"`, look per panel, long-step warning). Unit and
   browser tests pass, including the two story tests that had been waiting.
-- [ ] 8. Varied reference stories: 3–4 deliberately different examples (dark cinematic, editorial data journalism,
+- [x] 8. Varied reference stories: 3–4 deliberately different examples (dark cinematic, editorial data journalism,
   technical blueprint, playful) so the model sees range, not one template.
   Note from the eval: no example is a data story, and Haiku built a data story from catalog parts only.
+  Done in `ca1f177`: data-story (editorial, catalog only), cinematic (dark 3D, scroll-driven), blueprint (split,
+  self-drawing SVG); each checked and corrected with look; tests keep them valid and clean.
 - [ ] 9. Sameness check: warn when a view's fonts, palette and layout match recent views too closely.
 
 ## Cinematic depth (weeks)
