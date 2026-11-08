@@ -59,11 +59,14 @@ patches, queries and linked focus keep working; a story can drop aurora's chrome
   self-drawing SVG); each checked and corrected with look; tests keep them valid and clean.
 ## Track 1: Diversity (the right form for the reader's job)
 
-- [ ] D1. Choose the form: the skill's first decision is the reader's job, not the request's wording; a table of
+- [x] D1. Choose the form: the skill's first decision is the reader's job, not the request's wording; a table of
   jobs → forms → aurora parts; forms blend per section (e.g. a story opening that hands over to an explorer).
   Replaces "anything bigger than one number is a story".
-- [ ] D2. The parts non-story forms lack: a dense mode for monitors and explorers (tighter spacing, filters that stay
+  Done in `0030512` (`references/forms.md`: nine forms, blending, the look follows the form).
+- [x] D2. The parts non-story forms lack: a dense mode for monitors and explorers (tighter spacing, filters that stay
   on screen), and whatever the eval shows comparisons, tools and references need.
+  Done in `314ca7e`: `density: "compact"`, balanced tile rows, sticky filters in the first compact section, unknown
+  fields named as warnings. Revisit after D3 for what comparisons, tools and references need.
 - [ ] D3. Eval matrix: Haiku on ~8 requests that need different forms (one answer, monitor, explorer, comparison,
   finding, mechanism, what-if, pitch), scored only on whether the form fits the job (blind to looks).
 
