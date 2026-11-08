@@ -67,13 +67,17 @@ patches, queries and linked focus keep working; a story can drop aurora's chrome
   on screen), and whatever the eval shows comparisons, tools and references need.
   Done in `314ca7e`: `density: "compact"`, balanced tile rows, sticky filters in the first compact section, unknown
   fields named as warnings. Revisit after D3 for what comparisons, tools and references need.
-- [ ] D3. Eval matrix: Haiku on ~8 requests that need different forms (one answer, monitor, explorer, comparison,
+- [x] D3. Eval matrix: Haiku on ~8 requests that need different forms (one answer, monitor, explorer, comparison,
   finding, mechanism, what-if, pitch), scored only on whether the form fits the job (blind to looks).
+  Round 1 done: 35/54 (`docs/evals/2026-11-forms-diversity.md`). Misses: monitor, what-if, reference, explainer.
+  The judge must see `look` pictures for visual forms (Kush caught the fridge). Round 2 after the D2 fixes.
 
 ## Track 2: Quality (every form looks designed, never AI-generated)
 
 - [ ] Q1. A quality rubric per form, and a concrete list of AI tells, so "beautiful and intuitive" is checkable.
 - [ ] Q2. Reference examples for the non-story forms (monitor, explorer, comparison, tool), each with its own look.
+- [ ] Q2b. Kit shapes so small models can build credible machines: a cabinet with a door, pipes along a path, a
+  coil, a fan, valves, flow arrows (the fridge eval: boxes and sticks, labels pointing at nothing).
 - [ ] Q3 (was 9). Sameness check: warn when a view's fonts, palette and layout match recent views too closely.
 - [ ] Q4. Eval: the same matrix scored on the quality rubric (a blind judge on look screenshots, plus Kush).
 
