@@ -41,8 +41,11 @@ patches, queries and linked focus keep working; a story can drop aurora's chrome
   frame (`useScrollProgress`), with kit helpers binding a GSAP timeline or camera to it.
   Done in `09b3024`: one scheduler, story `position` (1.37 = between steps), eased live `aurora.scroll` in the frame,
   kit `useScroll`/`span`/`useScrub`/`useScrollStep`, reduced motion snaps. Unit and browser tests pass.
-- [ ] 7. Immersive mode: a view flag hides the sidebar and article chrome; sections bleed edge to edge with their own
+- [x] 7. Immersive mode: a view flag hides the sidebar and article chrome; sections bleed edge to edge with their own
   backgrounds; more story layouts (visual full-screen behind text, centred text, horizontal scroll, split).
+  Done in `e61b4f6` (story variants behind/side/split, keep-clear contract for kit) and `e2c8e22` (immersive
+  flag, section grounds, `height: "screen"`, `layout: "reel"`, look per panel, long-step warning). Unit and
+  browser tests pass, including the two story tests that had been waiting.
 - [ ] 8. Varied reference stories: 3–4 deliberately different examples (dark cinematic, editorial data journalism,
   technical blueprint, playful) so the model sees range, not one template.
   Note from the eval: no example is a data story, and Haiku built a data story from catalog parts only.
