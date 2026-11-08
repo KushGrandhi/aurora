@@ -117,7 +117,7 @@ test("the mechanism example's view is valid exactly as written (copied views mus
 test("the skill shapes a story and chooses a look before picking components", () => {
   const story = files["references/story.md"];
   for (const s of ["The one sentence", "Never name them on the page", "The hook", "The signature moment", "The ending"]) expect(story).toContain(s);
-  expect(skill.indexOf("references/story.md")).toBeLessThan(skill.indexOf("## Pick components"));
+  expect(skill.indexOf("references/forms.md")).toBeLessThan(skill.indexOf("## Pick components"));
   const art = files["references/design-language.md"];
   for (const s of ["Decide a direction before you build", "Don't repeat yourself", "## The guardrails", '"page"', '"ink"']) expect(art).toContain(s);
   // the old fixed recipes are gone: no single entrance or type scale imposed on every view
@@ -148,4 +148,12 @@ test("the reference stories are valid views, each with its own look", async () =
     expect(files[`examples/${dir}.md`]).toContain("## The view");
   }
   expect(looks.size).toBe(3);
+});
+
+test("the form comes from the reader's job: many forms, blended, not one default", () => {
+  const forms = files["references/forms.md"];
+  for (const f of ["**Answer**", "**Story**", "**Explainer**", "**Monitor**", "**Explorer**", "**Comparison**", "**Tool**", "**Reference**", "**Pitch**", "## Blend when it serves the reader"]) expect(forms).toContain(f);
+  // no rule that sends every bigger request to a story
+  expect(skill).not.toContain("Anything bigger than a one-number answer is a story");
+  expect(files["references/story.md"]).not.toMatch(/"visualize".*gets a story/);
 });

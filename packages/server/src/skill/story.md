@@ -1,8 +1,8 @@
 # Shaping the story
 
-A view that explains a subject or presents data is a story, not a stack of components. Before you pick a single component, shape the story in your head (not on the page). The look comes next (`references/design-language.md`), and the components come last.
+When the reader's job is to understand something, the view is a story, not a stack of components. Before you pick a single component, shape the story in your head (not on the page). The look comes next (`references/design-language.md`), and the components come last.
 
-**Scale it to the ask.** "What were sales in March?" gets one number or one chart. "Show me", "explain", "tell me about", "visualize" or "walk me through" gets a story.
+**First check it should be a story** (`references/forms.md`): a story is for a reader who wants to understand a finding or how something works. Someone who will watch, explore, compare or look things up needs a different form, or a story that hands over to one.
 
 ## Write the outline first
 

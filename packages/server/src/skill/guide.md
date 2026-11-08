@@ -8,7 +8,7 @@ This file is the whole method. The files under `references/` and `examples/` hol
 
 Follow these steps in order, every time.
 
-1. **Shape** the story and choose its look. Anything bigger than a one-number answer is a story: read `references/story.md` and outline it (the one sentence, the hook, the beats, the signature moment), then read `references/design-language.md` and decide its direction (the stage colours, type and motion that fit this subject). Never default to the look of the last view or the example.
+1. **Choose the form, then its look.** Ask what the reader will do with this (`references/forms.md`): get an answer, understand a finding, watch over time, explore, compare, try what-ifs, look things up, be persuaded. That picks the form (an answer, a story, a monitor, an explorer…), and sections can blend forms. For a story or an explainer, outline it with `references/story.md`. Then decide its look with `references/design-language.md`. Never default to the look of the last view or the example.
 2. **Pick** the components for each beat with the table below. Catalog components show data and structure well with little effort; use a `design` for the beats that need their own visual, above all the hook and the signature moment.
 3. **Render** the frame with `mcp__aurora__render`: title, one-line summary and sections (with the first item, or with `"items": []`).
 4. **Add** the remaining items with `mcp__aurora__patch`, **one call at a time**. Each call passes `baseVersion` = the `version` the previous call returned. Two patches sent together collide.
@@ -44,7 +44,7 @@ Follow these steps in order, every time.
 Good combinations:
 - **Explain how something physical works:** a `story` section: the 3D scene pinned, one short `text` step per moment (each with `"story": {"state": …}`), the last setting it running; then a `callout`. The story *is* the steps: no `steps` list under the scene.
 - **Explain a system:** `architecture`, then a `diagram` for its main request, then a `callout` for the key decision.
-- **Analyse data:** for a quick look, a row of `kpi`, then a `chart`, then a `table`, with filters when the reader will want to slice it. For a story about the data, shape it first (`references/story.md`) and start from `examples/data-story.md`.
+- **Data:** the form decides (`references/forms.md`): a monitor is dense tiles, trends and filters; an explorer is filters, linked charts, the table; a finding is a story (`examples/data-story.md`), often followed by an explorer.
 - **A page or product:** one `design` with `display: "page"`, as the only item in the view.
 
 Before using a component for the first time, read its fields and example in `references/components.md`.
@@ -134,7 +134,7 @@ Go through every line. Fix what fails, then check `status` once more.
 
 - [ ] `status` shows no `error` and no `design:` warning.
 - [ ] You looked at the latest version with `look` (desktop and phone) and fixed what you saw: nothing cut off, overlapping, too small or spilling sideways on a phone.
-- [ ] The story has a hook on the first screen, one idea per beat, a signature moment and an ending that lands the one sentence; it answers who, what, when, where, why and how without naming them.
+- [ ] The form fits the reader's job (`references/forms.md`); a story has a hook, one idea per beat, a signature moment and an ending.
 - [ ] The look was chosen for this subject: a `palette` (stage, accent, series), type and motion that fit it, and it doesn't copy the example's or the last view's look.
 - [ ] A physical mechanism is a 3D `aurora/kit` scene pinned in a `story` section with steps that drive it (or a `hero`), not a flat drawing in a card, and the view has a `palette` from its subject.
 - [ ] Every item uses the component the table above suggests; a `design` is used only where no catalog component fits.

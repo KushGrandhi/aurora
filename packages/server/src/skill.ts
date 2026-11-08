@@ -27,6 +27,7 @@ export function generateSkillFiles(): Record<string, string> {
   return {
     "SKILL.md": `---\nname: aurora\ndescription: ${JSON.stringify(DESCRIPTION)}\n---\n\n${src("guide.md")}\n`,
     "references/components.md": components(),
+    "references/forms.md": `${src("forms.md")}\n`,
     "references/story.md": `${src("story.md")}\n`,
     "references/design-language.md": `${src("design-language.md")}\n`,
     "references/design-canvas.md": `${src("design-canvas.md")}\n`,
