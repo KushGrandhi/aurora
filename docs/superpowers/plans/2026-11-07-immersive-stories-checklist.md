@@ -40,6 +40,7 @@ patches, queries and linked focus keep working; a story can drop aurora's chrome
   backgrounds; more story layouts (visual full-screen behind text, centred text, horizontal scroll, split).
 - [ ] 8. Varied reference stories: 3–4 deliberately different examples (dark cinematic, editorial data journalism,
   technical blueprint, playful) so the model sees range, not one template.
+  Note from the eval: no example is a data story, and Haiku built a data story from catalog parts only.
 - [ ] 9. Sameness check: warn when a view's fonts, palette and layout match recent views too closely.
 
 ## Cinematic depth (weeks)
