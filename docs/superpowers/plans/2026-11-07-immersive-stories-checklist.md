@@ -4,6 +4,12 @@ Goal: aurora makes unique, cinematic, interactive stories from data (in the spir
 pages), not one design language on a rigid page. The story covers who, what, when, where, why and how without naming
 them; the model chooses the shape.
 
+**Two dimensions, improved and measured separately (Kush, 2026-11-07):**
+1. **Diversity:** the model picks the form that fits the reader's job (an answer, a story, a monitor, an explorer,
+   a comparison, a tool, a reference, a pitch…) and blends forms across sections when that serves the reader.
+2. **Quality:** whatever form it picked looks designed and is intuitive, never AI-generated.
+Each has its own rubric: a view can pass one and fail the other. Diversity first (quality is judged per form).
+
 Ordered from most impact for least work to least impact for most work. Claude ticks an item when it is done and
 verified, with the commit. Each technical item passes a discriminator review before it is built.
 
@@ -51,9 +57,24 @@ patches, queries and linked focus keep working; a story can drop aurora's chrome
   Note from the eval: no example is a data story, and Haiku built a data story from catalog parts only.
   Done in `ca1f177`: data-story (editorial, catalog only), cinematic (dark 3D, scroll-driven), blueprint (split,
   self-drawing SVG); each checked and corrected with look; tests keep them valid and clean.
-- [ ] 9. Sameness check: warn when a view's fonts, palette and layout match recent views too closely.
+## Track 1: Diversity (the right form for the reader's job)
 
-## Cinematic depth (weeks)
+- [ ] D1. Choose the form: the skill's first decision is the reader's job, not the request's wording; a table of
+  jobs → forms → aurora parts; forms blend per section (e.g. a story opening that hands over to an explorer).
+  Replaces "anything bigger than one number is a story".
+- [ ] D2. The parts non-story forms lack: a dense mode for monitors and explorers (tighter spacing, filters that stay
+  on screen), and whatever the eval shows comparisons, tools and references need.
+- [ ] D3. Eval matrix: Haiku on ~8 requests that need different forms (one answer, monitor, explorer, comparison,
+  finding, mechanism, what-if, pitch), scored only on whether the form fits the job (blind to looks).
+
+## Track 2: Quality (every form looks designed, never AI-generated)
+
+- [ ] Q1. A quality rubric per form, and a concrete list of AI tells, so "beautiful and intuitive" is checkable.
+- [ ] Q2. Reference examples for the non-story forms (monitor, explorer, comparison, tool), each with its own look.
+- [ ] Q3 (was 9). Sameness check: warn when a view's fonts, palette and layout match recent views too closely.
+- [ ] Q4. Eval: the same matrix scored on the quality rubric (a blind judge on look screenshots, plus Kush).
+
+### Cinematic depth (quality, weeks)
 
 - [ ] 10. Kit cinematic pieces: scroll-driven camera path, kinetic type, parallax layers, mask reveals, scale
   comparisons, data-to-3D (bars, globe, particles from query rows).
@@ -61,7 +82,7 @@ patches, queries and linked focus keep working; a story can drop aurora's chrome
 - [ ] 12. One scene for the whole story: a stage stays mounted while sections scroll over it; the camera travels
   between beats; catalog components overlay it.
 
-## Long tail
+### Long tail (quality)
 
 - [ ] 13. Scroll-scrubbed video and image sequences from files the person provides.
 - [ ] 14. Performance and access: frame budget, reduced-motion fallbacks for every scroll effect, phone version of
