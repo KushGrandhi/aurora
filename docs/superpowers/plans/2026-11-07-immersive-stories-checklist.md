@@ -96,7 +96,9 @@ Kush's reference is a hand-built interactive inspector, plus procedural backgrou
 - [x] C4. Canvas-first skill: a whole-page design that reads the queries is the default beyond a one-number answer;
   drop rules that force sameness; a worked inspector example in another domain.
   Done in `6919333` plus the checks commit (contrast, scrim, reduced motion, nothing to change, page params).
-- [ ] C5. Eval: the Jarvis prompt and some of the nine on Sonnet, compared by screenshot with today's.
+- [x] C5. Eval: the Jarvis prompt and some of the nine on Sonnet, compared by screenshot with today's.
+  Sonnet form 15 → 23 of 24, quality 13 → 18 of 24 (blind judge); the Jarvis data became an inspector like the
+  reference. Haiku didn't follow it. Next: phone reflow for page charts, views open at their param defaults.
 
 ## Track 2: Quality (every form looks designed, never AI-generated)
 

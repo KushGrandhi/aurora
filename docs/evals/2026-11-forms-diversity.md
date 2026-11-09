@@ -133,3 +133,32 @@ right: a story with the chart pinned, inputs in the sentence. One run each, so o
 empty half-screen; empty space under KPI rows; kit 3D is primitive (food as cubes, labels clipped at the cabinet edge);
 the "literal number" check blocked highlighting the Q3 bar; `render` couldn't take a large design, so it used HTTP.
 Quality is 39/54 at best: nobody reaches beautiful yet. Sonnet also invented a named customer testimonial.
+
+## Canvas first (2026-11-08)
+
+Branch `canvas-first` (`2b57a79`): SKILL.md makes a page design that reads the queries the default, with surfaces,
+designs that set params, kit parts (Picker, Bars, SearchTable, Tabs) and an inspector example; checks replace the
+dropped rules. Same prompts, fresh agents, eval notes hidden. A blind judge compared each new Sonnet page with Sonnet's
+earlier catalog view of the same request, from desktop and phone pictures.
+
+| request | before form | canvas form | before quality | canvas quality |
+|---|---|---|---|---|
+| Jarvis data ("Show this data on aurora") | 3 | 5 | 4 | 3 |
+| monitor | 3 | 6 | 2 | 5 |
+| signups finding | 4 | 6 | 4 | 5 |
+| mortgage what-if | 5 | 6 | 3 | 5 |
+| **total** | **15/24** | **23/24** | **13/24** | **18/24** |
+
+- On the Jarvis data Sonnet built an inspector like Kush's reference (pick a prompt, candidate bars with the cutoff
+  line, a live cutoff slider, a contour surface, a vault tab) from the data alone. Its quality score lost a point to a
+  phone overflow.
+- The finding now marks the changelog events on the chart with the dip shaded; the monitor's headline is built from the
+  data; every control the judge checked feeds the queries.
+- **Haiku didn't follow it:** the what-if was static scenarios again and the Jarvis view a catalog dashboard with one
+  picker. Canvas-first lifts Sonnet; Haiku needs something stronger than guidance.
+
+**Remaining flaws (judge):**
+1. Phone: charts scale down instead of reflowing; labels become unreadable and two pages overflow sideways.
+2. Params persist on the server across visitors, so a page can open on someone's leftover slider value (view_e at
+   0.24: "0 of 15 would pass" beside "14 passed"). A view should open at its defaults, or say it isn't.
+3. False precision (cents on large sums) in one page.
