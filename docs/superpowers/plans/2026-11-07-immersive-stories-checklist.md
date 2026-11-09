@@ -85,12 +85,17 @@ patches, queries and linked focus keep working; a story can drop aurora's chrome
 Evals: views built from catalog parts look generic; whole-page designs were the only consistently designed results.
 Kush's reference is a hand-built interactive inspector, plus procedural backgrounds that make designs less flat.
 
-- [ ] C1. Discriminator review of canvas-first + surfaces + designs that set filters.
-- [ ] C2. Surfaces, first batch (grain, paper, blueprint grid, dot grid, contour lines, halftone, thermal gradient,
+- [x] C1. Discriminator review of canvas-first + surfaces + designs that set filters.
+  Approved with changes (setParam hardened, data-bound kit parts first, checks replace dropped rules, tokens
+  unless palette.page, shader-only effects later).
+- [x] C2. Surfaces, first batch (grain, paper, blueprint grid, dot grid, contour lines, halftone, thermal gradient,
   fluted glass): in designs and as section backgrounds, palette-coloured, text kept legible, static by default.
-- [ ] C3. Designs can change filters (`aurora.setParam`), so a slider or a picked row re-runs the queries.
-- [ ] C4. Canvas-first skill: a whole-page design that reads the queries is the default beyond a one-number answer;
+  Done in `f1c4ad4`, `2d5afbe`: nine kinds (fluted glass, lens, ripples moved to a later WebGL batch; clouds and
+  iridescent added).
+- [x] C3. Designs can change filters (`aurora.setParam`), so a slider or a picked row re-runs the queries.
+- [x] C4. Canvas-first skill: a whole-page design that reads the queries is the default beyond a one-number answer;
   drop rules that force sameness; a worked inspector example in another domain.
+  Done in `6919333` plus the checks commit (contrast, scrim, reduced motion, nothing to change, page params).
 - [ ] C5. Eval: the Jarvis prompt and some of the nine on Sonnet, compared by screenshot with today's.
 
 ## Track 2: Quality (every form looks designed, never AI-generated)

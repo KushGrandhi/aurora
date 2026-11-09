@@ -71,7 +71,8 @@ function lintWhenSeen() {
     done = true;
     let warnings: string[] = [];
     try {
-      warnings = lintDocument(document, { display: project.display ?? "card" });
+      const aur = (window as unknown as { aurora?: { data?: Record<string, unknown[]> } }).aurora;
+      warnings = lintDocument(document, { display: project.display ?? "card", hasData: Object.keys(aur?.data ?? project.data ?? {}).length > 0 });
     } catch { /* checks never break a design */ }
     post({ type: "lint", warnings }); // always sent, even empty: it is what marks the design as checked
   };

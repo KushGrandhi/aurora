@@ -210,3 +210,21 @@ test("design warnings from the screen become warning problems", async () => {
   await intake.screenMessage({ t: "rendered", viewId: "sales", version: 1, ok: ["k", "t"], failed: [] });
   expect(intake.status("sales").problems.filter((x) => x.severity === "warning")).toEqual([]);
 });
+
+test("canvas first: a page design that never sets a param, and a design that reads no query in a view with data, are named", async () => {
+  const { intake } = setup();
+  const app = "export default function App() { return <div>Revenue was 1234567 this year</div>; }";
+  const r = await intake.render({ v: 2, id: "cf", title: "T", datasets: { d: { inline: [{ v: 1 }] } }, queries: { q: { sql: "SELECT v FROM d WHERE v > $cut" } },
+    params: { cut: { type: "number", label: "Cut", min: 0, max: 5 } },
+    sections: [{ id: "s", layout: "grid", items: [{ id: "p", span: 12, c: { type: "design", framework: "react", display: "page", files: { "App.tsx": app } } }] }] } as never, "caller");
+  const msgs = r.problems.map((p) => p.message).join("\n");
+  expect(msgs).toContain("reads none of the view's queries");
+  expect(msgs).toContain('never sets "cut"');
+  const ok = "import { useQuery, useParamState } from 'aurora/kit';\nexport default function App() { const rows = useQuery('q'); const [c, setC] = useParamState('cut'); return <button onClick={() => setC(2)}>{rows.length}</button>; }";
+  const r2 = await intake.render({ v: 2, id: "cf2", title: "T", datasets: { d: { inline: [{ v: 1 }] } }, queries: { q: { sql: "SELECT v FROM d WHERE v > $cut" } },
+    params: { cut: { type: "number", label: "Cut", min: 0, max: 5 } },
+    sections: [{ id: "s", layout: "grid", items: [{ id: "p", span: 12, c: { type: "design", framework: "react", display: "page", data: ["q"], files: { "App.tsx": ok } } }] }] } as never, "caller");
+  const msgs2 = r2.problems.map((p) => p.message).join("\n");
+  expect(msgs2).not.toContain("reads none");
+  expect(msgs2).not.toContain("never sets");
+});

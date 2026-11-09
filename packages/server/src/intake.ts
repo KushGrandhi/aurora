@@ -432,6 +432,19 @@ export class Intake {
     const seen = new Set<string>();
     for (const m of [...paletteWarnings("light", view.palette), ...paletteWarnings("dark", view.palette)])
       if (!seen.has(m)) { seen.add(m); problems.push({ severity: "warning", message: m, hint: "choose a colour with more contrast against the page, or leave it out" }); }
+    // Canvas first: a design in a view with data reads it, and a page lets the reader change the params it hides.
+    const hasData = Object.keys(view.datasets ?? {}).length > 0;
+    for (const s of view.sections) for (const it of s.items) {
+      if (it.c.type !== "design") continue;
+      const c = it.c as { data?: string[]; display?: string; files?: Record<string, string> };
+      const code = Object.values(c.files ?? {}).join("\n");
+      if (hasData && c.display === "page" && !(c.data?.length) && !/useQuery|aurora\.data|onData/.test(code))
+        problems.push({ itemId: it.id, severity: "warning", message: "this design reads none of the view's queries, so any figure in it is typed by hand", hint: 'list the queries it shows in "data" and read them with useQuery("name")' });
+      if (c.display === "page" && view.params) {
+        const unset = Object.keys(view.params).filter((name) => !new RegExp(`(useParamState|setParam)\\(\\s*["'\`]${name}["'\`]`).test(code));
+        if (unset.length) problems.push({ itemId: it.id, severity: "warning", message: `a page hides the filter row, and this design never sets ${unset.map((n) => `"${n}"`).join(", ")}, so the reader can't change ${unset.length > 1 ? "them" : "it"}`, hint: `draw a control for it: const [v, setV] = useParamState("${unset[0]}")` });
+      }
+    }
     const media: Record<string, string> = {};
     const lead = checked.view.sections[0]?.items[0]?.id;
     for (const s of checked.view.sections)

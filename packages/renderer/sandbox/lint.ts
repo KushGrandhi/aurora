@@ -116,10 +116,93 @@ function textOverModel(doc: Document): string | undefined {
   return undefined;
 }
 
+
+// --- canvas-first guardrails: legible text, scrims on busy surfaces, reduced motion, something to change ---
+
+const parseRgb = (c: string): [number, number, number, number] | undefined => {
+  const m = c.match(/rgba?\(([^)]+)\)/);
+  if (!m) return undefined;
+  const p = m[1].split(/[\s,\/]+/).filter(Boolean).map(Number);
+  return [p[0], p[1], p[2], p.length > 3 ? p[3] : 1];
+};
+const lum = ([r, g, b]: number[]) => {
+  const f = (v: number) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+};
+const ratio = (a: number[], b: number[]) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+
+/** The solid colour behind an element: its ancestors' background colours, composited (images ignored). */
+function backdrop(el: Element, win: Window): number[] | undefined {
+  const layers: number[][] = [];
+  for (let n: Element | null = el; n; n = n.parentElement) {
+    const cs = win.getComputedStyle(n);
+    if (cs.backgroundImage && cs.backgroundImage !== "none") return undefined; // a gradient, image or surface: can't know
+    const bgc = cs.backgroundColor;
+    const c = parseRgb(bgc);
+    if (!c && bgc && bgc !== "transparent") return undefined; // oklch, lab, color(): not measured here
+    if (c && c[3] > 0) { layers.push(c); if (c[3] >= 0.99) break; }
+  }
+  let out = parseRgb(win.getComputedStyle(el.ownerDocument.documentElement).backgroundColor) ?? [255, 255, 255, 1];
+  if (out[3] < 0.99) out = [255, 255, 255, 1];
+  for (const c of layers.reverse()) out = [0, 1, 2].map((i) => c[i] * c[3] + out[i] * (1 - c[3])).concat(1) as typeof out;
+  return out;
+}
+
+function lowContrast(doc: Document): string | undefined {
+  const win = doc.defaultView!;
+  for (const el of Array.from(doc.body.querySelectorAll("p, span, h1, h2, h3, h4, li, td, th, label, a, button, div"))) {
+    if (el.closest("svg, canvas, [aria-hidden=true]")) continue;
+    const own = Array.from(el.childNodes).some((n) => n.nodeType === 3 && (n.textContent ?? "").trim().length > 2);
+    if (!own) continue;
+    const r = el.getBoundingClientRect();
+    if (!visible(r)) continue;
+    const cs = win.getComputedStyle(el);
+    if (cs.visibility === "hidden" || Number(cs.opacity) < 0.5) continue;
+    const fg = parseRgb(cs.color);
+    if (!fg) continue;
+    if (!/^rgba?\(/.test(cs.color)) continue;
+    const bg = backdrop(el, win);
+    if (!bg) continue;
+    // flags text that is genuinely hard to read; quiet labels (text-muted, about 3.5:1) are a deliberate choice
+    const need = 3;
+    const got = ratio(fg.slice(0, 3).map((v, i) => v * fg[3] + bg[i] * (1 - fg[3])), bg);
+    if (got < need - 0.2) {
+      const text = (el.textContent ?? "").trim().replace(/\s+/g, " ").slice(0, 30);
+      return `text is hard to read ("${text}", contrast ${got.toFixed(1)}:1, needs at least ${need}:1): use text-ink or text-ink-2 on this ground, or darken/lighten the ground`;
+    }
+  }
+  return undefined;
+}
+
+const BUSY = new Set(["contour", "halftone", "thermal", "iridescent", "clouds", "blueprint"]);
+function surfaceWithoutScrim(doc: Document): string | undefined {
+  for (const s of Array.from(doc.querySelectorAll<HTMLElement>("[data-surface]"))) {
+    if (!BUSY.has(s.dataset.surface ?? "") || s.dataset.scrim) continue;
+    // a layer surface fills its parent: the text that matters is the parent's
+    const host = s.getAttribute("aria-hidden") === "true" ? s.parentElement : s;
+    const text = (host?.textContent ?? "").trim();
+    if (text.length > 40) return `text sits on the "${s.dataset.surface}" surface without a scrim: add scrim="left" (or "bottom", "center", "all") where the text is`;
+  }
+  return undefined;
+}
+
+function motionUnderReduce(doc: Document): string | undefined {
+  const win = doc.defaultView!;
+  if (!win.matchMedia?.("(prefers-reduced-motion: reduce)").matches || !doc.getAnimations) return undefined;
+  const running = doc.getAnimations().filter((a) => a.playState === "running" && (a.effect?.getTiming().iterations ?? 1) === Infinity);
+  return running.length ? `${running.length} animation${running.length > 1 ? "s keep" : " keeps"} running although the reader asked for reduced motion: stop looping animations under prefers-reduced-motion (Tailwind motion-reduce:, or check aurora's useScroll().reduced)` : undefined;
+}
+
+function nothingToChange(doc: Document, display: Display, hasData: boolean): string | undefined {
+  if (display !== "page" || !hasData) return undefined;
+  const controls = doc.querySelectorAll("input, select, textarea, button, [role=tab], [role=option], [role=slider], [onclick], a[href]");
+  return controls.length ? undefined : "this page reads data but gives the reader nothing to change: add what the job needs (pick a case with Picker, a slider via useParamState, Tabs, a SearchTable)";
+}
+
 /** Every check that finds something, at most one message per kind. Never throws. */
-export function lintDocument(doc: Document, opts: { display: Display }): string[] {
+export function lintDocument(doc: Document, opts: { display: Display; hasData?: boolean }): string[] {
   const out: string[] = [];
-  for (const check of [() => overflow(doc), () => boxed3d(doc, opts.display), () => flatDrawing(doc), () => boxSoup(doc), () => textOverModel(doc)]) {
+  for (const check of [() => overflow(doc), () => boxed3d(doc, opts.display), () => flatDrawing(doc), () => boxSoup(doc), () => textOverModel(doc), () => lowContrast(doc), () => surfaceWithoutScrim(doc), () => motionUnderReduce(doc), () => nothingToChange(doc, opts.display, !!opts.hasData)]) {
     try {
       const m = check();
       if (m) out.push(m);
