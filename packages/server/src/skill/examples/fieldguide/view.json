@@ -1,0 +1,824 @@
+{
+ "v": 2,
+ "id": "fieldguide",
+ "title": "A field guide to tea",
+ "summary": "Sixteen teas as specimens: find one, read its flavour and how to brew it.",
+ "palette": {
+  "page": "#0f2a22",
+  "ink": "#f1e9d2",
+  "accent": "#d9a441",
+  "series": [
+   "#d9a441",
+   "#e78fa5",
+   "#8fc1a9"
+  ]
+ },
+ "fonts": {
+  "display": "Cormorant Garamond",
+  "body": "Karla"
+ },
+ "datasets": {
+  "teas": {
+   "inline": [
+    {
+     "id": "sencha",
+     "name": "Sencha",
+     "kind": "green",
+     "origin": "Shizuoka, Japan",
+     "caffeine_mg": 30,
+     "temp_c": 75,
+     "steep_min": 1.5,
+     "no": 1
+    },
+    {
+     "id": "longjing",
+     "name": "Dragonwell",
+     "kind": "green",
+     "origin": "Hangzhou, China",
+     "caffeine_mg": 32,
+     "temp_c": 80,
+     "steep_min": 2,
+     "no": 2
+    },
+    {
+     "id": "gyokuro",
+     "name": "Gyokuro",
+     "kind": "green",
+     "origin": "Uji, Japan",
+     "caffeine_mg": 40,
+     "temp_c": 60,
+     "steep_min": 2,
+     "no": 3
+    },
+    {
+     "id": "silver",
+     "name": "Silver Needle",
+     "kind": "white",
+     "origin": "Fujian, China",
+     "caffeine_mg": 25,
+     "temp_c": 80,
+     "steep_min": 4,
+     "no": 4
+    },
+    {
+     "id": "peony",
+     "name": "White Peony",
+     "kind": "white",
+     "origin": "Fujian, China",
+     "caffeine_mg": 28,
+     "temp_c": 85,
+     "steep_min": 3,
+     "no": 5
+    },
+    {
+     "id": "tieguanyin",
+     "name": "Tieguanyin",
+     "kind": "oolong",
+     "origin": "Anxi, China",
+     "caffeine_mg": 38,
+     "temp_c": 90,
+     "steep_min": 3,
+     "no": 6
+    },
+    {
+     "id": "dahongpao",
+     "name": "Da Hong Pao",
+     "kind": "oolong",
+     "origin": "Wuyi, China",
+     "caffeine_mg": 42,
+     "temp_c": 95,
+     "steep_min": 3,
+     "no": 7
+    },
+    {
+     "id": "alishan",
+     "name": "Alishan",
+     "kind": "oolong",
+     "origin": "Chiayi, Taiwan",
+     "caffeine_mg": 36,
+     "temp_c": 90,
+     "steep_min": 3,
+     "no": 8
+    },
+    {
+     "id": "assam",
+     "name": "Assam",
+     "kind": "black",
+     "origin": "Assam, India",
+     "caffeine_mg": 55,
+     "temp_c": 98,
+     "steep_min": 4,
+     "no": 9
+    },
+    {
+     "id": "darjeeling",
+     "name": "Darjeeling",
+     "kind": "black",
+     "origin": "Darjeeling, India",
+     "caffeine_mg": 45,
+     "temp_c": 90,
+     "steep_min": 3,
+     "no": 10
+    },
+    {
+     "id": "lapsang",
+     "name": "Lapsang Souchong",
+     "kind": "black",
+     "origin": "Wuyi, China",
+     "caffeine_mg": 48,
+     "temp_c": 95,
+     "steep_min": 4,
+     "no": 11
+    },
+    {
+     "id": "keemun",
+     "name": "Keemun",
+     "kind": "black",
+     "origin": "Anhui, China",
+     "caffeine_mg": 50,
+     "temp_c": 95,
+     "steep_min": 4,
+     "no": 12
+    },
+    {
+     "id": "shou",
+     "name": "Shou Pu-erh",
+     "kind": "pu-erh",
+     "origin": "Yunnan, China",
+     "caffeine_mg": 60,
+     "temp_c": 100,
+     "steep_min": 3,
+     "no": 13
+    },
+    {
+     "id": "sheng",
+     "name": "Sheng Pu-erh",
+     "kind": "pu-erh",
+     "origin": "Yunnan, China",
+     "caffeine_mg": 55,
+     "temp_c": 95,
+     "steep_min": 3,
+     "no": 14
+    },
+    {
+     "id": "rooibos",
+     "name": "Rooibos",
+     "kind": "herbal",
+     "origin": "Cederberg, South Africa",
+     "caffeine_mg": 0,
+     "temp_c": 100,
+     "steep_min": 6,
+     "no": 15
+    },
+    {
+     "id": "chamomile",
+     "name": "Chamomile",
+     "kind": "herbal",
+     "origin": "Egypt",
+     "caffeine_mg": 0,
+     "temp_c": 95,
+     "steep_min": 5,
+     "no": 16
+    }
+   ]
+  },
+  "notes": {
+   "inline": [
+    {
+     "tea_id": "sencha",
+     "note": "grassy",
+     "score": 5,
+     "ord": 0
+    },
+    {
+     "tea_id": "sencha",
+     "note": "floral",
+     "score": 2,
+     "ord": 1
+    },
+    {
+     "tea_id": "sencha",
+     "note": "malty",
+     "score": 0,
+     "ord": 2
+    },
+    {
+     "tea_id": "sencha",
+     "note": "smoky",
+     "score": 0,
+     "ord": 3
+    },
+    {
+     "tea_id": "sencha",
+     "note": "fruity",
+     "score": 1,
+     "ord": 4
+    },
+    {
+     "tea_id": "sencha",
+     "note": "earthy",
+     "score": 1,
+     "ord": 5
+    },
+    {
+     "tea_id": "longjing",
+     "note": "grassy",
+     "score": 4,
+     "ord": 0
+    },
+    {
+     "tea_id": "longjing",
+     "note": "floral",
+     "score": 3,
+     "ord": 1
+    },
+    {
+     "tea_id": "longjing",
+     "note": "malty",
+     "score": 1,
+     "ord": 2
+    },
+    {
+     "tea_id": "longjing",
+     "note": "smoky",
+     "score": 1,
+     "ord": 3
+    },
+    {
+     "tea_id": "longjing",
+     "note": "fruity",
+     "score": 1,
+     "ord": 4
+    },
+    {
+     "tea_id": "longjing",
+     "note": "earthy",
+     "score": 1,
+     "ord": 5
+    },
+    {
+     "tea_id": "gyokuro",
+     "note": "grassy",
+     "score": 5,
+     "ord": 0
+    },
+    {
+     "tea_id": "gyokuro",
+     "note": "floral",
+     "score": 1,
+     "ord": 1
+    },
+    {
+     "tea_id": "gyokuro",
+     "note": "malty",
+     "score": 1,
+     "ord": 2
+    },
+    {
+     "tea_id": "gyokuro",
+     "note": "smoky",
+     "score": 0,
+     "ord": 3
+    },
+    {
+     "tea_id": "gyokuro",
+     "note": "fruity",
+     "score": 1,
+     "ord": 4
+    },
+    {
+     "tea_id": "gyokuro",
+     "note": "earthy",
+     "score": 2,
+     "ord": 5
+    },
+    {
+     "tea_id": "silver",
+     "note": "grassy",
+     "score": 2,
+     "ord": 0
+    },
+    {
+     "tea_id": "silver",
+     "note": "floral",
+     "score": 4,
+     "ord": 1
+    },
+    {
+     "tea_id": "silver",
+     "note": "malty",
+     "score": 1,
+     "ord": 2
+    },
+    {
+     "tea_id": "silver",
+     "note": "smoky",
+     "score": 0,
+     "ord": 3
+    },
+    {
+     "tea_id": "silver",
+     "note": "fruity",
+     "score": 3,
+     "ord": 4
+    },
+    {
+     "tea_id": "silver",
+     "note": "earthy",
+     "score": 1,
+     "ord": 5
+    },
+    {
+     "tea_id": "peony",
+     "note": "grassy",
+     "score": 2,
+     "ord": 0
+    },
+    {
+     "tea_id": "peony",
+     "note": "floral",
+     "score": 3,
+     "ord": 1
+    },
+    {
+     "tea_id": "peony",
+     "note": "malty",
+     "score": 2,
+     "ord": 2
+    },
+    {
+     "tea_id": "peony",
+     "note": "smoky",
+     "score": 0,
+     "ord": 3
+    },
+    {
+     "tea_id": "peony",
+     "note": "fruity",
+     "score": 3,
+     "ord": 4
+    },
+    {
+     "tea_id": "peony",
+     "note": "earthy",
+     "score": 2,
+     "ord": 5
+    },
+    {
+     "tea_id": "tieguanyin",
+     "note": "grassy",
+     "score": 2,
+     "ord": 0
+    },
+    {
+     "tea_id": "tieguanyin",
+     "note": "floral",
+     "score": 5,
+     "ord": 1
+    },
+    {
+     "tea_id": "tieguanyin",
+     "note": "malty",
+     "score": 1,
+     "ord": 2
+    },
+    {
+     "tea_id": "tieguanyin",
+     "note": "smoky",
+     "score": 0,
+     "ord": 3
+    },
+    {
+     "tea_id": "tieguanyin",
+     "note": "fruity",
+     "score": 3,
+     "ord": 4
+    },
+    {
+     "tea_id": "tieguanyin",
+     "note": "earthy",
+     "score": 1,
+     "ord": 5
+    },
+    {
+     "tea_id": "dahongpao",
+     "note": "grassy",
+     "score": 0,
+     "ord": 0
+    },
+    {
+     "tea_id": "dahongpao",
+     "note": "floral",
+     "score": 2,
+     "ord": 1
+    },
+    {
+     "tea_id": "dahongpao",
+     "note": "malty",
+     "score": 3,
+     "ord": 2
+    },
+    {
+     "tea_id": "dahongpao",
+     "note": "smoky",
+     "score": 3,
+     "ord": 3
+    },
+    {
+     "tea_id": "dahongpao",
+     "note": "fruity",
+     "score": 2,
+     "ord": 4
+    },
+    {
+     "tea_id": "dahongpao",
+     "note": "earthy",
+     "score": 3,
+     "ord": 5
+    },
+    {
+     "tea_id": "alishan",
+     "note": "grassy",
+     "score": 2,
+     "ord": 0
+    },
+    {
+     "tea_id": "alishan",
+     "note": "floral",
+     "score": 4,
+     "ord": 1
+    },
+    {
+     "tea_id": "alishan",
+     "note": "malty",
+     "score": 2,
+     "ord": 2
+    },
+    {
+     "tea_id": "alishan",
+     "note": "smoky",
+     "score": 0,
+     "ord": 3
+    },
+    {
+     "tea_id": "alishan",
+     "note": "fruity",
+     "score": 3,
+     "ord": 4
+    },
+    {
+     "tea_id": "alishan",
+     "note": "earthy",
+     "score": 1,
+     "ord": 5
+    },
+    {
+     "tea_id": "assam",
+     "note": "grassy",
+     "score": 0,
+     "ord": 0
+    },
+    {
+     "tea_id": "assam",
+     "note": "floral",
+     "score": 1,
+     "ord": 1
+    },
+    {
+     "tea_id": "assam",
+     "note": "malty",
+     "score": 5,
+     "ord": 2
+    },
+    {
+     "tea_id": "assam",
+     "note": "smoky",
+     "score": 1,
+     "ord": 3
+    },
+    {
+     "tea_id": "assam",
+     "note": "fruity",
+     "score": 2,
+     "ord": 4
+    },
+    {
+     "tea_id": "assam",
+     "note": "earthy",
+     "score": 2,
+     "ord": 5
+    },
+    {
+     "tea_id": "darjeeling",
+     "note": "grassy",
+     "score": 1,
+     "ord": 0
+    },
+    {
+     "tea_id": "darjeeling",
+     "note": "floral",
+     "score": 4,
+     "ord": 1
+    },
+    {
+     "tea_id": "darjeeling",
+     "note": "malty",
+     "score": 2,
+     "ord": 2
+    },
+    {
+     "tea_id": "darjeeling",
+     "note": "smoky",
+     "score": 0,
+     "ord": 3
+    },
+    {
+     "tea_id": "darjeeling",
+     "note": "fruity",
+     "score": 4,
+     "ord": 4
+    },
+    {
+     "tea_id": "darjeeling",
+     "note": "earthy",
+     "score": 1,
+     "ord": 5
+    },
+    {
+     "tea_id": "lapsang",
+     "note": "grassy",
+     "score": 0,
+     "ord": 0
+    },
+    {
+     "tea_id": "lapsang",
+     "note": "floral",
+     "score": 0,
+     "ord": 1
+    },
+    {
+     "tea_id": "lapsang",
+     "note": "malty",
+     "score": 3,
+     "ord": 2
+    },
+    {
+     "tea_id": "lapsang",
+     "note": "smoky",
+     "score": 5,
+     "ord": 3
+    },
+    {
+     "tea_id": "lapsang",
+     "note": "fruity",
+     "score": 1,
+     "ord": 4
+    },
+    {
+     "tea_id": "lapsang",
+     "note": "earthy",
+     "score": 3,
+     "ord": 5
+    },
+    {
+     "tea_id": "keemun",
+     "note": "grassy",
+     "score": 0,
+     "ord": 0
+    },
+    {
+     "tea_id": "keemun",
+     "note": "floral",
+     "score": 2,
+     "ord": 1
+    },
+    {
+     "tea_id": "keemun",
+     "note": "malty",
+     "score": 3,
+     "ord": 2
+    },
+    {
+     "tea_id": "keemun",
+     "note": "smoky",
+     "score": 1,
+     "ord": 3
+    },
+    {
+     "tea_id": "keemun",
+     "note": "fruity",
+     "score": 3,
+     "ord": 4
+    },
+    {
+     "tea_id": "keemun",
+     "note": "earthy",
+     "score": 2,
+     "ord": 5
+    },
+    {
+     "tea_id": "shou",
+     "note": "grassy",
+     "score": 0,
+     "ord": 0
+    },
+    {
+     "tea_id": "shou",
+     "note": "floral",
+     "score": 0,
+     "ord": 1
+    },
+    {
+     "tea_id": "shou",
+     "note": "malty",
+     "score": 3,
+     "ord": 2
+    },
+    {
+     "tea_id": "shou",
+     "note": "smoky",
+     "score": 2,
+     "ord": 3
+    },
+    {
+     "tea_id": "shou",
+     "note": "fruity",
+     "score": 1,
+     "ord": 4
+    },
+    {
+     "tea_id": "shou",
+     "note": "earthy",
+     "score": 5,
+     "ord": 5
+    },
+    {
+     "tea_id": "sheng",
+     "note": "grassy",
+     "score": 2,
+     "ord": 0
+    },
+    {
+     "tea_id": "sheng",
+     "note": "floral",
+     "score": 2,
+     "ord": 1
+    },
+    {
+     "tea_id": "sheng",
+     "note": "malty",
+     "score": 1,
+     "ord": 2
+    },
+    {
+     "tea_id": "sheng",
+     "note": "smoky",
+     "score": 1,
+     "ord": 3
+    },
+    {
+     "tea_id": "sheng",
+     "note": "fruity",
+     "score": 2,
+     "ord": 4
+    },
+    {
+     "tea_id": "sheng",
+     "note": "earthy",
+     "score": 4,
+     "ord": 5
+    },
+    {
+     "tea_id": "rooibos",
+     "note": "grassy",
+     "score": 0,
+     "ord": 0
+    },
+    {
+     "tea_id": "rooibos",
+     "note": "floral",
+     "score": 1,
+     "ord": 1
+    },
+    {
+     "tea_id": "rooibos",
+     "note": "malty",
+     "score": 3,
+     "ord": 2
+    },
+    {
+     "tea_id": "rooibos",
+     "note": "smoky",
+     "score": 0,
+     "ord": 3
+    },
+    {
+     "tea_id": "rooibos",
+     "note": "fruity",
+     "score": 3,
+     "ord": 4
+    },
+    {
+     "tea_id": "rooibos",
+     "note": "earthy",
+     "score": 3,
+     "ord": 5
+    },
+    {
+     "tea_id": "chamomile",
+     "note": "grassy",
+     "score": 1,
+     "ord": 0
+    },
+    {
+     "tea_id": "chamomile",
+     "note": "floral",
+     "score": 5,
+     "ord": 1
+    },
+    {
+     "tea_id": "chamomile",
+     "note": "malty",
+     "score": 1,
+     "ord": 2
+    },
+    {
+     "tea_id": "chamomile",
+     "note": "smoky",
+     "score": 0,
+     "ord": 3
+    },
+    {
+     "tea_id": "chamomile",
+     "note": "fruity",
+     "score": 3,
+     "ord": 4
+    },
+    {
+     "tea_id": "chamomile",
+     "note": "earthy",
+     "score": 1,
+     "ord": 5
+    }
+   ]
+  }
+ },
+ "params": {
+  "pick": {
+   "type": "select",
+   "label": "Tea",
+   "options": {
+    "query": "all_ids",
+    "field": "id"
+   },
+   "default": "tieguanyin"
+  },
+  "kind": {
+   "type": "select",
+   "label": "Family",
+   "options": [
+    "green",
+    "white",
+    "oolong",
+    "black",
+    "pu-erh",
+    "herbal"
+   ]
+  }
+ },
+ "queries": {
+  "all_ids": {
+   "sql": "SELECT id FROM teas ORDER BY no"
+  },
+  "teas": {
+   "sql": "SELECT * FROM teas WHERE ($kind IS NULL OR kind = $kind) ORDER BY no"
+  },
+  "profile": {
+   "sql": "SELECT n.note, n.score, avg(f.score) AS family_avg FROM notes n JOIN teas t ON t.id = n.tea_id JOIN teas ft ON ft.kind = t.kind JOIN notes f ON f.tea_id = ft.id AND f.note = n.note WHERE n.tea_id = $pick GROUP BY n.note, n.score, n.ord ORDER BY n.ord"
+  }
+ },
+ "sections": [
+  {
+   "id": "page",
+   "layout": "grid",
+   "items": [
+    {
+     "id": "guide",
+     "span": 12,
+     "c": {
+      "type": "design",
+      "framework": "react",
+      "display": "page",
+      "data": [
+       "teas",
+       "profile"
+      ],
+      "files": {
+       "App.tsx": "import { useMemo, useState } from \"react\";\nimport { fmt, useParamState, useQuery } from \"aurora/kit\";\n\ntype Tea = { id: string; name: string; kind: string; origin: string; caffeine_mg: number; temp_c: number; steep_min: number; no: number };\ntype Note = { note: string; score: number; family_avg: number };\nconst KINDS = [\"green\", \"white\", \"oolong\", \"black\", \"pu-erh\", \"herbal\"];\n\n/** A leaf drawn from the tea's family: rounder for white, longer for green, curled for oolong, broad for black. */\nfunction Leaf({ kind, size = 64, color = \"var(--accent)\" }: { kind: string; size?: number; color?: string }) {\n  const shapes: Record<string, string> = {\n    green: \"M32 4 C46 18 48 40 32 60 C16 40 18 18 32 4 Z\",\n    white: \"M32 8 C52 20 52 44 32 58 C12 44 12 20 32 8 Z\",\n    oolong: \"M18 54 C8 30 26 6 46 10 C58 26 44 50 18 54 Z\",\n    black: \"M32 4 C54 16 56 46 32 60 C8 46 10 16 32 4 Z\",\n    \"pu-erh\": \"M32 6 A26 26 0 1 1 31.9 6 Z\",\n    herbal: \"M32 6 C40 18 52 20 50 32 C48 46 38 50 32 60 C26 50 16 46 14 32 C12 20 24 18 32 6 Z\",\n  };\n  return (\n    <svg viewBox=\"0 0 64 64\" width={size} height={size} aria-hidden>\n      <path d={shapes[kind] ?? shapes.green} fill=\"none\" stroke={color} strokeWidth={1.4} />\n      <path d=\"M32 8 L32 58\" stroke={color} strokeWidth={0.9} strokeOpacity={0.7} />\n      {[16, 26, 36, 46].map((yy) => <path key={yy} d={`M32 ${yy} Q${kind === \"oolong\" ? 24 : 22} ${yy - 4} ${kind === \"pu-erh\" ? 14 : 18} ${yy - 6} M32 ${yy} Q42 ${yy - 4} 46 ${yy - 6}`} stroke={color} strokeWidth={0.7} strokeOpacity={0.55} fill=\"none\" />)}\n    </svg>\n  );\n}\n\n/** The flavour wheel: this tea in gold over its family's average in pink. */\nfunction Wheel({ notes }: { notes: Note[] }) {\n  const n = notes.length || 1, R = 120, cx = 150, cy = 150;\n  const pt = (i: number, v: number) => { const a = -Math.PI / 2 + (i / n) * 2 * Math.PI; return [cx + Math.cos(a) * R * (v / 5), cy + Math.sin(a) * R * (v / 5)]; };\n  const poly = (k: \"score\" | \"family_avg\") => notes.map((d, i) => pt(i, d[k]).join(\",\")).join(\" \");\n  return (\n    <svg viewBox=\"0 0 300 300\" className=\"w-full max-w-[340px] h-auto\" role=\"img\" aria-label=\"flavour wheel\">\n      {[1, 2, 3, 4, 5].map((r) => <polygon key={r} points={notes.map((_, i) => pt(i, r).join(\",\")).join(\" \")} fill=\"none\" stroke=\"var(--ink)\" strokeOpacity={0.12} />)}\n      {notes.map((d, i) => { const [x, y] = pt(i, 5.9); return <text key={d.note} x={x} y={y} textAnchor=\"middle\" dominantBaseline=\"middle\" fontSize={11} fill=\"var(--ink)\" fillOpacity={0.75} className=\"font-body italic\">{d.note}</text>; })}\n      <polygon points={poly(\"family_avg\")} fill=\"var(--s2)\" fillOpacity={0.18} stroke=\"var(--s2)\" strokeDasharray=\"3 3\" />\n      <polygon points={poly(\"score\")} fill=\"var(--accent)\" fillOpacity={0.22} stroke=\"var(--accent)\" strokeWidth={1.6} />\n    </svg>\n  );\n}\n\n/** Look things up and compare: the family filter and the picked specimen are params; search narrows the plate here. */\nexport default function App() {\n  const [pick, setPick] = useParamState<string>(\"pick\");\n  const [kind, setKind] = useParamState<string | null>(\"kind\");\n  const teas = useQuery<Tea>(\"teas\");\n  const notes = useQuery<Note>(\"profile\");\n  const [q, setQ] = useState(\"\");\n  const shown = useMemo(() => teas.filter((t) => !q || `${t.name} ${t.origin}`.toLowerCase().includes(q.toLowerCase())), [teas, q]);\n  const cur = teas.find((t) => t.id === pick);\n\n  return (\n    <div className=\"min-h-screen bg-page text-ink\">\n      <div className=\"mx-auto max-w-[1240px] px-5 md:px-10 py-10 md:py-14\">\n        <header className=\"grid gap-6 md:grid-cols-[1fr_auto] items-end border-b border-[color-mix(in_oklab,var(--accent),transparent_55%)] pb-6\">\n          <div>\n            <p className=\"font-body text-xs tracking-[0.35em] uppercase\" style={{ color: \"var(--accent)\" }}>Plate II · Camellia sinensis & friends</p>\n            <h1 className=\"font-display italic text-[clamp(44px,7vw,96px)] leading-[0.9] mt-3\">A field guide<br />to tea</h1>\n          </div>\n          <input type=\"search\" value={q} onChange={(e) => setQ(e.target.value)} placeholder=\"Find a tea or a place\" className=\"w-full md:w-72 bg-transparent border-b border-[var(--accent)] py-2 font-body text-sm placeholder:text-[color-mix(in_oklab,var(--ink),transparent_50%)] focus:outline-none\" />\n        </header>\n\n        <nav className=\"flex flex-wrap gap-2 mt-6\" aria-label=\"families\">\n          {[null, ...KINDS].map((k) => (\n            <button key={k ?? \"all\"} type=\"button\" onClick={() => setKind(k)} className=\"font-body text-sm px-3 py-1 rounded-full border transition-colors\"\n              style={{ borderColor: \"var(--accent)\", background: (kind ?? null) === k ? \"var(--accent)\" : \"transparent\", color: (kind ?? null) === k ? \"var(--page)\" : \"var(--ink)\" }}>{k ?? \"all families\"}</button>\n          ))}\n        </nav>\n\n        <div className=\"grid gap-10 mt-8 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]\">\n          <ol className=\"grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px bg-[color-mix(in_oklab,var(--accent),transparent_70%)] self-start\">\n            {shown.map((t) => (\n              <li key={t.id} className=\"bg-page\">\n                <button type=\"button\" onClick={() => setPick(t.id)} className=\"w-full p-4 text-left flex flex-col items-center gap-2 transition-colors\" style={{ background: t.id === pick ? \"color-mix(in oklab, var(--accent), transparent 85%)\" : undefined }}>\n                  <span className=\"self-start font-body text-[10px] tracking-[0.25em]\" style={{ color: \"var(--accent)\" }}>No. {String(t.no).padStart(2, \"0\")}</span>\n                  <Leaf kind={t.kind} size={58} color={t.id === pick ? \"var(--accent)\" : \"var(--ink)\"} />\n                  <span className=\"font-display italic text-lg leading-tight text-center\">{t.name}</span>\n                  <span className=\"font-body text-[11px] uppercase tracking-[0.15em] opacity-60\">{t.kind}</span>\n                </button>\n              </li>\n            ))}\n            {shown.length === 0 && <li className=\"bg-page p-6 col-span-full font-body text-sm opacity-70\">No tea matches “{q}”.</li>}\n          </ol>\n\n          {cur && (\n            <article className=\"md:sticky md:top-8 self-start\">\n              <p className=\"font-body text-xs tracking-[0.3em] uppercase opacity-70\">{cur.kind} · {cur.origin}</p>\n              <h2 className=\"font-display italic text-5xl leading-none mt-2\" style={{ color: \"var(--accent)\" }}>{cur.name}</h2>\n              <div className=\"mt-6 flex flex-col items-center\"><Wheel notes={notes} /></div>\n              <p className=\"font-body text-xs text-center opacity-70 -mt-2\"><span style={{ color: \"var(--accent)\" }}>━</span> this tea &nbsp; <span style={{ color: \"var(--s2)\" }}>┅</span> {cur.kind} average</p>\n              <dl className=\"grid grid-cols-3 gap-4 mt-8 border-t border-[color-mix(in_oklab,var(--accent),transparent_55%)] pt-5 font-body\">\n                <div><dt className=\"text-[11px] uppercase tracking-[0.2em] opacity-60\">Water</dt><dd className=\"font-display text-3xl\">{fmt(cur.temp_c, \"integer\")}°</dd></div>\n                <div><dt className=\"text-[11px] uppercase tracking-[0.2em] opacity-60\">Steep</dt><dd className=\"font-display text-3xl\">{fmt(cur.steep_min)}′</dd></div>\n                <div><dt className=\"text-[11px] uppercase tracking-[0.2em] opacity-60\">Caffeine</dt><dd className=\"font-display text-3xl\">{fmt(cur.caffeine_mg, \"integer\")}<span className=\"text-base\"> mg</span></dd></div>\n              </dl>\n            </article>\n          )}\n        </div>\n      </div>\n    </div>\n  );\n}\n"
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

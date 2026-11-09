@@ -1,0 +1,504 @@
+{
+ "v": 2,
+ "id": "dial",
+ "title": "A day of power",
+ "summary": "A city's electricity, hour by hour: drag the hand around the day.",
+ "palette": {
+  "page": "#0b0b0b",
+  "ink": "#f2f2f2",
+  "accent": "#e6ff2b"
+ },
+ "fonts": {
+  "display": "Anton",
+  "body": "Chivo Mono"
+ },
+ "datasets": {
+  "grid": {
+   "inline": [
+    {
+     "season": "summer",
+     "hour": 0,
+     "solar": 0,
+     "wind": 671,
+     "hydro": 600,
+     "gas": 1486,
+     "imports": 372
+    },
+    {
+     "season": "summer",
+     "hour": 1,
+     "solar": 0,
+     "wind": 691,
+     "hydro": 600,
+     "gas": 1380,
+     "imports": 345
+    },
+    {
+     "season": "summer",
+     "hour": 2,
+     "solar": 0,
+     "wind": 700,
+     "hydro": 600,
+     "gas": 1241,
+     "imports": 310
+    },
+    {
+     "season": "summer",
+     "hour": 3,
+     "solar": 0,
+     "wind": 696,
+     "hydro": 600,
+     "gas": 1140,
+     "imports": 285
+    },
+    {
+     "season": "summer",
+     "hour": 4,
+     "solar": 0,
+     "wind": 680,
+     "hydro": 600,
+     "gas": 1159,
+     "imports": 290
+    },
+    {
+     "season": "summer",
+     "hour": 5,
+     "solar": 0,
+     "wind": 653,
+     "hydro": 600,
+     "gas": 1317,
+     "imports": 329
+    },
+    {
+     "season": "summer",
+     "hour": 6,
+     "solar": 0,
+     "wind": 617,
+     "hydro": 600,
+     "gas": 1571,
+     "imports": 393
+    },
+    {
+     "season": "summer",
+     "hour": 7,
+     "solar": 407,
+     "wind": 575,
+     "hydro": 600,
+     "gas": 1540,
+     "imports": 385
+    },
+    {
+     "season": "summer",
+     "hour": 8,
+     "solar": 790,
+     "wind": 528,
+     "hydro": 600,
+     "gas": 1465,
+     "imports": 366
+    },
+    {
+     "season": "summer",
+     "hour": 9,
+     "solar": 1127,
+     "wind": 482,
+     "hydro": 600,
+     "gas": 1246,
+     "imports": 311
+    },
+    {
+     "season": "summer",
+     "hour": 10,
+     "solar": 1399,
+     "wind": 437,
+     "hydro": 600,
+     "gas": 912,
+     "imports": 228
+    },
+    {
+     "season": "summer",
+     "hour": 11,
+     "solar": 1590,
+     "wind": 399,
+     "hydro": 600,
+     "gas": 623,
+     "imports": 156
+    },
+    {
+     "season": "summer",
+     "hour": 12,
+     "solar": 1688,
+     "wind": 369,
+     "hydro": 601,
+     "gas": 479,
+     "imports": 120
+    },
+    {
+     "season": "summer",
+     "hour": 13,
+     "solar": 1688,
+     "wind": 349,
+     "hydro": 602,
+     "gas": 478,
+     "imports": 120
+    },
+    {
+     "season": "summer",
+     "hour": 14,
+     "solar": 1590,
+     "wind": 340,
+     "hydro": 607,
+     "gas": 594,
+     "imports": 148
+    },
+    {
+     "season": "summer",
+     "hour": 15,
+     "solar": 1399,
+     "wind": 344,
+     "hydro": 620,
+     "gas": 820,
+     "imports": 205
+    },
+    {
+     "season": "summer",
+     "hour": 16,
+     "solar": 1127,
+     "wind": 360,
+     "hydro": 644,
+     "gas": 1154,
+     "imports": 288
+    },
+    {
+     "season": "summer",
+     "hour": 17,
+     "solar": 790,
+     "wind": 387,
+     "hydro": 677,
+     "gas": 1564,
+     "imports": 391
+    },
+    {
+     "season": "summer",
+     "hour": 18,
+     "solar": 407,
+     "wind": 423,
+     "hydro": 707,
+     "gas": 1983,
+     "imports": 496
+    },
+    {
+     "season": "summer",
+     "hour": 19,
+     "solar": 0,
+     "wind": 465,
+     "hydro": 720,
+     "gas": 2332,
+     "imports": 583
+    },
+    {
+     "season": "summer",
+     "hour": 20,
+     "solar": 0,
+     "wind": 512,
+     "hydro": 707,
+     "gas": 2238,
+     "imports": 559
+    },
+    {
+     "season": "summer",
+     "hour": 21,
+     "solar": 0,
+     "wind": 558,
+     "hydro": 677,
+     "gas": 2059,
+     "imports": 515
+    },
+    {
+     "season": "summer",
+     "hour": 22,
+     "solar": 0,
+     "wind": 603,
+     "hydro": 644,
+     "gas": 1862,
+     "imports": 465
+    },
+    {
+     "season": "summer",
+     "hour": 23,
+     "solar": 0,
+     "wind": 641,
+     "hydro": 620,
+     "gas": 1702,
+     "imports": 425
+    },
+    {
+     "season": "winter",
+     "hour": 0,
+     "solar": 0,
+     "wind": 1131,
+     "hydro": 600,
+     "gas": 1669,
+     "imports": 417
+    },
+    {
+     "season": "winter",
+     "hour": 1,
+     "solar": 0,
+     "wind": 1151,
+     "hydro": 600,
+     "gas": 1543,
+     "imports": 386
+    },
+    {
+     "season": "winter",
+     "hour": 2,
+     "solar": 0,
+     "wind": 1160,
+     "hydro": 600,
+     "gas": 1375,
+     "imports": 344
+    },
+    {
+     "season": "winter",
+     "hour": 3,
+     "solar": 0,
+     "wind": 1156,
+     "hydro": 600,
+     "gas": 1251,
+     "imports": 313
+    },
+    {
+     "season": "winter",
+     "hour": 4,
+     "solar": 0,
+     "wind": 1140,
+     "hydro": 600,
+     "gas": 1271,
+     "imports": 318
+    },
+    {
+     "season": "winter",
+     "hour": 5,
+     "solar": 0,
+     "wind": 1113,
+     "hydro": 600,
+     "gas": 1459,
+     "imports": 365
+    },
+    {
+     "season": "winter",
+     "hour": 6,
+     "solar": 0,
+     "wind": 1077,
+     "hydro": 600,
+     "gas": 1763,
+     "imports": 441
+    },
+    {
+     "season": "winter",
+     "hour": 7,
+     "solar": 156,
+     "wind": 1035,
+     "hydro": 600,
+     "gas": 1990,
+     "imports": 498
+    },
+    {
+     "season": "winter",
+     "hour": 8,
+     "solar": 302,
+     "wind": 988,
+     "hydro": 600,
+     "gas": 2148,
+     "imports": 537
+    },
+    {
+     "season": "winter",
+     "hour": 9,
+     "solar": 431,
+     "wind": 942,
+     "hydro": 600,
+     "gas": 2097,
+     "imports": 524
+    },
+    {
+     "season": "winter",
+     "hour": 10,
+     "solar": 535,
+     "wind": 897,
+     "hydro": 600,
+     "gas": 1865,
+     "imports": 466
+    },
+    {
+     "season": "winter",
+     "hour": 11,
+     "solar": 608,
+     "wind": 859,
+     "hydro": 600,
+     "gas": 1632,
+     "imports": 408
+    },
+    {
+     "season": "winter",
+     "hour": 12,
+     "solar": 645,
+     "wind": 829,
+     "hydro": 601,
+     "gas": 1518,
+     "imports": 379
+    },
+    {
+     "season": "winter",
+     "hour": 13,
+     "solar": 645,
+     "wind": 809,
+     "hydro": 602,
+     "gas": 1513,
+     "imports": 378
+    },
+    {
+     "season": "winter",
+     "hour": 14,
+     "solar": 608,
+     "wind": 800,
+     "hydro": 607,
+     "gas": 1588,
+     "imports": 397
+    },
+    {
+     "season": "winter",
+     "hour": 15,
+     "solar": 535,
+     "wind": 804,
+     "hydro": 620,
+     "gas": 1740,
+     "imports": 435
+    },
+    {
+     "season": "winter",
+     "hour": 16,
+     "solar": 431,
+     "wind": 820,
+     "hydro": 644,
+     "gas": 1972,
+     "imports": 493
+    },
+    {
+     "season": "winter",
+     "hour": 17,
+     "solar": 302,
+     "wind": 847,
+     "hydro": 677,
+     "gas": 2257,
+     "imports": 564
+    },
+    {
+     "season": "winter",
+     "hour": 18,
+     "solar": 156,
+     "wind": 883,
+     "hydro": 707,
+     "gas": 2523,
+     "imports": 631
+    },
+    {
+     "season": "winter",
+     "hour": 19,
+     "solar": 0,
+     "wind": 925,
+     "hydro": 720,
+     "gas": 2685,
+     "imports": 671
+    },
+    {
+     "season": "winter",
+     "hour": 20,
+     "solar": 0,
+     "wind": 972,
+     "hydro": 707,
+     "gas": 2577,
+     "imports": 644
+    },
+    {
+     "season": "winter",
+     "hour": 21,
+     "solar": 0,
+     "wind": 1018,
+     "hydro": 677,
+     "gas": 2361,
+     "imports": 590
+    },
+    {
+     "season": "winter",
+     "hour": 22,
+     "solar": 0,
+     "wind": 1063,
+     "hydro": 644,
+     "gas": 2123,
+     "imports": 531
+    },
+    {
+     "season": "winter",
+     "hour": 23,
+     "solar": 0,
+     "wind": 1101,
+     "hydro": 620,
+     "gas": 1930,
+     "imports": 483
+    }
+   ]
+  }
+ },
+ "params": {
+  "hour": {
+   "type": "number",
+   "label": "Hour",
+   "min": 0,
+   "max": 23,
+   "step": 1,
+   "default": 18
+  },
+  "season": {
+   "type": "select",
+   "label": "Season",
+   "options": [
+    "summer",
+    "winter"
+   ],
+   "default": "summer"
+  }
+ },
+ "queries": {
+  "day": {
+   "sql": "SELECT hour, solar, wind, hydro, gas, imports, solar + wind + hydro + gas + imports AS total FROM grid WHERE season = $season ORDER BY hour"
+  },
+  "at_hour": {
+   "sql": "WITH d AS (SELECT *, solar + wind + hydro + gas + imports AS total FROM grid WHERE season = $season) SELECT d.hour, solar, wind, hydro, gas, imports, total, (solar + wind + hydro) / total AS clean_share, (SELECT arg_max(hour, total) FROM d) AS peak_hour, (SELECT max(total) FROM d) AS peak_mw FROM d WHERE hour = $hour"
+  }
+ },
+ "sections": [
+  {
+   "id": "page",
+   "layout": "grid",
+   "items": [
+    {
+     "id": "clock",
+     "span": 12,
+     "c": {
+      "type": "design",
+      "framework": "react",
+      "display": "page",
+      "data": [
+       "day",
+       "at_hour"
+      ],
+      "files": {
+       "App.tsx": "import { useRef } from \"react\";\nimport { fmt, useParamState, useQuery } from \"aurora/kit\";\n\ntype Hour = { hour: number; solar: number; wind: number; hydro: number; gas: number; imports: number; total: number };\ntype Now = Hour & { clean_share: number; peak_hour: number; peak_mw: number };\nconst SOURCES = [\n  { key: \"solar\", label: \"SOLAR\", color: \"var(--accent)\" },\n  { key: \"wind\", label: \"WIND\", color: \"#f4ffb0\" },\n  { key: \"hydro\", label: \"HYDRO\", color: \"#9fb4ff\" },\n  { key: \"gas\", label: \"GAS\", color: \"#7a7a7a\" },\n  { key: \"imports\", label: \"IMPORTS\", color: \"#3d3d3d\" },\n] as const;\n\nconst C = 300, R0 = 92, R1 = 270;\nconst polar = (h: number, r: number) => { const a = (h / 24) * 2 * Math.PI - Math.PI / 2; return [C + Math.cos(a) * r, C + Math.sin(a) * r]; };\nfunction wedge(h: number, r0: number, r1: number) {\n  const [a, b] = [h - 0.44, h + 0.44].map((t) => t);\n  const [x0, y0] = polar(a, r0), [x1, y1] = polar(a, r1), [x2, y2] = polar(b, r1), [x3, y3] = polar(b, r0);\n  return `M${x0},${y0} L${x1},${y1} A${r1},${r1} 0 0 1 ${x2},${y2} L${x3},${y3} A${r0},${r0} 0 0 0 ${x0},${y0} Z`;\n}\n\n/** Explore a cycle: drag the hand around the day (the hour is a param), switch the season, read the mix at that hour. */\nexport default function App() {\n  const [hour, setHour] = useParamState<number>(\"hour\");\n  const [season, setSeason] = useParamState<string>(\"season\");\n  const day = useQuery<Hour>(\"day\");\n  const now = useQuery<Now>(\"at_hour\")[0];\n  const svg = useRef<SVGSVGElement>(null);\n  const h = hour ?? 18;\n  const max = Math.max(1, ...day.map((d) => d.total));\n  const scale = (mw: number) => (mw / max) * (R1 - R0);\n\n  const drag = (e: React.PointerEvent) => {\n    const r = svg.current!.getBoundingClientRect();\n    const a = Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2)) + Math.PI / 2;\n    setHour(((Math.round((a / (2 * Math.PI)) * 24) % 24) + 24) % 24);\n  };\n\n  return (\n    <div className=\"min-h-screen bg-page text-ink font-body\">\n      <div className=\"mx-auto max-w-[1300px] px-5 md:px-10 py-8\">\n        <header className=\"flex flex-wrap items-end justify-between gap-6 border-b-[10px] border-[var(--accent)] pb-4\">\n          <h1 className=\"font-display uppercase leading-[0.82] text-[clamp(56px,11vw,168px)] tracking-[-0.01em]\">A day of<br /><span style={{ color: \"var(--accent)\" }}>power</span></h1>\n          <div className=\"flex gap-0\" role=\"group\" aria-label=\"season\">\n            {[\"summer\", \"winter\"].map((s) => (\n              <button key={s} type=\"button\" onClick={() => setSeason(s)} className=\"font-display uppercase text-3xl px-6 py-3 border-[3px] border-[var(--accent)] -ml-[3px]\"\n                style={{ background: season === s ? \"var(--accent)\" : \"transparent\", color: season === s ? \"var(--page)\" : \"var(--accent)\" }}>{s}</button>\n            ))}\n          </div>\n        </header>\n\n        <div className=\"grid gap-10 mt-8 lg:grid-cols-[minmax(0,620px)_minmax(0,1fr)] items-center\">\n          <svg ref={svg} viewBox=\"0 0 600 600\" className=\"w-full h-auto touch-none cursor-grab select-none\" onPointerDown={(e) => { (e.target as Element).setPointerCapture?.(e.pointerId); drag(e); }} onPointerMove={(e) => e.buttons && drag(e)}\n            role=\"slider\" aria-label=\"hour of the day\" aria-valuemin={0} aria-valuemax={23} aria-valuenow={h} tabIndex={0}\n            onKeyDown={(e) => { if (e.key === \"ArrowRight\") setHour((h + 1) % 24); if (e.key === \"ArrowLeft\") setHour((h + 23) % 24); }}>\n            {day.map((d) => {\n              let r = R0;\n              return (\n                <g key={d.hour} opacity={d.hour === h ? 1 : 0.55}>\n                  {SOURCES.map((s) => { const r0 = r; r += scale(d[s.key]); return <path key={s.key} d={wedge(d.hour, r0, r)} fill={s.color} />; })}\n                </g>\n              );\n            })}\n            {[0, 6, 12, 18].map((t) => { const [x, y] = polar(t, R1 + 20); return <text key={t} x={x} y={y} textAnchor=\"middle\" dominantBaseline=\"middle\" fontSize={18} fill=\"var(--ink)\" className=\"font-display\">{String(t).padStart(2, \"0\")}</text>; })}\n            {(() => { const [x, y] = polar(h, R1 + 4); return <line x1={C} y1={C} x2={x} y2={y} stroke=\"var(--ink)\" strokeWidth={3} />; })()}\n            <circle cx={C} cy={C} r={R0 - 6} fill=\"var(--page)\" stroke=\"var(--accent)\" strokeWidth={3} />\n            <text x={C} y={C - 10} textAnchor=\"middle\" fontSize={64} className=\"font-display\" fill=\"var(--ink)\">{String(h).padStart(2, \"0\")}:00</text>\n            <text x={C} y={C + 30} textAnchor=\"middle\" fontSize={16} fill=\"var(--accent)\" className=\"font-body\">{now ? `${fmt(now.total, \"integer\")} MW` : \"\"}</text>\n          </svg>\n\n          <div>\n            {now && (\n              <>\n                <p className=\"uppercase tracking-[0.2em] text-sm\">At {String(h).padStart(2, \"0\")}:00 on a {season} day</p>\n                <p className=\"font-display uppercase leading-none text-[clamp(64px,9vw,140px)]\" style={{ color: \"var(--accent)\" }}>{fmt(now.clean_share, \"percent\")}</p>\n                <p className=\"uppercase tracking-[0.2em] text-sm -mt-1\">from clean sources</p>\n                <ul className=\"mt-8 border-t-[3px] border-[var(--ink)]\">\n                  {SOURCES.map((s) => (\n                    <li key={s.key} className=\"grid grid-cols-[1fr_auto] items-center gap-4 border-b-[3px] border-[var(--ink)] py-2\">\n                      <span className=\"flex items-center gap-3\"><span className=\"inline-block h-5 w-5\" style={{ background: s.color }} /><span className=\"font-display text-3xl uppercase\">{s.label}</span></span>\n                      <span className=\"font-display text-3xl tabular-nums\">{fmt(now[s.key], \"integer\")}<span className=\"text-base ml-1\">MW</span></span>\n                    </li>\n                  ))}\n                </ul>\n                <p className=\"mt-4 text-sm uppercase tracking-[0.15em] opacity-70\">Peak at {String(now.peak_hour).padStart(2, \"0\")}:00 · {fmt(now.peak_mw, \"integer\")} MW · drag the hand or use ← →</p>\n              </>\n            )}\n          </div>\n        </div>\n      </div>\n    </div>\n  );\n}\n"
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

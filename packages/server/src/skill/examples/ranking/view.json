@@ -1,0 +1,147 @@
+{
+ "v": 2,
+ "id": "ranking",
+ "title": "Where should you move?",
+ "summary": "Eight cities ranked by the weights you set.",
+ "palette": {
+  "page": "#fafaf8",
+  "ink": "#111111",
+  "accent": "#e4002b"
+ },
+ "fonts": {
+  "display": "Archivo",
+  "body": "Archivo Narrow"
+ },
+ "datasets": {
+  "cities": {
+   "inline": [
+    {
+     "city": "Lisbon",
+     "country": "Portugal",
+     "rent_usd": 1450,
+     "sun_hours": 2800,
+     "transit": 72,
+     "safety": 82
+    },
+    {
+     "city": "Berlin",
+     "country": "Germany",
+     "rent_usd": 1500,
+     "sun_hours": 1650,
+     "transit": 90,
+     "safety": 78
+    },
+    {
+     "city": "Montréal",
+     "country": "Canada",
+     "rent_usd": 1350,
+     "sun_hours": 2050,
+     "transit": 78,
+     "safety": 85
+    },
+    {
+     "city": "Melbourne",
+     "country": "Australia",
+     "rent_usd": 1900,
+     "sun_hours": 2360,
+     "transit": 74,
+     "safety": 86
+    },
+    {
+     "city": "Taipei",
+     "country": "Taiwan",
+     "rent_usd": 850,
+     "sun_hours": 1400,
+     "transit": 92,
+     "safety": 91
+    },
+    {
+     "city": "Copenhagen",
+     "country": "Denmark",
+     "rent_usd": 1950,
+     "sun_hours": 1640,
+     "transit": 88,
+     "safety": 92
+    },
+    {
+     "city": "Mexico City",
+     "country": "Mexico",
+     "rent_usd": 900,
+     "sun_hours": 2550,
+     "transit": 70,
+     "safety": 52
+    },
+    {
+     "city": "Cape Town",
+     "country": "South Africa",
+     "rent_usd": 800,
+     "sun_hours": 3100,
+     "transit": 45,
+     "safety": 48
+    }
+   ]
+  }
+ },
+ "params": {
+  "w_cost": {
+   "type": "number",
+   "label": "Low rent",
+   "min": 0,
+   "max": 10,
+   "step": 1,
+   "default": 5
+  },
+  "w_sun": {
+   "type": "number",
+   "label": "Sunshine",
+   "min": 0,
+   "max": 10,
+   "step": 1,
+   "default": 5
+  },
+  "w_transit": {
+   "type": "number",
+   "label": "Transit",
+   "min": 0,
+   "max": 10,
+   "step": 1,
+   "default": 5
+  },
+  "w_safety": {
+   "type": "number",
+   "label": "Safety",
+   "min": 0,
+   "max": 10,
+   "step": 1,
+   "default": 5
+  }
+ },
+ "queries": {
+  "ranked": {
+   "sql": "SELECT *, s_cost + s_sun + s_transit + s_safety AS score FROM (SELECT city, country, rent_usd, sun_hours, transit, safety, $w_cost * (max(rent_usd) OVER () - rent_usd) / nullif(max(rent_usd) OVER () - min(rent_usd) OVER (), 0) AS s_cost, $w_sun * (sun_hours - min(sun_hours) OVER ()) / nullif(max(sun_hours) OVER () - min(sun_hours) OVER (), 0) AS s_sun, $w_transit * (transit - min(transit) OVER ()) / nullif(max(transit) OVER () - min(transit) OVER (), 0) AS s_transit, $w_safety * (safety - min(safety) OVER ()) / nullif(max(safety) OVER () - min(safety) OVER (), 0) AS s_safety FROM cities) ORDER BY score DESC"
+  }
+ },
+ "sections": [
+  {
+   "id": "page",
+   "layout": "grid",
+   "items": [
+    {
+     "id": "index",
+     "span": 12,
+     "c": {
+      "type": "design",
+      "framework": "react",
+      "display": "page",
+      "data": [
+       "ranked"
+      ],
+      "files": {
+       "App.tsx": "import { useParamState, useQuery, fmt } from \"aurora/kit\";\n\ntype City = { city: string; country: string; rent_usd: number; sun_hours: number; transit: number; safety: number; s_cost: number; s_sun: number; s_transit: number; s_safety: number; score: number };\nconst CRITERIA = [\n  { key: \"w_cost\", part: \"s_cost\", label: \"Low rent\", tone: \"#111111\" },\n  { key: \"w_sun\", part: \"s_sun\", label: \"Sunshine\", tone: \"#5c5c5c\" },\n  { key: \"w_transit\", part: \"s_transit\", label: \"Transit\", tone: \"#9a9a9a\" },\n  { key: \"w_safety\", part: \"s_safety\", label: \"Safety\", tone: \"#c9c9c9\" },\n] as const;\n\nfunction Weight({ name, label, tone }: { name: string; label: string; tone: string }) {\n  const [w, setW] = useParamState<number>(name);\n  return (\n    <label className=\"grid grid-cols-[14px_1fr_2ch] items-center gap-3 py-3 border-t border-[#111]\">\n      <span className=\"h-3.5 w-3.5\" style={{ background: tone }} />\n      <span className=\"flex flex-col gap-2\">\n        <span className=\"text-sm uppercase tracking-[0.12em]\">{label}</span>\n        <input type=\"range\" min={0} max={10} step={1} value={w ?? 5} onChange={(e) => setW(Number(e.target.value))} className=\"swiss-range w-full\" />\n      </span>\n      <span className=\"font-display text-2xl tabular-nums text-right\">{w ?? 5}</span>\n    </label>\n  );\n}\n\n/** Rank options by what matters to you: each weight is a param, the score is computed in SQL, the order re-sorts live. */\nexport default function App() {\n  const rows = useQuery<City>(\"ranked\");\n  const top = Math.max(1e-9, ...rows.map((r) => r.score));\n  return (\n    <div className=\"min-h-screen bg-page text-ink\">\n      <style>{`.swiss-range{appearance:none;height:2px;background:#111}.swiss-range::-webkit-slider-thumb{appearance:none;width:14px;height:14px;background:var(--accent);border:0;border-radius:0;cursor:pointer}.swiss-range::-moz-range-thumb{width:14px;height:14px;background:var(--accent);border:0;border-radius:0}`}</style>\n      <div className=\"mx-auto max-w-[1280px] px-5 md:px-10 py-8 md:py-12\">\n        <div className=\"grid grid-cols-12 gap-x-5 border-b-[6px] border-[#111] pb-6\">\n          <p className=\"col-span-12 md:col-span-3 text-sm uppercase tracking-[0.18em]\">Relocation index<br />Eight cities</p>\n          <h1 className=\"col-span-12 md:col-span-9 font-display text-[clamp(44px,8vw,120px)] leading-[0.88] font-bold tracking-[-0.04em]\">Where should<br />you move<span style={{ color: \"var(--accent)\" }}>?</span></h1>\n        </div>\n        <div className=\"grid grid-cols-12 gap-x-5 gap-y-10 pt-8\">\n          <aside className=\"col-span-12 md:col-span-3 md:sticky md:top-6 self-start\">\n            <p className=\"text-sm leading-snug mb-4\">Weigh what matters to you. Every city is scored 0–1 on each measure, then the weights decide the order.</p>\n            {CRITERIA.map((c) => <Weight key={c.key} name={c.key} label={c.label} tone={c.tone} />)}\n            <p className=\"border-t border-[#111] pt-3 text-xs uppercase tracking-[0.12em]\">Bar length: weighted score</p>\n          </aside>\n          <ol className=\"col-span-12 md:col-span-9\">\n            {rows.map((r, i) => (\n              <li key={r.city} className=\"grid grid-cols-[3.4rem_1fr] md:grid-cols-[6.5rem_minmax(0,1fr)_minmax(0,1.4fr)] gap-x-5 gap-y-2 items-end border-t border-[#111] py-4 transition-all duration-500\">\n                <span className=\"font-display text-[clamp(28px,4vw,56px)] leading-none font-bold tabular-nums\" style={{ color: i === 0 ? \"var(--accent)\" : undefined }}>{String(i + 1).padStart(2, \"0\")}</span>\n                <span className=\"min-w-0\">\n                  <span className=\"block font-display text-[clamp(22px,3vw,40px)] leading-none font-bold tracking-[-0.02em] truncate\">{r.city}</span>\n                  <span className=\"block mt-1 text-xs uppercase tracking-[0.14em] text-muted\">{r.country} · {fmt(r.rent_usd, \"currency\")}/mo · {fmt(r.sun_hours, \"integer\")} h sun</span>\n                </span>\n                <span className=\"col-span-2 md:col-span-1 flex h-7 items-stretch\" title={`score ${fmt(r.score)}`}>\n                  {CRITERIA.map((c) => <span key={c.key} className=\"transition-all duration-500\" style={{ width: `${((r[c.part] as number) / top) * 100}%`, background: c.tone }} />)}\n                </span>\n              </li>\n            ))}\n          </ol>\n        </div>\n      </div>\n    </div>\n  );\n}\n"
+      }
+     }
+    }
+   ]
+  }
+ ]
+}
