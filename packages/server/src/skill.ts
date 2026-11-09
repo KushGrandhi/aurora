@@ -75,6 +75,36 @@ export function generateSkillFiles(): Record<string, string> {
       "A technical drawing that builds itself: deep blueprint blue, IBM Plex Mono labels, a yellow accent for the cable and the load. The story is `variant: \"split\"` with the steps on the right. `geometry.ts` holds the bridge as numbers and says when each part is drawn (in story steps); `Drawing.tsx` is one SVG whose strokes are revealed with `span(s.position, from, to)` from one animation loop, and once the load is on, dots run the force's path. Labels appear with their part and stay readable on a phone. It ends on an `accent` ground. Copy this for any process that is built, assembled or flows.",
       ["App.tsx", "Drawing.tsx", "geometry.ts"],
     ),
+    "examples/ranking.md": storyExample(
+      "ranking",
+      "rank options by what matters to you (Swiss poster)",
+      "A Swiss-poster page: near-white, black, one red, Archivo, hard rules and giant numerals. Four weights are `number` params the reader drags; the score is computed in SQL from them, so the list re-sorts live, and each bar is split by what earned the score. Copy it for any choice among options with trade-offs.",
+      ["App.tsx"],
+    ),
+    "examples/quakes.md": storyExample(
+      "quakes",
+      "scrub through time and space (seismograph terminal)",
+      "A phosphor-green terminal: black, VT323 over JetBrains Mono, scanlines. The day and a magnitude floor are params; a play button steps the day, a seismograph strip scrubs it, quakes in the last 30 days glow and the newest pulse (still under reduced motion). The whole year stays as faint dots so the pattern shows. Copy it for events over time and place.",
+      ["App.tsx"],
+    ),
+    "examples/fieldguide.md": storyExample(
+      "fieldguide",
+      "look things up and compare (botanical field guide)",
+      "A botanical plate: deep green, Cormorant Garamond italic over Karla, gold and pink. Specimens sit in a numbered grid with drawn leaves; a family filter and the picked specimen are params, search narrows the grid in the page, and the detail compares the pick with its family on a flavour wheel. Copy it for any catalogue people browse and compare.",
+      ["App.tsx"],
+    ),
+    "examples/dial.md": storyExample(
+      "dial",
+      "explore a cycle (brutalist 24-hour dial)",
+      "A brutalist page: acid yellow on black, Anton over Chivo Mono, blocky borders. A radial chart of the day stacks each hour by source; the reader drags the hand (the hour is a param, arrow keys work) or switches the season, and giant readouts follow. Copy it for anything cyclical: a day, a week, a year.",
+      ["App.tsx"],
+    ),
+    "examples/water.md": storyExample(
+      "water",
+      "a personal what-if with a picture (picture-book tank)",
+      "A picture-book page: sky blue, Fredoka over Nunito, bright layers. Each habit is a param set with chunky +/\u2212 buttons; litres are computed in SQL; a tank fills layer by layer against an average-person line. Copy it when the reader's own numbers decide the answer and a physical metaphor makes it land.",
+      ["App.tsx"],
+    ),
     "examples/inspector.md": storyExample(
       "inspector",
       "an inspector: one case through its steps, with the knob that decides them all (a spam filter)",

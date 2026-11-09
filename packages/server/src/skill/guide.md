@@ -21,7 +21,7 @@ Follow these steps in order, every time.
 
 ## Build a page (the default)
 
-Generic tiles, default charts and tables in boxes look machine-made. A page you design doesn't. Open `examples/inspector.md` and copy how it works:
+Generic tiles, default charts and tables in boxes look machine-made. A page you design doesn't. Open the example closest to the reader's job (below) and copy how it works, not how it looks:
 
 - **The view:** your `datasets`, `queries` and `params` as usual, then one section holding one `design` with `"display": "page"` and `"data": [the queries it reads]`.
 - **Numbers from the queries:** in `App.tsx`, `useQuery("name")` gives a query's rows and updates when params change. Never type a figure from the data.
@@ -55,7 +55,7 @@ Generic tiles, default charts and tables in boxes look machine-made. A page you 
 Before using a component for the first time, read its fields and example in `references/components.md`.
 
 **Examples.** Before a story or a `design`, open the closest one (and, for a design, `references/design-canvas.md` and `references/kit.md`). Copy how it works, never its look: each chose a different one on purpose.
-- `examples/inspector.md`: **start here for data.** One case through its steps, a cutoff to drag, a searchable list.
+- Pages from data, each a different job and look; open the closest job, never copy the look: `examples/inspector.md` (one case through its steps), `examples/ranking.md` (rank by your weights), `examples/quakes.md` (scrub time and place), `examples/fieldguide.md` (look up and compare), `examples/dial.md` (a cycle), `examples/water.md` (your own what-if).
 - `examples/data-story.md`: a story from data, catalog parts only. `examples/monitor.md`: a monitor, exception first. `examples/tool.md`: a what-if with inputs in the sentence.
 - `examples/cinematic.md`: a dark 3D scene behind the steps that moves with the scroll.
 - `examples/blueprint.md`: a drawing that builds itself, split screen.

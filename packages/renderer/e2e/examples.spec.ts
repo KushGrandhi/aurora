@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 
 // The skill's reference stories draw on a real screen with no problems at all: they are what models copy.
 
-for (const dir of ["data-story", "cinematic", "blueprint", "tool", "monitor", "inspector"]) {
+for (const dir of ["data-story", "cinematic", "blueprint", "tool", "monitor", "inspector", "ranking", "quakes", "fieldguide", "dial", "water"]) {
   test(`the ${dir} example draws with no errors and no warnings`, async ({ page, request }) => {
     test.setTimeout(60_000);
     const view = JSON.parse(readFileSync(new URL(`../../server/src/skill/examples/${dir}/view.json`, import.meta.url), "utf8"));

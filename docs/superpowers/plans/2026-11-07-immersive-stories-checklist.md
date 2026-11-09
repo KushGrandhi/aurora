@@ -100,6 +100,10 @@ Kush's reference is a hand-built interactive inspector, plus procedural backgrou
   Sonnet form 15 → 23 of 24, quality 13 → 18 of 24 (blind judge); the Jarvis data became an inspector like the
   reference. Haiku didn't follow it. Next: phone reflow for page charts, views open at their param defaults.
 
+- [x] C6. Five examples, each distinct in look and job (Kush approved 2026-11-08): ranking (Swiss poster), quakes
+  (seismograph terminal), fieldguide (botanical plate), dial (brutalist 24-hour dial), water (picture-book tank).
+  In the skill as the pages to copy for how they work, never for how they look.
+
 ## Track 2: Quality (every form looks designed, never AI-generated)
 
 - [ ] Q1. A quality rubric per form, and a concrete list of AI tells, so "beautiful and intuitive" is checkable.
