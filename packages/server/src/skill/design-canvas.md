@@ -20,7 +20,8 @@ A `design` item is a small React + Tailwind (or plain HTML/JS) project that runs
 - **Tailwind** (v4) with aurora's tokens: `bg-surface`, `text-ink-2`, `ring-hair`, `bg-accent`, `fill-s1`… and CSS variables `var(--accent)` etc. A view's `palette` sets them all (`references/design-language.md`).
 - **Fonts:** the view's `fonts` (any Google Fonts families) are `font-display`, `font-body` (also `font-sans`) and `font-mono`, with Newsreader as `font-serif`; a family in `fonts.extra` by name, `font-['Caveat']`. Without `fonts` everything is Hanken Grotesk. Don't link Google Fonts yourself: the network is blocked; name the family in the view instead.
 - **No network.** `fetch`, external images, fonts, 3D models and CDNs are blocked and come back as problems. Build visuals yourself: physical things as 3D scenes from `aurora/kit` and three.js shapes, abstract diagrams as SVG.
-- **Data:** `"data": ["queryName"]` puts that query's rows in `window.aurora.data.queryName`; `window.aurora.onData(cb)` fires when filters change them.
+- **Data:** `"data": ["queryName"]` puts that query's rows in `window.aurora.data.queryName`; `window.aurora.onData(cb)` fires when filters change them. In React use kit `useQuery("queryName")`.
+- **Changing params:** `aurora.setParam(name, value)` (kit `useParamState(name)` → `[value, set]`) re-runs the queries that read that param, and every item follows. Use it for a picked case, a slider, a scenario. Only the view's own params; a repeat does nothing.
 - **Local media:** `"assets": {"logo": "/abs/path/logo.png"}`, then `window.aurora.asset("logo")` gives the URL.
 - **Theme:** `window.aurora.theme` is `"light"` or `"dark"` and `onTheme(cb)` reports changes. You rarely need these: the tokens already switch.
 - **Story and params:** in a `story` section the pinned design gets `aurora.story` (`{ index, state }` of the step being read; `aurora.onStory(cb)`), and every design gets the view's param values as `aurora.params` (`aurora.onParams(cb)`).
@@ -54,7 +55,7 @@ A `design` item is a small React + Tailwind (or plain HTML/JS) project that runs
 | `STAGES[i]` with a computed `i` | Crash when `i` is -1 or n | Clamp: `Math.max(0, Math.min(n - 1, i))` |
 | Setting `height` on the card | Content is cut off or leaves empty space | Leave it out |
 | Labels placed where things move | Moving parts cover the text | Labels outside the drawing with leader lines |
-| Raw colors and `dark:` | Half the design is wrong in one theme | Tokens only |
+| Raw colors without `palette.page`, or `dark:` | Half the design is wrong in one theme | Tokens, or set `palette.page` |
 | `Math.random()` in render | Positions jump on every frame | Precompute a fixed array |
 | Importing an unlisted package or an image URL | Compile error or blocked request | Use the listed libraries; draw it |
 | One giant file | Hard to fix with `editFile`, and easy to break JSON escaping | Several small files |

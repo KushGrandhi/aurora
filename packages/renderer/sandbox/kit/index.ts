@@ -12,3 +12,4 @@ export { useFocus } from "./focus.ts";
 export { useStory, useParam, useParamState, setParam, useQuery } from "./story.ts";
 export { useScroll, useScrollStep, useScrub, span, type Scroll } from "./scroll.ts";
 export { Surface, type SurfaceProps } from "./Surface.tsx";
+export { Bars, Picker, SearchTable, Tabs, fmt, type BarsProps, type PickerItem, type Column } from "./parts.tsx";

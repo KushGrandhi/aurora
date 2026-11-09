@@ -14,7 +14,7 @@ When the signals disagree, ask what the reader most needs in the first five seco
 
 ## Forms
 
-A row of numbers, then a chart, then the table at the bottom is one form (a monitor or an explorer), not the default. Each form opens with what its reader came for:
+A row of numbers, then a chart, then the table at the bottom is one form (a monitor or an explorer), not the default. Beyond a quick answer, build the form as a page design (SKILL.md, `examples/inspector.md`); the table says what that page puts first:
 
 | The reader wants to… | Form | How it is built, first thing first | It works when |
 |---|---|---|---|

@@ -1,0 +1,289 @@
+{
+ "v": 2,
+ "id": "spam",
+ "title": "Why did this land in spam?",
+ "summary": "A mail filter's rules, one email at a time, with the cutoff you can move.",
+ "palette": {
+  "page": "#eef1ec",
+  "ink": "#14201b",
+  "accent": "#c2364a"
+ },
+ "fonts": {
+  "display": "Space Grotesk",
+  "body": "IBM Plex Sans",
+  "mono": "IBM Plex Mono"
+ },
+ "datasets": {
+  "emails": {
+   "inline": [
+    {
+     "id": "e1",
+     "subject": "Your invoice for October",
+     "sender": "billing@studio.co"
+    },
+    {
+     "id": "e2",
+     "subject": "You WON a free cruise!!!",
+     "sender": "promo@win-now.biz"
+    },
+    {
+     "id": "e3",
+     "subject": "Re: lunch on Thursday?",
+     "sender": "maya@friends.net"
+    },
+    {
+     "id": "e4",
+     "subject": "Verify your account within 24h",
+     "sender": "security@paypa1-alerts.com"
+    },
+    {
+     "id": "e5",
+     "subject": "Weekly design digest",
+     "sender": "digest@newsletter.io"
+    },
+    {
+     "id": "e6",
+     "subject": "Cheap meds, no prescription",
+     "sender": "rx@pharma-direct.ru"
+    },
+    {
+     "id": "e7",
+     "subject": "Contract draft attached",
+     "sender": "legal@partnerfirm.com"
+    },
+    {
+     "id": "e8",
+     "subject": "Last chance: 90% off today",
+     "sender": "deals@flashsale.shop"
+    }
+   ]
+  },
+  "scores": {
+   "inline": [
+    {
+     "email_id": "e1",
+     "rule": "Known sender",
+     "points": -2,
+     "why": "You've written to this address before."
+    },
+    {
+     "email_id": "e1",
+     "rule": "Has attachment",
+     "points": 1,
+     "why": "Attachments are slightly riskier."
+    },
+    {
+     "email_id": "e1",
+     "rule": "Invoice words",
+     "points": 1,
+     "why": "\"invoice\" and \"payment\" appear in phishing too."
+    },
+    {
+     "email_id": "e2",
+     "rule": "All caps and !!!",
+     "points": 3,
+     "why": "Shouting subjects are a classic spam sign."
+    },
+    {
+     "email_id": "e2",
+     "rule": "Prize language",
+     "points": 3,
+     "why": "\"won\", \"free\", \"claim\"."
+    },
+    {
+     "email_id": "e2",
+     "rule": "New sender domain",
+     "points": 2,
+     "why": "The domain was registered last month."
+    },
+    {
+     "email_id": "e2",
+     "rule": "Link to a shortener",
+     "points": 1.5,
+     "why": "Hides where the link goes."
+    },
+    {
+     "email_id": "e3",
+     "rule": "Known sender",
+     "points": -2,
+     "why": "In your contacts."
+    },
+    {
+     "email_id": "e3",
+     "rule": "Reply to your thread",
+     "points": -1.5,
+     "why": "It answers an email you sent."
+    },
+    {
+     "email_id": "e3",
+     "rule": "Short and personal",
+     "points": 0,
+     "why": "No marketing signals."
+    },
+    {
+     "email_id": "e4",
+     "rule": "Look-alike domain",
+     "points": 4,
+     "why": "\"paypa1\" with a digit one, not an L."
+    },
+    {
+     "email_id": "e4",
+     "rule": "Urgency",
+     "points": 2,
+     "why": "A deadline to act on your account."
+    },
+    {
+     "email_id": "e4",
+     "rule": "Login link",
+     "points": 2,
+     "why": "Asks you to sign in through a link."
+    },
+    {
+     "email_id": "e4",
+     "rule": "Failed sender check",
+     "points": 1.5,
+     "why": "The domain's signature didn't verify."
+    },
+    {
+     "email_id": "e5",
+     "rule": "Subscribed list",
+     "points": -1,
+     "why": "You signed up for this digest."
+    },
+    {
+     "email_id": "e5",
+     "rule": "Unsubscribe link",
+     "points": -0.5,
+     "why": "A proper list footer."
+    },
+    {
+     "email_id": "e5",
+     "rule": "Many images",
+     "points": 1,
+     "why": "Image-heavy mail scores a little higher."
+    },
+    {
+     "email_id": "e6",
+     "rule": "Pharmacy words",
+     "points": 4,
+     "why": "Drug names and \"no prescription\"."
+    },
+    {
+     "email_id": "e6",
+     "rule": "Foreign bulk sender",
+     "points": 2,
+     "why": "Sent from a known bulk-mail network."
+    },
+    {
+     "email_id": "e6",
+     "rule": "Failed sender check",
+     "points": 1.5,
+     "why": "The signature didn't verify."
+    },
+    {
+     "email_id": "e6",
+     "rule": "Link to a shortener",
+     "points": 1.5,
+     "why": "Hides where the link goes."
+    },
+    {
+     "email_id": "e7",
+     "rule": "Known domain",
+     "points": -1.5,
+     "why": "Your company has emailed this firm."
+    },
+    {
+     "email_id": "e7",
+     "rule": "Has attachment",
+     "points": 1,
+     "why": "Attachments are slightly riskier."
+    },
+    {
+     "email_id": "e7",
+     "rule": "Signed",
+     "points": -1,
+     "why": "The sender's signature verified."
+    },
+    {
+     "email_id": "e8",
+     "rule": "Discount language",
+     "points": 2.5,
+     "why": "\"90% off\", \"last chance\"."
+    },
+    {
+     "email_id": "e8",
+     "rule": "Urgency",
+     "points": 2,
+     "why": "\"today\" and a countdown."
+    },
+    {
+     "email_id": "e8",
+     "rule": "Subscribed list",
+     "points": -1,
+     "why": "You bought from this shop once."
+    },
+    {
+     "email_id": "e8",
+     "rule": "Many images",
+     "points": 1,
+     "why": "Image-heavy."
+    }
+   ]
+  }
+ },
+ "params": {
+  "pick": {
+   "type": "select",
+   "label": "Email",
+   "options": {
+    "query": "emails",
+    "field": "id"
+   },
+   "default": "e4"
+  },
+  "cutoff": {
+   "type": "number",
+   "label": "Spam cutoff",
+   "min": 1,
+   "max": 10,
+   "step": 0.5,
+   "default": 5
+  }
+ },
+ "queries": {
+  "emails": {
+   "sql": "SELECT e.id, e.subject, e.sender, sum(s.points) AS score FROM emails e JOIN scores s ON s.email_id = e.id GROUP BY ALL ORDER BY score DESC"
+  },
+  "picked_rules": {
+   "sql": "SELECT rule, why, points, sum(points) OVER (ORDER BY points DESC, rule ROWS UNBOUNDED PRECEDING) AS running FROM scores WHERE email_id = $pick ORDER BY points DESC, rule"
+  },
+  "tally": {
+   "sql": "SELECT count(*) FILTER (WHERE score >= $cutoff) AS flagged, count(*) AS total FROM (SELECT email_id, sum(points) AS score FROM scores GROUP BY 1)"
+  }
+ },
+ "sections": [
+  {
+   "id": "page",
+   "layout": "grid",
+   "items": [
+    {
+     "id": "inspector",
+     "span": 12,
+     "c": {
+      "type": "design",
+      "framework": "react",
+      "display": "page",
+      "data": [
+       "emails",
+       "picked_rules",
+       "tally"
+      ],
+      "files": {
+       "App.tsx": "import { Bars, Picker, SearchTable, Surface, Tabs, fmt, useParamState, useQuery } from \"aurora/kit\";\nimport { useState } from \"react\";\n\ntype Email = { id: string; subject: string; sender: string; score: number };\ntype Rule = { rule: string; why: string; points: number; running: number };\ntype Tally = { flagged: number; total: number };\n\n/** An inspector: pick one case, walk it through the steps that decide it, and tune the knob that decides them all. */\nexport default function App() {\n  const [pick, setPick] = useParamState<string>(\"pick\");\n  const [cutoff, setCutoff] = useParamState<number>(\"cutoff\");\n  const emails = useQuery<Email>(\"emails\");\n  const rules = useQuery<Rule>(\"picked_rules\");\n  const tally = useQuery<Tally>(\"tally\")[0];\n  const [tab, setTab] = useState(\"inspect\");\n  const current = emails.find((e) => e.id === pick);\n  const flagged = current && cutoff !== undefined && current.score >= cutoff;\n\n  return (\n    <Surface kind=\"dots\" className=\"min-h-screen bg-page text-ink\">\n      <div className=\"mx-auto max-w-6xl px-5 py-12 md:py-16\">\n        <header className=\"flex flex-col gap-6 md:flex-row md:items-end md:justify-between\">\n          <div className=\"max-w-2xl\">\n            <p className=\"font-mono text-sm text-muted\">mail filter · rule-by-rule</p>\n            <h1 className=\"mt-2 font-display text-4xl md:text-6xl font-semibold tracking-tight\">Why did this land in spam?</h1>\n            <p className=\"mt-3 text-ink-2\">Pick an email to see every rule that scored it. Move the cutoff to see what else would be caught.</p>\n          </div>\n          {/* the knob that decides every case, with its consequence right beside it */}\n          <label className=\"w-full md:w-80 rounded-2xl bg-raised/80 p-4 ring-1 ring-hair backdrop-blur\">\n            <span className=\"flex items-baseline justify-between text-sm text-ink-2\">Spam cutoff <b className=\"font-mono text-ink\">{fmt(cutoff)}</b></span>\n            <input type=\"range\" min={1} max={10} step={0.5} value={cutoff ?? 5} onChange={(e) => setCutoff(Number(e.target.value))} className=\"mt-2 w-full accent-[var(--accent)]\" />\n            {tally && <span className=\"text-sm text-muted\">{fmt(tally.flagged, \"integer\")} of {fmt(tally.total, \"integer\")} emails caught</span>}\n          </label>\n        </header>\n\n        <div className=\"mt-10\">\n          <Tabs tabs={[{ id: \"inspect\", label: \"One email\" }, { id: \"all\", label: \"All emails\" }]} value={tab} onChange={setTab}>\n            {tab === \"inspect\" ? (\n              <div className=\"grid gap-8 md:grid-cols-[280px_minmax(0,1fr)]\">\n                <Picker label=\"Email\" value={pick} onChange={setPick} items={emails.map((e) => ({ id: e.id, label: e.subject, hint: e.sender, badge: cutoff !== undefined && e.score >= cutoff ? \"spam\" : undefined }))} />\n                <div className=\"flex flex-col gap-6\">\n                  {current && (\n                    <div className=\"flex flex-wrap items-baseline justify-between gap-3\">\n                      <h2 className=\"font-display text-2xl font-semibold tracking-tight\">{current.subject}</h2>\n                      <span className={`rounded-full px-3 py-1 text-sm font-medium ring-1 ${flagged ? \"text-bad ring-bad\" : \"text-good ring-good\"}`}>\n                        {flagged ? \"Spam\" : \"Inbox\"} · score {fmt(current.score)}\n                      </span>\n                    </div>\n                  )}\n                  {/* the score builds rule by rule: each bar is the running total, so the line shows where it crosses */}\n                  <Bars rows={rules} label={(r) => `${r.rule} (${r.points > 0 ? \"+\" : \"\"}${fmt(r.points)})`} value=\"running\" threshold={cutoff} thresholdLabel=\"cutoff\" highlight={(r) => cutoff !== undefined && r.running >= cutoff} />\n                  <ol className=\"grid gap-2 text-sm text-ink-2\">\n                    {rules.map((r) => <li key={r.rule}><b className=\"text-ink\">{r.rule}.</b> {r.why}</li>)}\n                  </ol>\n                </div>\n              </div>\n            ) : (\n              <SearchTable rows={emails} search={[\"subject\", \"sender\"]} onPick={(r) => { setPick(r.id); setTab(\"inspect\"); }} picked={(r) => r.id === pick}\n                columns={[{ key: \"subject\", label: \"Subject\" }, { key: \"sender\", label: \"From\" }, { key: \"score\", label: \"Score\", format: \"number\" }]} />\n            )}\n          </Tabs>\n        </div>\n      </div>\n    </Surface>\n  );\n}\n"
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

@@ -75,6 +75,12 @@ export function generateSkillFiles(): Record<string, string> {
       "A technical drawing that builds itself: deep blueprint blue, IBM Plex Mono labels, a yellow accent for the cable and the load. The story is `variant: \"split\"` with the steps on the right. `geometry.ts` holds the bridge as numbers and says when each part is drawn (in story steps); `Drawing.tsx` is one SVG whose strokes are revealed with `span(s.position, from, to)` from one animation loop, and once the load is on, dots run the force's path. Labels appear with their part and stay readable on a phone. It ends on an `accent` ground. Copy this for any process that is built, assembled or flows.",
       ["App.tsx", "Drawing.tsx", "geometry.ts"],
     ),
+    "examples/inspector.md": storyExample(
+      "inspector",
+      "an inspector: one case through its steps, with the knob that decides them all (a spam filter)",
+      "A whole-page design (`display: \"page\"`) built from the view's queries, with its own look (pale sage, Space Grotesk over IBM Plex, a dot-grid `Surface`). The reader picks an email in a `Picker` (a rail on desktop, a select on a phone), sees each rule that scored it as a running total in `Bars` with the cutoff drawn across, and drags the cutoff in the corner to see how many emails it catches. The pick and the cutoff are params the design sets with `useParamState`, so the queries re-run and `useQuery` brings the new rows. A second tab is the whole list in a `SearchTable`; clicking a row inspects it. Copy its shape for anything people want to understand case by case: a pipeline, a ranking, a pricing rule, a model's decision.",
+      ["App.tsx"],
+    ),
     "examples/tool.md": storyExample(
       "tool",
       "a what-if tool (when solar panels pay back)",

@@ -15,7 +15,7 @@ test("SKILL.md has frontmatter whose description says only when to use it", () =
 
 test("SKILL.md stays short: the method, with detail in the files it points to", () => {
   expect(skill.split(/\s+/).length).toBeLessThan(2400);
-  for (const s of ["## The loop", "## Pick components", "## Art direction, in brief", "## Before you finish"]) expect(skill).toContain(s);
+  for (const s of ["## The loop", "## Build a page (the default)", "## Catalog components", "## Art direction, in brief", "## Before you finish"]) expect(skill).toContain(s);
 });
 
 test("every file SKILL.md or a reference points to is in the skill, and every file is pointed to", () => {
@@ -117,7 +117,9 @@ test("the mechanism example's view is valid exactly as written (copied views mus
 test("the skill shapes a story and chooses a look before picking components", () => {
   const story = files["references/story.md"];
   for (const s of ["The one sentence", "Never name them on the page", "The hook", "The signature moment", "The ending"]) expect(story).toContain(s);
-  expect(skill.indexOf("references/forms.md")).toBeLessThan(skill.indexOf("## Pick components"));
+  expect(skill.indexOf("references/forms.md")).toBeLessThan(skill.indexOf("## Build a page"));
+  // canvas first: the page comes before the catalog
+  expect(skill.indexOf("## Build a page")).toBeLessThan(skill.indexOf("## Catalog components"));
   const art = files["references/design-language.md"];
   for (const s of ["Decide a direction before you build", "Don't repeat yourself", "## The guardrails", '"page"', '"ink"']) expect(art).toContain(s);
   // the old fixed recipes are gone: no single entrance or type scale imposed on every view
@@ -137,7 +139,7 @@ test("every font the skill suggests is a real Google Fonts family", () => {
 test("the reference stories are valid views, each with its own look", async () => {
   const { ViewSchema } = await import("@aurora/spec");
   const looks = new Set<string>();
-  for (const dir of ["data-story", "cinematic", "blueprint", "tool", "monitor"]) {
+  for (const dir of ["data-story", "cinematic", "blueprint", "tool", "monitor", "inspector"]) {
     const view = JSON.parse(readFileSync(new URL(`../src/skill/examples/${dir}/view.json`, import.meta.url), "utf8"));
     const r = ViewSchema.safeParse(view);
     expect(r.success, `${dir}: ${JSON.stringify(r.error?.issues)}`).toBe(true);
@@ -148,7 +150,7 @@ test("the reference stories are valid views, each with its own look", async () =
     for (const s of view.sections) for (const it of s.items) for (const [f, text] of Object.entries(it.c.files ?? {})) expect(text, `${dir}/${f}`).toBe(readFileSync(new URL(`../src/skill/examples/${dir}/${f}`, import.meta.url), "utf8"));
     expect(files[`examples/${dir}.md`]).toContain("## The view");
   }
-  expect(looks.size).toBe(5);
+  expect(looks.size).toBe(6);
 });
 
 test("the form comes from the reader's job: many forms, blended, not one default", () => {

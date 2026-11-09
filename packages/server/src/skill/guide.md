@@ -8,18 +8,29 @@ This file is the whole method. The files under `references/` and `examples/` hol
 
 Follow these steps in order, every time.
 
-1. **Choose the form, then its look.** Ask what the reader will do with this (`references/forms.md`): get an answer, understand a finding, watch over time, explore, compare, try what-ifs, look things up, be persuaded. That picks the form (an answer, a story, a monitor, an explorer…), and sections can blend forms. For a story or an explainer, outline it with `references/story.md`. Then decide its look with `references/design-language.md`. Never default to the look of the last view or the example.
-2. **Pick** the components for each beat with the table below. Catalog components show data and structure well with little effort; use a `design` for the beats that need their own visual, above all the hook and the signature moment.
+1. **Choose the form, then its look.** Ask what the reader will do with this (`references/forms.md`): get an answer, understand a finding, watch, explore, compare, try what-ifs, look things up, be persuaded. For a story or an explainer, outline it with `references/story.md`. Then decide its look with `references/design-language.md`. Never default to the look of the last view or the example.
+2. **Build it as a page.** Beyond a one-number answer, the view is one whole-page `design` that reads your queries and owns its layout, type, surface and interactions (**Build a page** below). Catalog components are for a quick answer or a quick look.
 3. **Render** the frame with `mcp__aurora__render`: title, one-line summary and sections (with the first item, or with `"items": []`).
 4. **Add** the remaining items with `mcp__aurora__patch`, **one call at a time**. Each call passes `baseVersion` = the `version` the previous call returned. Two patches sent together collide.
 5. **Check** with `mcp__aurora__status`. Fix every `error` with a patch, then check again.
-6. **Look** at it with `mcp__aurora__look`: pictures of the view as a person sees it, top to bottom, one per story step. Judge them against your outline and look: is what the reader needs on the first screen? One idea per beat? Anything overlapping, cut off, too small, hard to read or empty? Fix it with patches and look again (two or three rounds at most). Add `"sizes": ["desktop", "phone"]` once, before you finish, to check the phone layout; pass `"section"` to look at just one part.
+6. **Look** at it with `mcp__aurora__look`: pictures of the view as a person sees it. Is what the reader needs on the first screen? Anything overlapping, cut off, too small, hard to read or empty? Fix and look again (two or three rounds). Add `"sizes": ["desktop", "phone"]` once, before you finish, to check the phone layout; pass `"section"` to look at just one part.
 7. **Review** your work against **Before you finish** at the end of this file.
 8. **Tell** the user the URL in one line. Don't repeat the content in the terminal.
 
 `unverified` in a result means no screen has drawn and checked the item yet. A `design` stays `unverified` for a few seconds after it draws, while aurora runs its design checks: call `status` again after about 3 seconds and fix any `design:` warning. If it is still `unverified` after that, no screen is open: `look` still works (it draws the view itself), so use it to check your work, and give the URL to the user.
 
-## Pick components
+## Build a page (the default)
+
+Generic tiles, default charts and tables in boxes look machine-made. A page you design doesn't. Open `examples/inspector.md` and copy how it works:
+
+- **The view:** your `datasets`, `queries` and `params` as usual, then one section holding one `design` with `"display": "page"` and `"data": [the queries it reads]`.
+- **Numbers from the queries:** in `App.tsx`, `useQuery("name")` gives a query's rows and updates when params change. Never type a figure from the data.
+- **The reader acts:** make what they change a param (the picked case, a cutoff, a scenario) and `const [v, setV] = useParamState("name")`: setting it re-runs the queries that read it. Give the job the controls it needs: pick a case, drag a value, switch views. A page with nothing to change is a poster.
+- **Parts:** `aurora/kit` has `Picker` (a rail, a select on a phone), `Bars` (with a threshold line), `SearchTable`, `Tabs`, `fmt` and `Surface`; draw anything else with SVG or d3.
+- **A surface, not a flat page:** `<Surface kind="contour" />` behind content (`grain`, `paper`, `blueprint`, `dots`, `contour`, `halftone`, `thermal`, `clouds`, `iridescent`), coloured from the palette; add `scrim` when text sits on it. A section can take one too: `"surface": "blueprint"`.
+- **Phone:** rails become selects, grids use `md:`, nothing spills sideways.
+
+## Catalog components (a quick answer or a quick look)
 
 | The user wants to see | Use | span |
 |---|---|---|
@@ -41,15 +52,10 @@ Follow these steps in order, every time.
 | **a landing page or product mockup** | `design` with `display: "page"` (copy `examples/landing.md`) | 12 |
 | **an abstract process with no physical shape (an algorithm, a protocol), a simulation, a game** | `design` | 12 |
 
-Good combinations:
-- **Explain how something physical works:** a `story` section: the 3D scene pinned, one short `text` step per moment (each with `"story": {"state": …}`), the last setting it running; then a `callout`. The story *is* the steps: no `steps` list under the scene.
-- **Explain a system:** `architecture`, then a `diagram` for its main request, then a `callout` for the key decision.
-- **Data:** the reader's job decides the form (`references/forms.md`); a dashboard is only one of them.
-- **A page or product:** one `design` with `display: "page"`, as the only item in the view.
-
 Before using a component for the first time, read its fields and example in `references/components.md`.
 
 **Examples.** Before a story or a `design`, open the closest one (and, for a design, `references/design-canvas.md` and `references/kit.md`). Copy how it works, never its look: each chose a different one on purpose.
+- `examples/inspector.md`: **start here for data.** One case through its steps, a cutoff to drag, a searchable list.
 - `examples/data-story.md`: a story from data, catalog parts only. `examples/monitor.md`: a monitor, exception first. `examples/tool.md`: a what-if with inputs in the sentence.
 - `examples/cinematic.md`: a dark 3D scene behind the steps that moves with the scroll.
 - `examples/blueprint.md`: a drawing that builds itself, split screen.
@@ -70,13 +76,13 @@ Before using a component for the first time, read its fields and example in `ref
 ```
 
 - Every id (view, section, item, query, dataset) matches `^[A-Za-z_]\w*$` and is unique in the view. Patches find things by id, so keep ids stable.
-- The screen reads like an article: the view `title` and `summary` are the page headline (on a hero they sit on the stage), and each section `title` is a large heading. Write them as short headlines that say the point ("East leads, barely"), not labels ("Data"). Items sit on the page without boxes.
+- The screen reads like an article: the view `title` and `summary` are the page headline (on a hero they sit on the stage), and each section `title` is a large heading. Write headlines that say the point ("East leads, barely"), not labels ("Data").
 - **Everything is linked.** Pointing at a value anywhere (a bar, a row, a part in a design) lights it up in every item. Use the same names across items (the chart's category, the table's column, the design's part) and in prose.
 - `fonts` (optional): `{"display": "Fraunces", "body": "Inter", "mono": "JetBrains Mono"}`, any Google Fonts families by exact name, for the headline and headings, the prose and the code, on the screen and in designs. Choose them with the look (`references/design-language.md`).
-- `palette` (optional): `{"page": "#hex", "ink": "#hex", "accent": "#hex", "series": ["#hex", …]}` sets the view's whole stage from its subject: `page` is the background, `ink` the text, and aurora derives every surface and line from them; the screen, charts and designs all follow it. Read `references/design-language.md` before choosing.
+- `palette` (optional): `{"page": "#hex", "ink": "#hex", "accent": "#hex", "series": ["#hex", …]}` sets the whole stage from its subject (`page` background, `ink` text); everything follows it. See `references/design-language.md`.
 - `immersive: true` (view) makes one designed page: full-screen opening, edge-to-edge sections. Sections can then take `height: "screen"`, `background` (`page`, `surface`, `ink`, `accent`) and `layout: "reel"` (panels sliding sideways); see `references/story.md`.
 - `layout: "grid"` places items on 12 columns with `span`. `layout: "tabs"` shows each item as a tab named by its `title`.
-- `layout: "story"` is a guided explanation, the best way to explain a process: the **first item stays pinned** (a design, a chart, a diagram) while the other items scroll past as steps. Each step can carry `"story": {"focus": "compression", "state": {"phase": 1}}`: when it reaches the middle of the screen, `focus` lights that value up across the view and `state` reaches a design as `aurora.story.state` (kit: `useStory()`). Write each step as two or three sentences about one moment; let the visual show it. Between steps the design hears a continuous position (kit `useScroll`), so the scene moves with the scroll.
+- `layout: "story"` is a guided explanation, the best way to explain a process: the **first item stays pinned** (a design, a chart, a diagram) while the other items scroll past as steps. Each step can carry `"story": {"focus": "compression", "state": {"phase": 1}}`: when it reaches the middle of the screen, `focus` lights that value up across the view and `state` reaches a design as `aurora.story.state` (kit: `useStory()`). Steps are two or three sentences; between them the design hears a continuous position (kit `useScroll`).
 - A section may start with `"items": []`; you fill it with patches.
 - `c.type` picks the component. All other fields of `c` belong to that component.
 
@@ -105,11 +111,11 @@ A patch is a list of ops. They apply together or not at all, and a bad op names 
 
 Each view gets its own look; the full method is in `references/design-language.md`. These matter most:
 
-1. **Decide a direction from the subject** before building: its world, a mood in two or three words, a genre to borrow from, the stage colours, the type and the motion personality. Don't repeat the example's look or your last view's.
-2. **Set the stage with the `palette`** (`page`, `ink`, `accent`, `series`) and the type with `fonts` (any Google Fonts families), drawn from the subject. A dark stage for cinema, a light one for editorial calm, a tint for a place of its own.
-3. **Use the tokens, never raw colours.** In a design, `bg-page`, `text-ink`, `text-ink-2`, `text-muted`, `ring-hair`, `bg-accent`, `var(--s1)`… carry the palette and follow the theme. No `slate-*`, `gray-*`, `white`, `black`, hex or `dark:`.
+1. **Decide a direction from the subject** before building: its world, a mood, a genre to borrow from, colours, type, motion. Don't repeat the example's look or your last view's.
+2. **Set the stage with the `palette` and `fonts`** (any Google Fonts families), drawn from the subject, and a surface that fits it.
+3. **Colours come from the palette.** In a design, `bg-page`, `text-ink`, `text-muted`, `ring-hair`, `bg-accent`, `var(--s1)`… follow it and the theme. Raw colours only when the view sets `palette.page` (the stage is then fixed); never `dark:`.
 4. **Contrast in scale.** One enormous headline or number, the main visual full screen or edge to edge, then quiet body text. Never a small visual boxed in a card among small boxes.
-5. **Direct the motion.** Tie it to what the reader does (scrolling a story, dragging a value); one thing leads, the rest follow; match the personality you chose. Continuous animation only for a mechanism or a living scene.
+5. **Direct the motion.** Tie it to what the reader does; one thing leads. Continuous animation only for a mechanism or a living scene.
 6. **Colour means something**, and keeps that meaning everywhere in the view.
 7. **Label on the drawing**, never with a legend to decode.
 8. **Nothing moves over text.**
@@ -137,8 +143,8 @@ Go through every line. Fix what fails, then check `status` once more.
 - [ ] The form fits the reader's job (`references/forms.md`); a story has a hook, one idea per beat, a signature moment and an ending.
 - [ ] The look was chosen for this subject: a `palette` (stage, accent, series), type and motion that fit it, and it doesn't copy the example's or the last view's look.
 - [ ] A physical mechanism is a 3D `aurora/kit` scene pinned in a `story` section with steps that drive it (or a `hero`), not a flat drawing in a card, and the view has a `palette` from its subject.
-- [ ] Every item uses the component the table above suggests; a `design` is used only where no catalog component fits.
-- [ ] Designs use only token colors (`bg-surface`, `text-ink-2`, `var(--s1)`…): no `slate`, `gray`, `white`, `black`, hex or `dark:`.
+- [ ] Beyond a one-number answer, the view is a page `design` that reads the queries, with a surface and controls the job needs.
+- [ ] Raw colours only if the view sets `palette.page`; otherwise tokens.
 - [ ] Nothing animated or absolutely positioned overlaps text.
 - [ ] Every part of a drawing is labelled where it is.
 - [ ] An explainer has play/pause, next step and speed controls, a current-step card and live readouts.

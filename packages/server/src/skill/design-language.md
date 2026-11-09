@@ -29,7 +29,7 @@ A view's `palette` sets the stage. `page` is the background, `ink` is the text, 
 - **Draw it from the subject.** Hot orange for combustion, oxygen red and venous blue for blood, chlorophyll green on warm paper for a forest, signal yellow on asphalt black for a road story. Not the default blue.
 - **A dark stage** feels cinematic and makes light, glow and colour sing. **A light stage** feels editorial and calm. **A tinted stage** (deep navy, warm paper, forest green) gives a story its own place.
 - **Colour means something.** Once a colour stands for a thing, it stands for that thing everywhere in the view: the chart, the 3D part, the word in the prose.
-- In a design, use the tokens (`bg-page`, `text-ink`, `var(--accent)`, `var(--s1)`…), never hard-coded colours: the tokens carry your palette, and they keep working when the person switches theme. Blend with `color-mix(in oklab, var(--s1), var(--page) 60%)`; fade with Tailwind's `/` (`bg-accent/10`). Gradients, glows and vignettes are fine when they come from the palette and play a part (light falling on the subject, depth behind it).
+- In a design, use the tokens (`bg-page`, `text-ink`, `var(--accent)`, `var(--s1)`…): they carry your palette and keep working when the person switches theme. Raw colours are fine only when the view sets `palette.page`, which fixes the stage so the theme can't flip under them. Blend with `color-mix(in oklab, var(--s1), var(--page) 60%)`; fade with Tailwind's `/` (`bg-accent/10`). Gradients, glows and vignettes are fine when they come from the palette and play a part (light falling on the subject, depth behind it).
 
 ## Type
 
@@ -100,12 +100,12 @@ These hold whatever direction you choose:
 2. **Honest.** Numbers come from queries. Motion never distorts a quantity.
 3. **Nothing moves over text being read.** Moving things travel in their own space, clear of labels.
 4. **Labelled on the thing.** Names sit next to what they name, with a thin leader line if needed, not in a legend you have to match colours against.
-5. **Works everywhere.** It works on a phone (grids use `md:` breakpoints, rows use `flex-wrap`, SVGs use `viewBox` with `className="w-full h-auto"`) and in both themes (tokens only, no `dark:` variants).
+5. **Works everywhere.** It works on a phone (grids use `md:` breakpoints, rows use `flex-wrap`, SVGs use `viewBox` with `className="w-full h-auto"`) and in both themes (tokens, or raw colours only with `palette.page`; no `dark:` variants).
 6. **Real content.** Specific, believable words. No lorem ipsum and no empty image boxes.
 
 ## Tokens
 
-Every design sandbox has these as Tailwind colours and as CSS variables. They carry the view's palette and switch with the theme, so **don't write `dark:` variants** and **don't use Tailwind's own palette** (`slate-*`, `gray-*`, `indigo-*`…), `white`, `black` or hex values.
+Every design sandbox has these as Tailwind colours and as CSS variables. They carry the view's palette and switch with the theme, so **don't write `dark:` variants**, and without `palette.page` **don't use Tailwind's own palette** (`slate-*`, `gray-*`…), `white`, `black` or hex values.
 
 | Token | Tailwind | CSS | Use for |
 |---|---|---|---|

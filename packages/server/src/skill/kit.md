@@ -69,3 +69,19 @@ export default function App() {
 ```
 
 Show it with `display: "hero"` (first item of the view, sections below) or `display: "page"` (the only item). A 3D scene in a card comes back as a warning.
+
+
+## Data, params and page parts
+
+For a page design that reads the view's queries (`examples/inspector.md`):
+
+| Part | Use |
+|---|---|
+| `useQuery` | `const rows = useQuery<Row>("by_region")`: a query's rows (list it in the design's `data`); updates when params change. |
+| `useParamState` | `const [cut, setCut] = useParamState<number>("cutoff")`: a param as state; setting it re-runs its queries. `setParam(name, v)` does the same outside React. |
+| `Picker` | `<Picker items={[{id, label, hint?, badge?}]} value={pick} onChange={setPick} />`: pick one case; a rail from `md` up, a select on a phone. |
+| `Bars` | `<Bars rows={rows} label="rule" value="score" threshold={cut} thresholdLabel="cutoff" highlight={(r) => r.score > cut} />`: horizontal bars labelled on the bar, with a threshold line. |
+| `SearchTable` | `<SearchTable rows={rows} columns={[{key: "name"}, {key: "score", format: "number"}]} onPick={(r) => setPick(r.id)} />`: search, sort, pick a row. |
+| `Tabs` | `<Tabs tabs={[{id, label}]} value={tab} onChange={setTab}>…</Tabs>`: switch views of the same thing. |
+| `fmt` | `fmt(0.42, "percent")`, `fmt(12500, "compact")`, `"integer"`, `"currency"`, `"ms"`. |
+| `Surface` | `<Surface kind="contour" scrim="left" />` fills its parent behind content; with children it is the container. Kinds: `grain`, `paper`, `blueprint`, `dots`, `contour`, `halftone`, `thermal`, `clouds`, `iridescent`. Use `scrim` wherever text sits on it. |
