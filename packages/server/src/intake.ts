@@ -441,7 +441,7 @@ export class Intake {
       if (hasData && c.display === "page" && !(c.data?.length) && !/useQuery|aurora\.data|onData/.test(code))
         problems.push({ itemId: it.id, severity: "warning", message: "this design reads none of the view's queries, so any figure in it is typed by hand", hint: 'list the queries it shows in "data" and read them with useQuery("name")' });
       if (c.display === "page" && view.params) {
-        const unset = Object.keys(view.params).filter((name) => !new RegExp(`(useParamState|setParam)\\(\\s*["'\`]${name}["'\`]`).test(code));
+        const unset = Object.keys(view.params).filter((name) => !new RegExp(`(useParamState|setParam)\\s*(<[^>()]*>)?\\s*\\(\\s*["'\`]${name}["'\`]`).test(code));
         if (unset.length) problems.push({ itemId: it.id, severity: "warning", message: `a page hides the filter row, and this design never sets ${unset.map((n) => `"${n}"`).join(", ")}, so the reader can't change ${unset.length > 1 ? "them" : "it"}`, hint: `draw a control for it: const [v, setV] = useParamState("${unset[0]}")` });
       }
     }

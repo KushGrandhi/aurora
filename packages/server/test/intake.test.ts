@@ -220,7 +220,7 @@ test("canvas first: a page design that never sets a param, and a design that rea
   const msgs = r.problems.map((p) => p.message).join("\n");
   expect(msgs).toContain("reads none of the view's queries");
   expect(msgs).toContain('never sets "cut"');
-  const ok = "import { useQuery, useParamState } from 'aurora/kit';\nexport default function App() { const rows = useQuery('q'); const [c, setC] = useParamState('cut'); return <button onClick={() => setC(2)}>{rows.length}</button>; }";
+  const ok = "import { useQuery, useParamState } from 'aurora/kit';\nexport default function App() { const rows = useQuery('q'); const [c, setC] = useParamState<number>('cut'); return <button onClick={() => setC(2)}>{rows.length}</button>; }";
   const r2 = await intake.render({ v: 2, id: "cf2", title: "T", datasets: { d: { inline: [{ v: 1 }] } }, queries: { q: { sql: "SELECT v FROM d WHERE v > $cut" } },
     params: { cut: { type: "number", label: "Cut", min: 0, max: 5 } },
     sections: [{ id: "s", layout: "grid", items: [{ id: "p", span: 12, c: { type: "design", framework: "react", display: "page", data: ["q"], files: { "App.tsx": ok } } }] }] } as never, "caller");
