@@ -11,3 +11,4 @@ export { useToken, readToken, onTheme } from "./tokens.ts";
 export { useFocus } from "./focus.ts";
 export { useStory, useParam } from "./story.ts";
 export { useScroll, useScrollStep, useScrub, span, type Scroll } from "./scroll.ts";
+export { Surface, type SurfaceProps } from "./Surface.tsx";
