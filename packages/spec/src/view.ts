@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { IdSchema, QuerySchema } from "./base.ts";
 import { ParamSchema } from "./params.ts";
+import { SURFACES } from "./surfaces.ts";
 import type { Spec } from "./spec.ts";
 import { stageProblem } from "./stage.ts";
 import { FontsSchema } from "./fonts.ts";
@@ -35,6 +36,8 @@ export const SectionSchema = z.looseObject({
   items: z.array(ViewItemSchema),
   /** The section's own ground, edge to edge, from the view's stage; its text, charts and designs follow it. */
   background: z.enum(["page", "surface", "ink", "accent"]).optional(),
+  /** A procedural surface over the section's ground: grain, paper, blueprint, dots, contour, halftone, thermal, clouds, iridescent. */
+  surface: z.union([z.enum(SURFACES), z.object({ kind: z.enum(SURFACES), seed: z.number().int().optional(), scale: z.number().min(0.25).max(4).optional(), strength: z.number().min(0.2).max(2).optional() })]).optional(),
   /** "screen": at least a full window tall, content centred (one huge number, one sentence). Not for story or reel. */
   height: z.enum(["screen"]).optional(),
   /** Story only: the visual "behind" the steps (full screen), "side" by side, or "split" half and half. */

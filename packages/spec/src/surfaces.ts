@@ -92,9 +92,9 @@ function valueNoise(seed: number) {
 }
 
 /** Isolines of a noise field (marching squares), as one SVG path of segments in a W×H box. */
-export function contourPath(seed: number, W = 96, H = 64, levels = 12, cell = 12.5): string {
+export function contourPath(seed: number, W = 160, H = 106, levels = 12, cell = 7.5): string {
   const n = valueNoise(seed);
-  const f = (x: number, y: number) => n(x / 16, y / 16) * 0.65 + n(x / 6 + 31, y / 6 + 17) * 0.35;
+  const f = (x: number, y: number) => n(x / 27, y / 27) * 0.65 + n(x / 10 + 31, y / 10 + 17) * 0.35;
   const v: number[][] = [];
   for (let y = 0; y <= H; y++) { const row: number[] = []; for (let x = 0; x <= W; x++) row.push(f(x, y)); v.push(row); }
   const p = (x: number, y: number) => `${Math.round(x * cell)} ${Math.round(y * cell)}`;

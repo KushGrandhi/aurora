@@ -618,3 +618,9 @@ html[data-capture] .topbar, html[data-capture] .status-row, html[data-capture] .
   .section-filters .filterbar { flex-wrap: nowrap; overflow-x: auto; }
   .app.immersive .section-filters { top: 48px; }
 }
+
+/* A section's surface: a static layer behind its content, edge to edge like its ground. */
+.section.has-surface { position: relative; isolation: isolate; }
+.section-surface { position: absolute; inset: 0 -100vmax; z-index: -1; pointer-events: none; }
+/* without a ground of its own, a surfaced section still spans edge to edge and touches its neighbours */
+.section.has-surface:not(.on-ground):not(.compact) { margin-top: 0; margin-bottom: 0; padding-top: 112px; padding-bottom: 112px; }

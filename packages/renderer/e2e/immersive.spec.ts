@@ -127,3 +127,24 @@ test("behind a story's steps, the visual's own controls stay clickable", async (
   const cardBg = await page.locator('[data-item="s1"] > *').first().evaluate((el) => getComputedStyle(el).backgroundColor);
   expect(ratio(await page.locator('[data-item="s1"]').evaluate((el) => getComputedStyle(el).color), cardBg)).toBeGreaterThanOrEqual(4.5);
 });
+
+test("a section can carry a surface: a static layer edge to edge, in its ground's colours", async ({ page, request }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/#sf1");
+  await expect(page.locator(".conn.up")).toBeVisible();
+  const view = { v: 2, id: "sf1", title: "T", sections: [
+    { id: "a", layout: "grid", surface: "contour", items: [{ id: "t", span: 12, c: { type: "text", md: "hello" } }] },
+    { id: "b", layout: "grid", background: "ink", surface: { kind: "blueprint", seed: 3 }, items: [{ id: "u", span: 12, c: { type: "text", md: "there" } }] },
+  ] };
+  expect((await request.post("/api/views", { data: { view } })).status()).toBe(200);
+  const a = page.locator('[data-section="a"] .section-surface');
+  await expect(a).toHaveAttribute("data-surface", "contour");
+  expect(await a.evaluate((el) => getComputedStyle(el).backgroundImage)).toContain("data:image/svg+xml");
+  // spans the window and no horizontal page scroll
+  const box = (await a.boundingBox())!;
+  expect(box.x).toBeLessThanOrEqual(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  // on the ink ground the lines are drawn in that ground's ink (light), not the page's
+  const b = await page.locator('[data-section="b"] .section-surface').evaluate((el) => getComputedStyle(el).backgroundImage);
+  expect(b).toMatch(/rgba\((2[0-9]{2}), (2[0-9]{2}), (2[0-9]{2})/);
+});

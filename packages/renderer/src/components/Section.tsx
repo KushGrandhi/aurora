@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import type { Item, Palette, Problem, Section as SectionT, ViewItem } from "@aurora/spec";
+import { surfaceStyle, type Item, type Palette, type Problem, type Section as SectionT, type Stage, type ViewItem } from "@aurora/spec";
 import { packRows } from "../layout.ts";
 import { ENTER_EASE, SPRING, enterDelay, shouldGlow } from "../motion.tsx";
 import type { RenderCtx, Theme } from "../registry.tsx";
@@ -26,6 +26,8 @@ export type SectionProps = {
   filters?: React.ReactNode;
   /** The section's own ground (its background): a stage re-derived on it, for its CSS and its items. */
   ground?: { theme: Theme; palette: Palette; vars: Record<string, string> };
+  /** The view's stage, for a surface on a section with no ground of its own. */
+  stage?: Stage;
 };
 
 /**
@@ -74,12 +76,20 @@ export function Section(props: SectionProps) {
     return { ...c, ...(g ? { theme: g.theme, mode: g.theme.stage.mode, palette: g.palette } : {}), ...(compact ? { compact: true } : {}) };
   };
   props = { ...props, ctxFor };
-  const cls = ["section", compact ? "compact" : "", number && number % 2 === 0 && !compact ? "band" : "", section.background ? `on-ground bg-${section.background}` : "", section.height === "screen" ? "screen" : ""].filter(Boolean).join(" ");
+  const cls = ["section", compact ? "compact" : "", number && number % 2 === 0 && !compact ? "band" : "", section.background ? `on-ground bg-${section.background}` : "", section.surface ? "has-surface" : "", section.height === "screen" ? "screen" : ""].filter(Boolean).join(" ");
   return (
     <motion.div layout="position" className={cls} data-section={section.id} data-theme-local={g ? g.theme.stage.mode : undefined} style={g?.vars as React.CSSProperties | undefined}>
+      {section.surface && (g?.theme.stage ?? props.stage) && <SectionSurface surface={section.surface} stage={g?.theme.stage ?? props.stage!} />}
       {props.filters && <div className="section-filters">{props.filters}</div>}
       {section.title && <h2 className="section-title">{section.title}</h2>}
       {section.layout === "tabs" ? <Tabs {...props} /> : section.layout === "story" ? <Story {...props} /> : section.layout === "reel" ? <Reel {...props} /> : <Grid {...props} />}
     </motion.div>
   );
+}
+
+/** A section's surface: a static layer edge to edge behind its content (kept quiet, since text sits on it). */
+function SectionSurface({ surface, stage }: { surface: NonNullable<SectionT["surface"]>; stage: Stage }) {
+  const o = typeof surface === "string" ? { kind: surface } : surface;
+  const css = surfaceStyle(o.kind, stage, { seed: o.seed, scale: o.scale, strength: (o.strength ?? 1) * 0.85 });
+  return <div className="section-surface" aria-hidden data-surface={o.kind} style={{ ...(css as React.CSSProperties), WebkitMaskImage: css.maskImage }} />;
 }
