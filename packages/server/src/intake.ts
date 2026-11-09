@@ -234,6 +234,8 @@ export class Intake {
       if (!def) return { problem: { severity: "error", message: `no param "${name}" in view "${viewId}"`, hint: "add it with addParam" } };
       const v = validateParamValue(name, def, value, r.options[name]);
       if (!v.ok) return { problem: { severity: "error", message: `param "${name}": ${v.message}` } };
+      // The value it already has: nothing to run and nothing to send (a design echoing params back can't loop).
+      if (JSON.stringify(r.params[name] ?? paramDefault(def)) === JSON.stringify(value)) return { ok: true as const };
       r.params[name] = value;
       const fresh = await this.runQueries(cur.view, this.dependents(cur.view, paramVars(name, def)), false);
       this.resolveOptions(cur.view);

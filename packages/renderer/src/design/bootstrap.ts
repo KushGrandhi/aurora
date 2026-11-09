@@ -93,6 +93,8 @@ export function auroraBootstrap(): void {
     target.progress = target.reduced ? Math.round(p * 4) / 4 : p;
     kick();
   }, { passive: true });
+  const pendingParams = new Map<string, unknown>();
+  let paramTimer: ReturnType<typeof setTimeout> | undefined;
   let windowStart = 0;
   let sentInWindow = 0;
   let warned = false;
@@ -142,6 +144,26 @@ export function auroraBootstrap(): void {
     onTheme(cb: Listener<"light" | "dark">) {
       themeListeners.add(cb);
       return () => themeListeners.delete(cb);
+    },
+    /**
+     * Change one of the view's params (a filter, a slider, the picked case): the queries that read it run again, every
+     * item in the view follows, and this design gets the new rows through onData. The same value does nothing; a
+     * stream of values (a slider) sends only the latest, at most every 100 ms.
+     */
+    setParam(name: string, value: unknown) {
+      if (typeof name !== "string" || !(name in (aurora.params ?? {}))) {
+        reportError(`aurora.setParam("${String(name)}"): the view has no param "${String(name)}"; add it to the view's params first`);
+        return;
+      }
+      if (JSON.stringify(aurora.params[name]) === JSON.stringify(value)) return;
+      aurora.params = { ...aurora.params, [name]: value };
+      for (const cb of paramListeners) cb(aurora.params);
+      pendingParams.set(name, value);
+      if (!paramTimer) paramTimer = setTimeout(() => {
+        paramTimer = undefined;
+        for (const [n, v] of pendingParams) post({ type: "setParam", name: n, value: v });
+        pendingParams.clear();
+      }, 100);
     },
     asset: (name: string): string | undefined => project.assets[name],
     send(name: string, payload?: unknown) {

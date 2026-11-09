@@ -7,6 +7,8 @@ export type FrameHandlers = {
   onLint?(warnings: string[]): void;
   /** The design pointed at something (linked focus), or let go (null). */
   onFocus?(value: string | null): void;
+  /** The design changed one of the view's params. */
+  onSetParam?(name: string, value: unknown): void;
 };
 
 const SEND_PER_SECOND = 20;
@@ -46,6 +48,12 @@ export function mountFrame(iframe: HTMLIFrameElement, srcdoc: string, h: FrameHa
     else if (m.type === "height" && typeof m.px === "number") h.onHeight(m.px);
     else if (m.type === "lint" && Array.isArray(m.warnings)) h.onLint?.(m.warnings.filter((w): w is string => typeof w === "string").slice(0, 8).map((w) => w.slice(0, 300)));
     else if (m.type === "focus" && ((m as { value?: unknown }).value === null || typeof (m as { value?: unknown }).value === "string")) h.onFocus?.((m as { value: string | null }).value?.slice(0, 200) ?? null);
+    else if (m.type === "setParam" && typeof m.name === "string") {
+      // Same budget as send: a raw postMessage loop can't flood the queries.
+      const now = Date.now();
+      if (now - windowStart > 1000) { windowStart = now; sentInWindow = 0; }
+      if (++sentInWindow <= SEND_PER_SECOND) h.onSetParam?.(m.name.slice(0, 64), (m as { value?: unknown }).value);
+    }
     else if (m.type === "send" && typeof m.name === "string") {
       // The frame's aurora.send limits itself; raw postMessage calls are limited here.
       const now = Date.now();

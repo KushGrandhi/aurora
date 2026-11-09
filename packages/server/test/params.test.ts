@@ -96,3 +96,12 @@ test("param values survive a new version while the param keeps its type", async 
   expect(intake.status("p").params.region).toBe("");
   expect(events.some((e) => e.t === "params")).toBe(true);
 });
+
+test("setting a param to the value it already has runs nothing and sends nothing (a design echoing params can't loop)", async () => {
+  const { intake, events } = setup();
+  await intake.render(view(), "caller");
+  await intake.setParam("p", "region", "East");
+  const before = events.length;
+  expect(await intake.setParam("p", "region", "East")).toEqual({ ok: true });
+  expect(events.length).toBe(before);
+});

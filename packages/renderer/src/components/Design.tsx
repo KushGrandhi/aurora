@@ -21,7 +21,7 @@ const heroHeight = () => Math.round(Math.max(420, window.innerHeight));
 function Frame({ spec, ready, on }: {
   spec: FrameSpec;
   ready: boolean;
-  on: React.RefObject<{ ready(id: number): void; error(id: number, m: string): void; navigate(id: number): void; height(id: number, px: number): void; send(name: string, p: unknown): void; stuck(id: number): void; lint(id: number, w: string[]): void; focus(v: string | null): void; register(id: number, c: Controller | undefined): void }>;
+  on: React.RefObject<{ ready(id: number): void; error(id: number, m: string): void; navigate(id: number): void; height(id: number, px: number): void; send(name: string, p: unknown): void; stuck(id: number): void; lint(id: number, w: string[]): void; focus(v: string | null): void; setParam(name: string, v: unknown): void; register(id: number, c: Controller | undefined): void }>;
 }) {
   const ref = useRef<HTMLIFrameElement>(null);
   useEffect(() => {
@@ -34,6 +34,7 @@ function Frame({ spec, ready, on }: {
       onNavigate: () => h().navigate(spec.id),
       onLint: (w) => h().lint(spec.id, w),
       onFocus: (v) => h().focus(v),
+      onSetParam: (name, v) => h().setParam(name, v),
     });
     h().register(spec.id, ctl);
     const timer = setTimeout(() => h().stuck(spec.id), STUCK_MS);
@@ -135,6 +136,13 @@ export default function Design({ c, ctx }: { c: DesignC | Custom; ctx: RenderCtx
     },
     focus(v: string | null) {
       latest.current.focus.set(v);
+    },
+    setParam(name: string, v: unknown) {
+      // only the view's own params, and only a change (the server drops repeats too)
+      const ctx = latest.current.ctx;
+      if (!ctx.paramDefs || !(name in ctx.paramDefs)) return;
+      if (JSON.stringify(ctx.params?.[name]) === JSON.stringify(v)) return;
+      ctx.setParam?.(name, v);
     },
     register(id: number, ctl: Controller | undefined) {
       if (ctl) ctl.setFocus(latest.current.focus.value);

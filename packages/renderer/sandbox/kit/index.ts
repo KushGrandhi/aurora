@@ -9,6 +9,6 @@ export { Reveal, Stagger, EASE } from "./Reveal.tsx";
 export { PhaseDial, Legend } from "./PhaseDial.tsx";
 export { useToken, readToken, onTheme } from "./tokens.ts";
 export { useFocus } from "./focus.ts";
-export { useStory, useParam } from "./story.ts";
+export { useStory, useParam, useParamState, setParam, useQuery } from "./story.ts";
 export { useScroll, useScrollStep, useScrub, span, type Scroll } from "./scroll.ts";
 export { Surface, type SurfaceProps } from "./Surface.tsx";
