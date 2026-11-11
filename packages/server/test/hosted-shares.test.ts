@@ -127,3 +127,25 @@ test("shareOutgoing passes only the pinned view's events", () => {
   expect(shareOutgoing("x1", { t: "activity", viewId: "x2", text: "" })).toBe(false);
   expect(shareOutgoing("x1", { t: "activity", viewId: "x1", text: "" })).toBe(true);
 });
+test("a torn shares.json isn't cached: once fixed, links resolve without a restart", async () => {
+  const { mkdir, writeFile } = await import("node:fs/promises");
+  await mkdir(wsDir, { recursive: true });
+  await writeFile(path.join(wsDir, "shares.json"), "{ torn");
+  const sh = new Shares(wsDir);
+  const err = console.error; console.error = () => {};
+  try {
+    await expect(sh.resolve(`${path.basename(wsDir)}_${"a".repeat(32)}`)).rejects.toThrow();
+  } finally { console.error = err; }
+  await writeFile(path.join(wsDir, "shares.json"), JSON.stringify({ x1: "a".repeat(32) }));
+  expect(await sh.resolve(`${path.basename(wsDir)}_${"a".repeat(32)}`)).toBe("x1");
+});
+test("a link to a view that no longer exists (pruned) doesn't work: 4401", async () => {
+  const { writeFile } = await import("node:fs/promises");
+  const s = await startHosted(); const a = await s.mint();
+  const ws = JSON.parse(Buffer.from(a.split(".")[1]!, "base64url").toString()).ws as string;
+  expect((await s.get("/api/views", a)).status).toBe(200); // the workspace exists
+  await writeFile(path.join(s.dataDir, "ws", ws, "shares.json"), JSON.stringify({ gone: "b".repeat(32) }));
+  const sock = await s.viewer(`${ws}_${"b".repeat(32)}`);
+  await expect.poll(() => sock.closedWith).toBe(4401);
+  expect(sock.events.some((e) => e.t === "view")).toBe(false);
+});

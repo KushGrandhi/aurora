@@ -12,7 +12,7 @@ export const TEST_INVITE = "test-invite";
 export type Hosted = Awaited<ReturnType<typeof startHosted>>;
 
 /** A hosted server on a free port with a temp data dir. `close()` stops it and removes the dir. */
-export async function startHosted(opts: { invite?: string; waitMs?: number; publicUrl?: string } = {}) {
+export async function startHosted(opts: { invite?: string; waitMs?: number; publicUrl?: string; staticDir?: string } = {}) {
   const dataDir = await mkdtemp(path.join(tmpdir(), "aurora-hosted-"));
   const invite = opts.invite ?? TEST_INVITE;
   const srv = await startServer({
@@ -21,6 +21,7 @@ export async function startHosted(opts: { invite?: string; waitMs?: number; publ
     openBrowser: () => {},
     waitMs: opts.waitMs ?? 20,
     fontsOffline: true,
+    staticDir: opts.staticDir,
     hosted: { secret: TEST_SECRET, publicUrl: opts.publicUrl ?? "https://aurora.test", dataDir, invite },
   });
   const base = srv.url;

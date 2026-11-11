@@ -38,7 +38,11 @@ test("hosted data is inline only: no files, no network", async () => {
 });
 test("off-switches, open health, body cap", async () => {
   const s = await startHosted(); const a = await s.mint();
-  expect((await s.fetch("/api/health", {})).status).toBe(200);
+  const health = await s.fetch("/api/health", {});
+  expect(health.status).toBe(200);
+  const h = await health.json();
+  expect(h).toMatchObject({ ok: true, hosted: true });
+  expect(h).not.toHaveProperty("provider"); // hosted mode has no composer, so no provider to report
   expect((await s.post("/api/watch", { dir: "/" }, a)).status).toBe(404);
   expect((await s.post("/api/render", { data: { inline: [{ a: 1 }] } }, a)).status).toBe(404);
   expect((await s.post("/api/views/x/look", {}, a)).status).toBe(404);

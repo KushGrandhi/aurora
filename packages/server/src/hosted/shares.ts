@@ -73,7 +73,16 @@ export class Shares {
   private load(): Promise<Map<string, string>> {
     this.links ??= readFile(this.file, "utf8").then(
       (s) => {
-        const raw = JSON.parse(s) as Record<string, unknown>;
+        let raw: Record<string, unknown>;
+        try {
+          raw = JSON.parse(s) as Record<string, unknown>;
+          if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("not an object");
+        } catch (e) {
+          // A torn or hand-edited file: not cached, so the next call reads it again (a fixed file works without a restart).
+          console.error(`aurora: ${this.file} could not be read: ${(e as Error).message}`);
+          this.links = undefined;
+          throw e;
+        }
         return new Map(Object.entries(raw).filter((kv): kv is [string, string] => typeof kv[1] === "string" && /^[0-9a-f]{32}$/.test(kv[1])));
       },
       (e: NodeJS.ErrnoException) => {

@@ -92,6 +92,7 @@ export function App() {
   // A bare address (or #/views) is the list of every view; #<id> is that view, on the whole screen.
   const onViews = !SHARE && (!picked || picked === "/views");
   const [dead, setDead] = useState(false); // share mode: the link is unknown or was rotated
+  const [hostedHome, setHostedHome] = useState(false); // a hosted server opened without a share link
   const [listed, setListed] = useState(false); // the server has sent the list of views
   const [preview, setPreview] = useState<{ viewId: string; version: number; view: View }>();
   const [opened, setOpened] = useState<string>(); // design item opened as the whole screen
@@ -119,7 +120,7 @@ export function App() {
   }, [send]);
 
   useEffect(() => {
-    conn.current = connect(onEvent, setUp, CAPTURE ? "capture" : undefined, SHARE !== undefined ? { token: SHARE, onDead: () => setDead(true) } : undefined);
+    conn.current = connect(onEvent, setUp, CAPTURE ? "capture" : undefined, SHARE !== undefined ? { token: SHARE, onDead: () => setDead(true) } : undefined, () => setHostedHome(true));
     return () => conn.current?.close();
   }, [onEvent]);
   useEffect(() => {
@@ -288,6 +289,11 @@ export function App() {
       <div className="app"><main><div className="page"><div className="empty" data-dead-link>
         <div className="big">This link doesn't work</div>
         <p>It may have been replaced with a new one. Ask whoever shared it for the current link.</p>
+      </div></div></main></div>
+    ) : hostedHome ? (
+      <div className="app"><main><div className="page"><div className="empty" data-hosted-home>
+        <div className="big">This aurora is hosted</div>
+        <p>Connect your harness with a workspace key (see deploy/README.md), and open views by their share links.</p>
       </div></div></main></div>
     ) : onViews ? (
       <ViewsPage list={list} activity={state.activity} currentId={currentId} up={up} ago={ago}

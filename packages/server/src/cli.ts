@@ -103,6 +103,11 @@ async function writeSkill(argv: string[]) {
   console.log(`wrote ${dir}`);
 }
 
+// A backstop: a promise nobody awaited must not take the server down. Only the error is logged, never a request.
+process.on("unhandledRejection", (e) => {
+  console.error("aurora: unhandled rejection:", e instanceof Error ? (e.stack ?? e.message) : String(e));
+});
+
 const [cmd, ...rest] = process.argv.slice(2);
 try {
   if (cmd === "serve") await serve();

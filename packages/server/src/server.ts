@@ -235,7 +235,12 @@ export async function startServer(opts: ServerOpts) {
 
   async function serveStatic(req: IncomingMessage, res: ServerResponse) {
     if (!opts.staticDir) return json(res, 404, { error: "renderer not built" });
-    const urlPath = decodeURIComponent(new URL(req.url ?? "/", base).pathname);
+    let urlPath: string;
+    try {
+      urlPath = decodeURIComponent(new URL(req.url ?? "/", base).pathname);
+    } catch {
+      return json(res, 400, { error: "bad request path" });
+    }
     let file = path.join(opts.staticDir, path.normalize(urlPath).replace(/^(\.\.[/\\])+/, ""));
     if (!file.startsWith(opts.staticDir)) return json(res, 403, { error: "forbidden" });
     try {
@@ -374,7 +379,7 @@ export async function startServer(opts: ServerOpts) {
    */
   async function hostedApi(h: HostedConfig, t: Tenants, req: IncomingMessage, url: URL): Promise<[number, unknown]> {
     const p = url.pathname;
-    if (p === "/api/health") return [200, { ok: true, provider: opts.provider.name, hosted: true }];
+    if (p === "/api/health") return [200, { ok: true, hosted: true }];
     if (p === "/api/keys") {
       if (req.method !== "POST") throw new HttpError(404, "not found");
       const b = await jsonBody(req, maxBody);
@@ -406,6 +411,16 @@ export async function startServer(opts: ServerOpts) {
   }
 
   const server = createServer(async (req, res) => {
+    // Nothing a request sends may take the process down: a malformed target or path answers 400, anything else 500.
+    try {
+      await handle(req, res);
+    } catch (e) {
+      if (!res.headersSent) answerError(req, res, e);
+      else res.destroy();
+    }
+  });
+
+  async function handle(req: IncomingMessage, res: ServerResponse) {
     // Local mode: only local pages may drive the server. Hosted: identity is the bearer key (API) or a share token (sockets).
     if (!hosted && !allowed(req) && !sandboxRead(req)) return json(res, 403, { error: "forbidden origin" });
     const raw = req.url ?? "/";
@@ -417,7 +432,12 @@ export async function startServer(opts: ServerOpts) {
     }
     if (raw.startsWith("/lib/fonts/family/") || raw.startsWith("/lib/fonts/g/")) return serveFont(raw, res);
     if (raw.startsWith("/lib/")) return serveLib(raw, res);
-    const url = new URL(raw, base);
+    let url: URL;
+    try {
+      url = new URL(raw, base);
+    } catch {
+      throw new HttpError(400, "bad request target");
+    }
     if (hosted && url.pathname === "/mcp") {
       // Stateless Streamable HTTP: POST only, so no standalone SSE stream (GET) or session (DELETE) ever exists.
       if (req.method !== "POST") {
@@ -442,7 +462,7 @@ export async function startServer(opts: ServerOpts) {
     } catch (e) {
       answerError(req, res, e);
     }
-  });
+  }
 
   // Hosted: a socket's only identity is a share token, resolved (tenant and view) before the upgrade completes, so
   // the connection handler can attach synchronously. An unknown link still opens, then closes with 4401, so the
@@ -455,7 +475,8 @@ export async function startServer(opts: ServerOpts) {
     if (!(await stat(tenants.dir(ws)).then((st) => st.isDirectory(), () => false))) return null;
     const c = await tenants.get(ws);
     const viewId = await c.shares!.resolve(token);
-    return viewId ? { core: c, viewId, token } : null;
+    // A link to a view that no longer exists (pruned) is as unknown as a wrong one.
+    return viewId && c.store.current(viewId) ? { core: c, viewId, token } : null;
   }
   /** The token of `/ws?share=<token>`, and only that form (no other query parameters). */
   function shareToken(req: IncomingMessage): string | null {

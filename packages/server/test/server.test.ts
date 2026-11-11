@@ -90,7 +90,9 @@ test("bad body returns 400", async () => {
 
 test("health endpoint", async () => {
   srv = await startServer({ viewsDir: await mkdtemp(path.join(tmpdir(), "aurora-srv-")), waitMs: 10, port: 0, provider: createFakeProvider(doc), openBrowser: () => {} });
-  expect((await fetch(srv.url + "/api/health")).status).toBe(200);
+  const r = await fetch(srv.url + "/api/health");
+  expect(r.status).toBe(200);
+  expect((await r.json()).provider).toBeTruthy(); // local mode still reports its provider
 });
 
 test("loadConfig defaults to the Claude Code subscription, with env overrides", async () => {

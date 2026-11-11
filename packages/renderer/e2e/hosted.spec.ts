@@ -55,3 +55,14 @@ test("hosted: a harness renders through /mcp; the share link draws it in a brows
   const other = await request.get("/api/views/e2e_mcp/status", { headers: { authorization: `Bearer ${keyB}` } });
   expect(other.status()).toBe(404);
 });
+
+test("the bare address of a hosted server explains itself instead of retrying", async ({ page }) => {
+  const sockets: string[] = [];
+  page.on("websocket", (ws) => sockets.push(ws.url()));
+  await page.goto("/");
+  await expect(page.locator("[data-hosted-home]")).toContainText("This aurora is hosted");
+  await expect(page.locator("[data-hosted-home]")).toContainText("Connect your harness with a workspace key (see deploy/README.md), and open views by their share links.");
+  const n = sockets.length;
+  await page.waitForTimeout(1500);
+  expect(sockets.length).toBe(n); // no more attempts
+});
