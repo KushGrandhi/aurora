@@ -11,11 +11,12 @@ export function newWorkspaceId(): string {
 
 /** Stateless workspace key: an HS256 JWT whose `ws` claim names the workspace. */
 export function mintKey(secret: string, ws: string = newWorkspaceId()): string {
-  const input = `${b64(JSON.stringify({ alg: "HS256", typ: "JWT" }))}.${b64(JSON.stringify({ ws }))}`;
+  const input = `${b64(JSON.stringify({ alg: "HS256", typ: "JWT" }))}.${b64(JSON.stringify({ ws, iat: Math.floor(Date.now() / 1000) }))}`;
   return `${input}.${b64(sign(secret, input))}`;
 }
 
 export function verifyKey(secret: string, token: string): { ws: string } | null {
+  if (typeof token !== "string") return null;
   const parts = token.split(".");
   if (parts.length !== 3) return null;
   const [h, p, s] = parts as [string, string, string];

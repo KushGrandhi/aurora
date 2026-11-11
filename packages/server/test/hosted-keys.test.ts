@@ -10,6 +10,9 @@ test("keys verify to their workspace; tampered or foreign-secret ones don't", ()
   expect(verifyKey(S + "x", k)).toBeNull();
   expect(verifyKey(S, k.slice(0, -2) + "aa")).toBeNull();
   expect(verifyKey(S, "not.a.jwt")).toBeNull();
+  expect(verifyKey(S, undefined as never)).toBeNull();
+  expect(verifyKey(S, "")).toBeNull();
+  expect(JSON.parse(Buffer.from(k.split(".")[1]!, "base64url").toString()).iat).toEqual(expect.any(Number));
   expect(newWorkspaceId()).toMatch(/^[a-z0-9]{16}$/);
 });
 test("hosted config: off by default; requires secret, public url and invite", () => {
