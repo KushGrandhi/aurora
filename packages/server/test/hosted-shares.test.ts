@@ -104,6 +104,24 @@ test("a share socket's params are shared; it can't set another view's", async ()
   await expect.poll(async () => (await (await s.get("/api/views/x1/status", a)).json()).params.n).toBe("b");
   expect((await (await s.get("/api/views/other/status", a)).json()).params.n).toBe("a");
 });
+test("viewer messages that would change a view on a local screen change nothing", async () => {
+  const s = await startHosted(); const a = await s.mint();
+  const { url } = await (await s.post("/api/views", { view: v("x1") }, a)).json();
+  const sock = await s.viewer(tokenOf(url));
+  await sock.until((e) => e.t === "view");
+  sock.send({ t: "rendered", viewId: "x1", version: 1, ok: [], failed: [{ itemId: "t", message: "fake" }], warnings: [{ itemId: "t", message: "fake warning" }] });
+  await s.post("/api/views/x1/patch", { ops: [{ op: "set", title: "two" }] }, a);
+  await sock.until((e) => e.t === "patch" && e.version === 2);
+  sock.send({ t: "rendered", viewId: "x1", version: 2, ok: [], failed: [{ itemId: "t", message: "fake" }], warnings: [{ itemId: "t", message: "fake warning" }] });
+  sock.send({ t: "revertItem", viewId: "x1", itemId: "t", version: 1 });
+  sock.send({ t: "pick", viewId: "x1", version: 1 });
+  sock.send({ t: "event", viewId: "x1", itemId: "t", name: "click", payload: { x: 1 } });
+  await sleep(300);
+  const st = await (await s.get("/api/views/x1/status", a)).json();
+  expect(st.version).toBe(2);
+  expect(JSON.stringify(st.problems)).not.toContain("fake");
+  expect(st.events.count).toBe(0);
+});
 test("shareOutgoing passes only the pinned view's events", () => {
   expect(shareOutgoing("x1", { t: "list", views: [] })).toBe(false);
   expect(shareOutgoing("x1", { t: "activity", viewId: "x2", text: "" })).toBe(false);
