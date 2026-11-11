@@ -11,13 +11,13 @@ import path from "node:path";
 import { WebSocketServer, type WebSocket } from "ws";
 import { z } from "zod";
 import { compose, SpecCache, type DataInput, type LlmProvider } from "@aurora/engine";
-import { PatchOpSchema, type ScreenMessage, type ViewEvent } from "@aurora/spec";
+import { PatchOpSchema, type ScreenMessage } from "@aurora/spec";
 import { createComposeAdapter } from "./composeAdapter.ts";
 import { galleryView } from "./gallery.ts";
-import { DataRuntime } from "./dataRuntime.ts";
-import { Intake, IntakeError } from "./intake.ts";
+import { createCore, send, type Core } from "./core.ts";
+import { IntakeError } from "./intake.ts";
 import { MediaRegistry } from "./media.ts";
-import { defaultViewsDir, ViewStore } from "./viewStore.ts";
+import { defaultViewsDir } from "./viewStore.ts";
 import { ViewFileWatcher } from "./watcher.ts";
 
 export type ServerOpts = {
@@ -121,41 +121,26 @@ function parse<T>(schema: z.ZodType<T>, body: unknown): T {
 export async function startServer(opts: ServerOpts) {
   const cache = new SpecCache();
   const open = opts.openBrowser ?? defaultOpen;
-  const clients = new Set<WebSocket>();
-  const captures = new Set<WebSocket>(); // headless capture pages (look): they get every event but are never "the screen"
   let base = "";
-  const viewsDir = opts.viewsDir ?? defaultViewsDir();
-  const store = new ViewStore(viewsDir);
-  await store.load();
-  await store.prune();
-  const data = new DataRuntime({ inlineDir: viewsDir });
+  // Shared across cores: fonts, media tokens and the headless browser for look.
   const media = new MediaRegistry({ secretFile: opts.secretFile ?? path.join(homedir(), ".aurora", "secret") });
-
-  const send = (ws: WebSocket, e: ViewEvent) => {
-    if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(e));
-  };
-  const broadcast = (e: ViewEvent) => {
-    for (const c of clients) send(c, e);
-    for (const c of captures) send(c, e);
-  };
   const fonts = new FontStore({ dir: opts.fontsDir ?? path.join(homedir(), ".aurora", "fonts"), libDir: opts.staticDir ? path.join(opts.staticDir, "lib") : undefined, offline: opts.fontsOffline });
   const looker = new Looker({ base: () => base, dir: opts.shotsDir ?? path.join(homedir(), ".aurora", "shots") });
-  const intake = new Intake({
-    store, data, emit: broadcast, baseUrl: () => base, screens: () => clients.size, openScreen: open, waitMs: opts.waitMs, media, fonts,
-  });
+  // Local mode: exactly one core, in today's views folder.
+  const core = await createCore({ ws: "local", dir: opts.viewsDir ?? defaultViewsDir(), media, fonts, open, baseUrl: () => base, waitMs: opts.waitMs });
 
-  const watcher = new ViewFileWatcher(intake);
+  const watcher = new ViewFileWatcher(core.intake);
   // A rebuilt screen (vite build) replaces the dist folder: tell open screens, so ones on the old build reload.
   let lastBuild = screenBuild();
   const buildCheck = setInterval(() => {
     const b = screenBuild();
-    if (b !== lastBuild) broadcast({ t: "hello", build: b });
+    if (b !== lastBuild) core.broadcast({ t: "hello", build: b });
     lastBuild = b;
   }, 1000);
   buildCheck.unref();
 
   /** Plan 1 entry: the built-in composer streams into a v2 view through the same intake. */
-  function startCompose(input: DataInput | Record<string, DataInput>, intent: string | undefined): string {
+  function startCompose({ intake }: Core, input: DataInput | Record<string, DataInput>, intent: string | undefined): string {
     const viewId = `r_${randomUUID().slice(0, 8)}`;
     const adapt = createComposeAdapter(viewId, input);
     intake.ensureScreen(viewId);
@@ -248,7 +233,8 @@ export async function startServer(opts: ServerOpts) {
     }
   }
 
-  async function api(req: IncomingMessage, url: URL): Promise<[number, unknown]> {
+  async function api(core: Core, req: IncomingMessage, url: URL): Promise<[number, unknown]> {
+    const { store, data, intake, clients } = core;
     const method = req.method ?? "GET";
     let body: unknown;
     if (method === "POST") {
@@ -283,7 +269,7 @@ export async function startServer(opts: ServerOpts) {
       const b = body as { data?: unknown; intent?: unknown };
       if (!validData(b?.data)) throw new HttpError(400, "body.data must be a path, {path}, {inline:[...]}, or a map of those");
       if (b.intent !== undefined && typeof b.intent !== "string") throw new HttpError(400, "intent must be a string");
-      const viewId = startCompose(b.data, b.intent);
+      const viewId = startCompose(core, b.data, b.intent);
       return [202, { renderId: viewId, url: intake.url(viewId) }];
     }
     const vm = p.match(/^\/api\/views\/([A-Za-z_]\w*)\/versions\/(\d+)$/);
@@ -359,7 +345,7 @@ export async function startServer(opts: ServerOpts) {
     const url = new URL(raw, base);
     if (!url.pathname.startsWith("/api/")) return serveStatic(req, res);
     try {
-      const [status, out] = await api(req, url);
+      const [status, out] = await api(core, req, url);
       json(res, status, out);
     } catch (e) {
       const status = e instanceof HttpError || e instanceof IntakeError ? e.status : 500;
@@ -369,7 +355,9 @@ export async function startServer(opts: ServerOpts) {
 
   // Screens send small reports and events; a 1 MB cap keeps one bad message from tying the server up.
   const wss = new WebSocketServer({ server, path: "/ws", maxPayload: 1024 * 1024, verifyClient: ({ req }: { req: IncomingMessage }) => allowed(req) });
-  wss.on("connection", (ws, req: IncomingMessage) => {
+  wss.on("connection", (ws, req: IncomingMessage) => screen(core, ws, req));
+
+  function screen({ store, intake, clients, captures }: Core, ws: WebSocket, req: IncomingMessage) {
     const capture = new URL(req.url ?? "/", "http://x").searchParams.get("role") === "capture";
     const set = capture ? captures : clients;
     set.add(ws);
@@ -400,24 +388,24 @@ export async function startServer(opts: ServerOpts) {
         for (const e of intake.snapshot(v.id)) send(ws, e);
       }
     })();
-  });
+  }
 
   await new Promise<void>((r) => server.listen(opts.port, "127.0.0.1", r));
   base = `http://localhost:${(server.address() as AddressInfo).port}`;
 
   return {
     url: base,
-    intake,
-    store,
+    intake: core.intake,
+    store: core.store,
     async close() {
       watcher.close();
       clearInterval(buildCheck);
-      for (const c of clients) c.terminate();
-      for (const c of captures) c.terminate();
+      for (const c of core.clients) c.terminate();
+      for (const c of core.captures) c.terminate();
       await looker.close();
       wss.close();
       await new Promise<void>((r) => server.close(() => r()));
-      await data.closeAll();
+      await core.close();
     },
   };
 }
