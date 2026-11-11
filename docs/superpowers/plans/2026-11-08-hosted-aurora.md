@@ -1,99 +1,95 @@
-# Hosted aurora Implementation Plan
+# Hosted aurora MVP Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Run aurora on Kush's domain as a basic hosted service any MCP harness can connect to with a bearer key, sharing views by link, with local mode unchanged.
+**Goal:** The smallest hosted aurora on Kush's domain that does two things: anyone with an invite can connect their Claude (or any MCP harness) to it, and anyone can share a view they made by link. Local mode unchanged.
 
-**Architecture:** A hosted mode (`AURORA_MODE=hosted`) in the existing server. Each workspace key (a stateless JWT) maps to a tenant: its own `ViewStore`, `DataRuntime` and `Intake` in its own folder, built by the same factory local mode uses for its single core; shared services (fonts, media, screenshots) take the workspace explicitly. Fences (auth, body caps, data confinement, DuckDB limits) land before anything is exposed. MCP gains a stateless Streamable HTTP endpoint at `/mcp`; viewers open view-only share links `/v/<token>` on sockets pinned to one view; the server verifies views through signed headless captures.
+**Architecture:** A hosted mode (`AURORA_MODE=hosted`) in the existing server. A workspace key (stateless JWT, sent as a bearer token) maps to a tenant: its own `ViewStore`, `DataRuntime` and `Intake` in its own folder, built by the factory local mode uses for its single core. MCP gains a stateless Streamable HTTP endpoint at `/mcp`; a view's share link `/v/<token>` opens it read-only on a socket pinned to that one view. Hosted data is inline only.
 
-**Tech Stack:** Node 22, TypeScript, `@modelcontextprotocol/sdk` 1.32.2 (`StreamableHTTPServerTransport`, stateless), `ws`, DuckDB (`@duckdb/node-api`), playwright-core + Chromium, vitest, Playwright, Docker, Caddy.
+**Tech Stack:** Node 22, TypeScript, `@modelcontextprotocol/sdk` 1.32.2 (`StreamableHTTPServerTransport`, stateless), `ws`, DuckDB, vitest, Playwright, Docker, Caddy.
 
-**Spec:** `docs/superpowers/specs/2026-11-08-hosted-aurora-design.md` (amended by this plan's Global Constraints where they differ; the discriminator review of 2026-11-10 is folded in)
+**Spec:** `docs/superpowers/specs/2026-11-08-hosted-aurora-design.md` (its "MVP scope" section governs; Kush cut scope to the two goals on 2026-11-10)
 
 ## Global Constraints
 
 - Local mode (no `AURORA_MODE`) behaves exactly as today: every existing unit and browser test passes unchanged.
-- Hosted env: `AURORA_MODE=hosted`; `AURORA_SECRET` (≥ 32 chars), `AURORA_PUBLIC_URL`, `AURORA_INVITE` all **required**; `AURORA_DATA_DIR` (default `/data`); `AURORA_TRUSTED_PROXY` (default `127.0.0.1,::1,172.16.0.0/12`).
-- Hosted mode listens on `0.0.0.0`; identity comes only from the bearer key or a signed token, never from Host or source address.
-- Workspace id: 16 chars `[a-z0-9]`. Key: JWT HS256 `{ws, iat}` with node `crypto`, `timingSafeEqual`. Keys travel only as `Authorization: Bearer <key>`; never from a query string; never logged.
-- Signed short tokens (capture, upload): HMAC of `{ws, purpose, viewId?, name?, exp}` with `AURORA_SECRET`; capture 2 min, upload 10 min.
-- Share token: `<wsId>_<32 lowercase hex>`; view-only; rotating it closes sockets already open on the old one.
-- Body caps (read with early abort, before route/auth work): 64 KB for `/api/keys`, 4 MB for views/patches/MCP, uploads streamed with abort at 25 MB.
-- Minting: invite required; 5 per client IP per hour (client IP = left-most `X-Forwarded-For` only when the socket peer is a trusted proxy); 50 per hour globally; 500 workspaces total.
-- Workspace disk quota: 200 MB for the whole workspace folder (views, versions, inline data, uploads, shots), checked before any write.
-- DuckDB per instance, set before `lock_configuration`: `memory_limit='256MB'`, `threads=2`, `max_temp_directory_size='256MB'`; a query running past 10 s is interrupted (`conn.interrupt()`); at most 8 open instances per tenant (least recently used closed).
-- Hosted data: no `http(s)` datasets; paths resolve against and must stay inside the workspace folder (after `realpath`); the same for `/api/profile` and media.
-- Share sockets: pinned to one view (only that view's events; no `list`; `sync` only for that view; `rendered`, `revertItem`, `pickVariant`, `event` ignored); 20 messages/s per socket; 50 sockets per view; 20 per client IP.
-- Look gate: concurrency 2, queue 8, 30 looks per workspace per hour, cache by view version + options; 503 + `Retry-After` when busy; 429 over the limit. Shots live in `<ws>/shots`.
-- Off in hosted mode: the composer (`/api/render` with `data`, MCP `compose`), `/api/watch` (404) and the MCP's call to it, opening a browser, `variants` and `events` tools. `/api/health` stays unauthenticated.
+- Hosted env (all required except the data dir): `AURORA_MODE=hosted`, `AURORA_SECRET` (≥ 32 chars), `AURORA_PUBLIC_URL`, `AURORA_INVITE`, `AURORA_DATA_DIR` (default `/data`).
+- Hosted mode listens on `0.0.0.0`; identity comes only from the bearer key or a share token, never from Host or source address.
+- Workspace id: 16 chars `[a-z0-9]`. Key: JWT HS256 `{ws, iat}` with node `crypto` and `timingSafeEqual`; sent only as `Authorization: Bearer <key>`; never from a query string; never logged.
+- `POST /api/keys {invite}` → `{key, ws}`; wrong or missing invite → 403. Revoking everyone = rotating `AURORA_SECRET`.
+- Share token: `<wsId>_<32 lowercase hex>`, view-only, one per view, minted on first render; `POST /api/views/:id/share {rotate: true}` replaces it and closes sockets on the old one (close code 4401).
+- Share sockets: pinned to one view (only that view's events; no `list`; `sync` only for that view; `rendered`, `revertItem`, `pickVariant`, `event` ignored). `param` messages are allowed and shared, as in local mode (known gap: viewers move each other's filters).
+- Request bodies capped at 4 MB in hosted mode (413, read with early abort).
+- Hosted data: inline datasets only. A path or `http(s)` dataset, `/api/profile` and local media paths → a problem saying hosted aurora takes inline data; nothing read or fetched. Media: `http(s)` URLs only.
+- Off in hosted mode (404 or tool absent): the composer (`/api/render` with `data`, MCP `compose`), `/api/watch` and the MCP's call to it, `look`, `variants`, `events`, opening a browser. `/api/health` stays open.
+- Render/patch/status results in hosted mode include `url: <AURORA_PUBLIC_URL>/v/<share token>` and don't wait for a screen.
+
+## Known gaps (deliberately out of this MVP)
+
+Uploads; per-viewer filter state; `look` on hosted; a screenshot queue; DuckDB memory/thread/time limits; workspace disk quota; mint rate limits; a deny-list for one key; OAuth for Claude.ai web connectors. Safe enough while invite-only; each is a later task.
 
 ## Review Focus
 
-1. A key from workspace A on workspace B's view (render, patch, status, look, share, media) → 404, never data. Pinned in Task 3.
-2. A dataset, profile or media path outside the workspace (`/etc/passwd`, `../x`, a symlink, `http://169.254.169.254/`) → a problem naming uploads, nothing read or fetched. Pinned in Task 4.
-3. A share socket ever receiving another view's events or the workspace list, or still receiving after rotation. Pinned in Task 5.
-4. An anonymous client sending a huge body, many mints or a flood of socket messages → refused early, the box stays responsive. Pinned in Tasks 3 and 5.
-5. The author patching a view while viewers have moved its filters → viewers keep their values and see the new version. Pinned in Task 8.
+1. A key from workspace A on workspace B's view (status, patch, share) → 404, never data. Pinned in Task 3.
+2. A dataset path (`/etc/passwd`, `../x`) or `http://169.254.169.254/` in hosted mode → a problem, nothing read or fetched. Pinned in Task 3.
+3. A share socket receiving another view's events or the workspace list, or still receiving after rotation. Pinned in Task 4.
+4. A share viewer's `rendered` report changing the author's problems or verification. Pinned in Task 4.
+5. An MCP `GET /mcp` (SSE) left open forever, or a stateless transport reused across requests. Pinned in Task 5.
 
 ---
 
-### Task 1: Hosted config, workspace keys and signed short tokens
+### Task 1: Hosted config and workspace keys
 
 **Files:** Create `packages/server/src/hosted/config.ts`, `packages/server/src/hosted/keys.ts`; Test `packages/server/test/hosted-keys.test.ts`
 
 **Interfaces:**
-- Produces: `type HostedConfig = { secret: string; publicUrl: string; dataDir: string; invite: string; trustedProxies: string[] }`; `loadHostedConfig(env): HostedConfig | undefined` (undefined unless hosted; throws naming the missing variable); `newWorkspaceId(): string`; `mintKey(secret, ws?): string`; `verifyKey(secret, token, denied?: ReadonlySet<string>): { ws: string } | null`; `signToken(secret, claims: { ws: string; purpose: "capture" | "upload"; viewId?: string; name?: string }, ttlSec: number): string`; `verifyToken(secret, token, purpose): { ws: string; viewId?: string; name?: string } | null` (null when expired, tampered or the wrong purpose).
+- Produces: `type HostedConfig = { secret: string; publicUrl: string; dataDir: string; invite: string }`; `loadHostedConfig(env: Record<string, string | undefined>): HostedConfig | undefined` (undefined unless `AURORA_MODE=hosted`; throws naming the missing variable or a short secret); `newWorkspaceId(): string`; `mintKey(secret: string, ws?: string): string`; `verifyKey(secret: string, token: string): { ws: string } | null`.
 
 - [ ] **Step 1: Write the failing tests**
 
 ```ts
-test("keys verify to their workspace; tampered, foreign-secret or denied ones don't", () => {
+test("keys verify to their workspace; tampered or foreign-secret ones don't", () => {
   const k = mintKey(S, "abcdefgh12345678");
   expect(verifyKey(S, k)).toEqual({ ws: "abcdefgh12345678" });
   expect(verifyKey(S + "x", k)).toBeNull();
   expect(verifyKey(S, k.slice(0, -2) + "aa")).toBeNull();
   expect(verifyKey(S, "not.a.jwt")).toBeNull();
-  expect(verifyKey(S, k, new Set(["abcdefgh12345678"]))).toBeNull();
+  expect(newWorkspaceId()).toMatch(/^[a-z0-9]{16}$/);
 });
-test("short tokens carry a purpose and expire", async () => {
-  const t = signToken(S, { ws: "abcdefgh12345678", purpose: "capture", viewId: "v1" }, 1);
-  expect(verifyToken(S, t, "capture")).toEqual({ ws: "abcdefgh12345678", viewId: "v1" });
-  expect(verifyToken(S, t, "upload")).toBeNull();
-  await new Promise((r) => setTimeout(r, 1100));
-  expect(verifyToken(S, t, "capture")).toBeNull();
-});
-test("hosted config requires secret, public url and invite", () => {
+test("hosted config: off by default; requires secret, public url and invite", () => {
   expect(loadHostedConfig({})).toBeUndefined();
   expect(() => loadHostedConfig({ AURORA_MODE: "hosted", AURORA_SECRET: S, AURORA_PUBLIC_URL: "https://a.example" })).toThrow(/AURORA_INVITE/);
+  expect(() => loadHostedConfig({ AURORA_MODE: "hosted", AURORA_SECRET: "short", AURORA_PUBLIC_URL: "https://a.example", AURORA_INVITE: "i" })).toThrow(/AURORA_SECRET/);
+  expect(loadHostedConfig({ AURORA_MODE: "hosted", AURORA_SECRET: S, AURORA_PUBLIC_URL: "https://a.example", AURORA_INVITE: "i" })).toEqual({ secret: S, publicUrl: "https://a.example", dataDir: "/data", invite: "i" });
 });
 ```
+(`S` = a 40-char test secret.)
 
 - [ ] **Step 2:** `npx vitest run packages/server/test/hosted-keys.test.ts` → FAIL
-- [ ] **Step 3:** Implement (base64url JSON + HMAC-SHA256; `alg` must be `HS256`).
+- [ ] **Step 3:** Implement (base64url JSON header/payload, HMAC-SHA256; header `alg` must be `HS256`).
 - [ ] **Step 4:** Run → PASS
-- [ ] **Step 5:** Commit `feat(hosted): config, workspace keys and signed short tokens`
+- [ ] **Step 5:** Commit `feat(hosted): config and workspace keys`
 
 ### Task 2: One core per workspace (refactor, no behaviour change)
 
-**Files:** Create `packages/server/src/core.ts`, `packages/server/src/hosted/tenants.ts`; Modify `packages/server/src/server.ts:121-160` (construction moves into `createCore`; handlers take a `Core`), `packages/server/src/media.ts` (`register(path, root?, ws?)`), `packages/server/src/look.ts` (`look(ws, viewId, version, opts)` with shots under `dirFor(ws)`; local ws = `"local"` keeps today's folder); Test `packages/server/test/tenants.test.ts`; all existing tests unchanged
+**Files:** Create `packages/server/src/core.ts`, `packages/server/src/hosted/tenants.ts`; Modify `packages/server/src/server.ts:121-160` (construction moves into `createCore`; route handlers and the WebSocket server take a `Core`); Test `packages/server/test/tenants.test.ts`; all existing tests unchanged
 
 **Interfaces:**
-- Produces: `type Core = { ws: string; dir: string; store: ViewStore; data: DataRuntime; intake: Intake; clients: Set<WebSocket>; captures: Set<WebSocket>; broadcast(e: ViewEvent): void; hold(): () => void; close(): Promise<void> }` (`hold` counts a live socket, long-poll or look; eviction waits for zero); `createCore(opts: { ws: string; dir: string; viewsDir: string; media: MediaRegistry; fonts: FontStore; open: (url: string) => void; baseUrl: () => string; waitMs?: number; dataRoot?: string; duck?: DuckLimits }): Promise<Core>`; `class Tenants { constructor(opts: { dataDir: string; make: (ws: string, dir: string) => Promise<Core>; maxLive?: number /*50*/; idleMs?: number /*30 min*/ }); get(ws): Promise<Core>; dir(ws): string; closeAll(): Promise<void> }`.
+- Produces: `type Core = { ws: string; dir: string; store: ViewStore; data: DataRuntime; intake: Intake; clients: Set<WebSocket>; captures: Set<WebSocket>; broadcast(e: ViewEvent): void; close(): Promise<void> }`; `createCore(opts: { ws: string; dir: string; media: MediaRegistry; fonts: FontStore; open: (url: string) => void; baseUrl: () => string; waitMs?: number; hosted?: boolean }): Promise<Core>` (local: `ws: "local"`, `dir` = today's views dir); `class Tenants { constructor(opts: { dataDir: string; make: (ws: string, dir: string) => Promise<Core> }); get(ws: string): Promise<Core>; dir(ws: string): string; closeAll(): Promise<void> }` (cores live for the process; no eviction in the MVP).
 
-- [ ] **Step 1: Write the failing test** `each workspace gets its own core and folder; a held core is never evicted; an idle one closes` (two `get`s return distinct cores, the same `get` returns the same one, `dir` is `<dataDir>/ws/<id>`, a core with `hold()` outstanding survives `idleMs`, after release it closes).
+- [ ] **Step 1: Write the failing test** `each workspace gets its own core in its own folder` — two `get`s with different ids return distinct cores; the same id returns the same core; `dir(id)` is `<dataDir>/ws/<id>`; concurrent `get`s of one id create it once.
 - [ ] **Step 2:** Run → FAIL
-- [ ] **Step 3:** Implement; local mode makes exactly one core (`ws: "local"`).
+- [ ] **Step 3:** Implement; local mode builds exactly one core and passes it everywhere.
 - [ ] **Step 4:** `npx vitest run` → new + all existing PASS; `cd packages/renderer && npx playwright test` → all PASS
-- [ ] **Step 5:** Commit `refactor(server): a core factory; one per workspace when hosted`
+- [ ] **Step 5:** Commit `refactor(server): a core factory, one per workspace when hosted`
 
-### Task 3: Hosted HTTP fences: bearer keys, minting, body caps, listen address, switches
+### Task 3: Hosted HTTP: bearer keys, invite minting, isolation, inline-only data, off-switches
 
-**Files:** Create `packages/server/src/hosted/auth.ts`, `packages/server/src/http/body.ts`; Modify `packages/server/src/server.ts` (hosted: listen `0.0.0.0`; every `/api/*` except `/api/health` and `/api/keys` resolves the tenant from the bearer key; deny-list `<dataDir>/denied.json` re-read on change; off-switches from Global Constraints; body caps for every JSON route in both modes), `packages/server/src/mcp.ts` (no `/api/watch` call when `hosted`), `packages/server/src/cli.ts`; Test `packages/server/test/hosted-api.test.ts`
+**Files:** Create `packages/server/src/hosted/auth.ts`; Modify `packages/server/src/server.ts` (hosted branch: listen `0.0.0.0`; `POST /api/keys`; every `/api/*` except `/api/health` and `/api/keys` resolves the tenant from the bearer key; 4 MB body cap; off-switches), `packages/server/src/intake.ts` / `packages/server/src/dataRuntime.ts` (option `inlineOnly`: path and http(s) datasets become problems, never loaded), `packages/server/src/media.ts` (hosted: local paths refused), `packages/server/src/mcp.ts` (no `/api/watch` call when `hosted`), `packages/server/src/cli.ts` (`loadHostedConfig`); Test `packages/server/test/hosted-api.test.ts`
 
 **Interfaces:**
 - Consumes: Task 1, Task 2.
-- Produces: `bearer(req): string | null`; `clientIp(req, trusted: string[]): string`; `class RateLimit { constructor(limit: number, windowMs: number); take(key: string): boolean }`; `readBody(req, maxBytes): Promise<Buffer>` (rejects with status 413 as soon as the limit passes); `POST /api/keys {invite} → {key, ws}`; missing/invalid key → 401 `{error: "a workspace key is required: Authorization: Bearer <key>"}`.
-- Route scoping table (every route in `server.ts` today): tenant-scoped — `/api/views*`, `/api/render` (views only), `/api/profile`, `/api/views/:id/look|events|params|patch|status|versions|share`; public — `/api/health`, `/lib/*`, `/media/<token>` (token bound to its workspace), static; hosted 404 — `/api/watch`, composer.
+- Produces: `bearer(req: IncomingMessage): string | null`; `readBody(req, maxBytes): Promise<Buffer>` (413 as soon as the limit passes); a test helper `startHosted(opts?)` in `packages/server/test/hosted-helpers.ts` with `fetch`, `get`, `post`, `req`, `mint`, `base`, `dataDir` (later tasks extend it).
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -102,84 +98,60 @@ test("no key → 401; a key sees only its own workspace", async () => {
   const s = await startHosted(); const a = await s.mint(), b = await s.mint();
   expect((await s.fetch("/api/views", {})).status).toBe(401);
   expect((await s.post("/api/views", { view: v("x1") }, a)).status).toBe(200);
-  for (const [m, p, body] of [["GET", "/api/views/x1/status"], ["POST", "/api/views/x1/patch", { ops: [], baseVersion: 1 }], ["POST", "/api/views/x1/look", {}], ["POST", "/api/views/x1/share", {}]] as const)
-    expect((await s.req(m, p, body, b)).status).toBe(404);
+  expect((await s.get("/api/views/x1/status", b)).status).toBe(404);
+  expect((await s.post("/api/views/x1/patch", { ops: [], baseVersion: 1 }, b)).status).toBe(404);
+  expect((await s.fetch(`/api/views?key=${a}`, {})).status).toBe(401);
 });
-test("minting: invite required, per-IP through the proxy, global cap", async () => {
+test("keys need the invite", async () => {
   const s = await startHosted({ invite: "letmein" });
   expect((await s.post("/api/keys", {})).status).toBe(403);
-  for (let i = 0; i < 5; i++) expect((await s.post("/api/keys", { invite: "letmein" }, undefined, { "x-forwarded-for": "9.9.9.9" })).status).toBe(200);
-  expect((await s.post("/api/keys", { invite: "letmein" }, undefined, { "x-forwarded-for": "9.9.9.9" })).status).toBe(429);
-  expect((await s.post("/api/keys", { invite: "letmein" }, undefined, { "x-forwarded-for": "8.8.8.8" })).status).toBe(200);
+  expect((await s.post("/api/keys", { invite: "nope" })).status).toBe(403);
+  expect((await (await s.post("/api/keys", { invite: "letmein" })).json()).key).toBeTruthy();
 });
-test("bodies are capped before any work", async () => {
-  const s = await startHosted();
-  expect((await s.fetch("/api/keys", { method: "POST", body: "x".repeat(70_000) })).status).toBe(413);
+test("hosted data is inline only: no files, no network", async () => {
+  const s = await startHosted(); const a = await s.mint();
+  for (const bad of ["/etc/passwd", "../../x.csv", "http://169.254.169.254/latest/meta-data/"]) {
+    const r = await (await s.post("/api/views", { view: { ...v("d1"), datasets: { d: bad } } }, a)).json();
+    expect(JSON.stringify(r.problems), bad).toMatch(/inline/);
+  }
+  const ok = await (await s.post("/api/views", { view: { ...v("d2"), datasets: { d: { inline: [{ a: 1 }] } }, queries: { q: { sql: "SELECT sum(a) AS total FROM d" } } } }, a)).json();
+  expect(ok.problems.filter((p: { severity: string }) => p.severity === "error")).toEqual([]);
 });
-test("hosted off-switches; health is open; a denied workspace stops working; no key from the query string", async () => {
+test("off-switches, open health, body cap", async () => {
   const s = await startHosted(); const a = await s.mint();
   expect((await s.fetch("/api/health", {})).status).toBe(200);
   expect((await s.post("/api/watch", { dir: "/" }, a)).status).toBe(404);
   expect((await s.post("/api/render", { data: { inline: [{ a: 1 }] } }, a)).status).toBe(404);
-  expect((await s.fetch(`/api/views?key=${a}`, {})).status).toBe(401);
-  await writeFile(path.join(s.dataDir, "denied.json"), JSON.stringify([s.wsOf(a)]));
-  await expect.poll(async () => (await s.get("/api/views", a)).status).toBe(401);
+  expect((await s.post("/api/views/x/look", {}, a)).status).toBe(404);
+  expect((await s.fetch("/api/views", { method: "POST", headers: { authorization: `Bearer ${a}` }, body: "x".repeat(4 * 1024 * 1024 + 1) })).status).toBe(413);
 });
 ```
 
 - [ ] **Step 2:** Run → FAIL
-- [ ] **Step 3:** Implement (`startHosted` helper: port 0, temp data dir, trusted proxy `127.0.0.1`).
+- [ ] **Step 3:** Implement (`startHosted`: port 0, temp data dir, test secret and invite).
 - [ ] **Step 4:** `npx vitest run` → all PASS
-- [ ] **Step 5:** Commit `feat(hosted): bearer keys, minting, body caps and off-switches`
+- [ ] **Step 5:** Commit `feat(hosted): bearer keys, invite minting, workspace isolation, inline-only data`
 
-### Task 4: Data confinement and DuckDB limits
+### Task 4: Share links on sockets pinned to one view
 
-**Files:** Create `packages/server/src/hosted/quota.ts`; Modify `packages/engine/src/ingest.ts` (accept `{ root?: string; allowHttp?: boolean; limits?: DuckLimits }`; set limits before the lock), `packages/server/src/dataRuntime.ts` (pass them; `run` interrupts at 10 s; max 8 open instances), `packages/server/src/server.ts` (`/api/profile` through the same confinement), `packages/server/src/core.ts` (hosted cores pass `root`, `allowHttp: false`, limits), the view-write paths in `viewStore.ts`/`dataRuntime.ts` (quota check); Test `packages/engine/test/ingest-limits.test.ts`, `packages/server/test/hosted-data.test.ts`
+**Files:** Create `packages/server/src/hosted/shares.ts`; Modify `packages/server/src/server.ts` (results carry `url`; `POST /api/views/:id/share`; WebSocket `/ws?share=<token>` → that tenant, pinned; outgoing filter; ignored message types; rotation closes old sockets with 4401), `packages/server/src/intake.ts` (hosted: don't wait for a screen), `packages/renderer/src/App.tsx` + `packages/renderer/src/ws.ts` (path `/v/<token>`: socket with `share`; one read-only view; no version picker, variants or edit affordances; close 4401 or an unknown link → "This link doesn't work"); Test `packages/server/test/hosted-shares.test.ts`, `packages/renderer/e2e/hosted.spec.ts` (+ a hosted web server in `packages/renderer/playwright.config.ts`)
 
 **Interfaces:**
-- Produces: `type DuckLimits = { memory: string; threads: number; temp: string; timeoutMs: number }` (hosted: `256MB`, 2, `256MB`, 10000); `insideRoot(root: string, p: string): Promise<boolean>` (`realpath`, then prefix check); `class Quota { constructor(dir: string, maxBytes: number); check(adding: number): Promise<void> }` (throws `QuotaError` status 507).
+- Produces: `class Shares { constructor(wsDir: string); linkFor(viewId: string): Promise<string>; rotate(viewId: string): Promise<string>; resolve(token: string): Promise<string | null> }`; `wsOfToken(token: string): string | null`; `shareOutgoing(viewId: string, e: ViewEvent): boolean`; helper additions `viewer(token)` (a test socket with `events`, `send`, `until`, `closedWith`) and `tokenOf(url)`.
 
 - [ ] **Step 1: Write the failing tests**
 
 ```ts
-test("hosted data stays in the workspace: no host files, no network, no symlink escape", async () => {
-  const s = await startHosted(); const a = await s.mint();
-  await symlink("/etc", path.join(s.wsDirOf(a), "uploads", "etc"));
-  for (const bad of ["/etc/passwd", "../../x.csv", "uploads/etc/passwd", "http://169.254.169.254/latest/meta-data/"]) {
-    const r = await (await s.post("/api/views", { view: { ...v("d1"), datasets: { d: bad } } }, a)).json();
-    expect(JSON.stringify(r.problems), bad).toMatch(/upload/);
-    expect((await s.post("/api/profile", { data: bad }, a)).status, bad).not.toBe(200);
-  }
+test("a share link resolves to its view; rotated, foreign or malformed ones don't", async () => {
+  const sh = new Shares(wsDir);
+  const t = await sh.linkFor("x1");
+  expect(t).toMatch(/^[a-z0-9]{16}_[0-9a-f]{32}$/);
+  expect(await sh.linkFor("x1")).toBe(t);
+  const t2 = await sh.rotate("x1");
+  expect(await sh.resolve(t)).toBeNull();
+  expect(await sh.resolve(t2)).toBe("x1");
+  expect(wsOfToken("../x_y")).toBeNull();
 });
-test("a runaway query is stopped and memory is capped", async () => {
-  const db = await ingest({ inline: [{ x: 1 }] }, { limits: { memory: "256MB", threads: 2, temp: "256MB", timeoutMs: 1000 } });
-  const t = Date.now();
-  await expect(runQuery(db, "SELECT count(*) FROM range(10000000000) a, range(10) b")).rejects.toThrow(/interrupt/i);
-  expect(Date.now() - t).toBeLessThan(3000);
-  expect(await settingOf(db, "memory_limit")).toMatch(/256/);
-});
-test("the workspace quota covers everything written", async () => {
-  const s = await startHosted({ quotaBytes: 50_000 }); const a = await s.mint();
-  const rows = Array.from({ length: 5000 }, (_, i) => ({ i, pad: "x".repeat(20) }));
-  expect((await s.post("/api/views", { view: { ...v("q1"), datasets: { d: { inline: rows } } } }, a)).status).toBe(507);
-});
-```
-
-- [ ] **Step 2:** Run → FAIL
-- [ ] **Step 3:** Implement
-- [ ] **Step 4:** `npx vitest run` → all PASS (local mode: no root, http allowed, no limits — unchanged)
-- [ ] **Step 5:** Commit `feat(hosted): data confined to the workspace; DuckDB memory, threads and time limits; quota`
-
-### Task 5: Share links on sockets pinned to one view
-
-**Files:** Create `packages/server/src/hosted/shares.ts`; Modify `packages/server/src/server.ts` (WebSocket `/ws?share=<token>`: resolve, `hold()` the core, pin to one view; outgoing filter; ignored message types; per-socket rate limit and caps; `POST /api/views/:id/share {rotate?}` returns `{url}` and rotation closes old sockets with code 4401; render/patch/status results carry `url: <publicUrl>/v/<token>` when hosted), `packages/renderer/src/App.tsx` + `packages/renderer/src/ws.ts` (path `/v/<token>`: socket with `share`, a single read-only view, no version picker, variants or edit affordances; close code 4401 or unknown link → "This link doesn't work"); Test `packages/server/test/hosted-shares.test.ts`, `packages/renderer/e2e/hosted.spec.ts`
-
-**Interfaces:**
-- Produces: `class Shares { constructor(wsDir: string); linkFor(viewId): Promise<string>; rotate(viewId): Promise<string>; resolve(token): Promise<string | null> }`; `wsOfToken(token): string | null`; `shareOutgoing(viewId: string, e: ViewEvent): boolean` (true only for events of that view; never `list`).
-
-- [ ] **Step 1: Write the failing tests**
-
-```ts
 test("a share socket sees one view and nothing else", async () => {
   const s = await startHosted(); const a = await s.mint();
   await s.post("/api/views", { view: v("other") }, a);
@@ -190,6 +162,7 @@ test("a share socket sees one view and nothing else", async () => {
   await sleep(200);
   expect(sock.events.some((e) => e.t === "list")).toBe(false);
   expect(sock.events.every((e) => !("viewId" in e) || e.viewId === "x1")).toBe(true);
+  expect(sock.events.some((e) => e.t === "view" && e.viewId === "x1")).toBe(true);
 });
 test("viewer reports and edits are ignored; rotation closes open sockets", async () => {
   const s = await startHosted(); const a = await s.mint();
@@ -198,148 +171,65 @@ test("viewer reports and edits are ignored; rotation closes open sockets", async
   for (const m of [{ t: "rendered", viewId: "x1", version: 1, ok: false, problems: [{ severity: "error", message: "fake" }] }, { t: "pickVariant", viewId: "x1", index: 0 }, { t: "revertItem", viewId: "x1", itemId: "i", version: 1 }]) sock.send(m);
   await sleep(200);
   const st = await (await s.get("/api/views/x1/status", a)).json();
-  expect(st.version).toBe(1); expect(JSON.stringify(st.problems)).not.toContain("fake");
+  expect(st.version).toBe(1);
+  expect(JSON.stringify(st.problems)).not.toContain("fake");
   await s.post("/api/views/x1/share", { rotate: true }, a);
   await expect.poll(() => sock.closedWith).toBe(4401);
 });
-test("a socket flooding messages is cut off", async () => {
-  const s = await startHosted(); const a = await s.mint();
-  const { url } = await (await s.post("/api/views", { view: v("x1") }, a)).json();
-  const sock = await s.viewer(tokenOf(url));
-  for (let i = 0; i < 200; i++) sock.send({ t: "sync", viewId: "x1" });
-  await expect.poll(() => sock.closed).toBe(true);
-});
 ```
 
-Browser: `/v/<token>` shows the title and no version picker; after rotation the page shows "This link doesn't work".
+Browser (`hosted.spec.ts`): mint a key, render a view through the API, open its `/v/<token>`: the title shows and no version picker; rotate; reload: "This link doesn't work".
 
 - [ ] **Step 2:** Run → FAIL
 - [ ] **Step 3:** Implement (`shares.json` per workspace; constant-time compare of the random part).
-- [ ] **Step 4:** `npx vitest run`, `npx playwright test e2e/hosted.spec.ts` → PASS
+- [ ] **Step 4:** `npx vitest run`; `cd packages/renderer && npx playwright test e2e/hosted.spec.ts` → PASS
 - [ ] **Step 5:** Commit `feat(hosted): view-only share links on pinned sockets`
 
-### Task 6: Screenshots and verification per workspace
+### Task 5: MCP over Streamable HTTP at `/mcp`
 
-**Files:** Modify `packages/server/src/look.ts` (hosted: open `${base}/?capture&t=<capture token>#<id>`), `packages/server/src/server.ts` (WebSocket `/ws?role=capture&t=<token>` → that tenant, pinned to that view; in hosted mode capture reports are accepted as the view's verification, since only the server mints them), `packages/renderer/src/ws.ts` (pass `t` through), `packages/server/src/intake.ts` (hosted: render/patch don't wait for a screen; results say `verify with look`); Test `packages/server/test/hosted-look.test.ts`
-
-**Interfaces:**
-- Consumes: Task 1 `signToken`/`verifyToken`, Task 2 `Looker.look(ws, …)`, Task 5 pinning.
-- Produces: `captureUrl(base: string, token: string, viewId: string): string`.
-
-- [ ] **Step 1: Write the failing tests** `two workspaces with the same view id get their own pictures` (render `same` in A and B with different titles; look both; the files are under each workspace's `shots` and the captions/pixels differ); `a capture socket without a valid token is refused` (`/ws?role=capture` → closed 4401); `after look, the view is verified in hosted mode` (status `unverified` empty after a look).
-- [ ] **Step 2:** Run → FAIL
-- [ ] **Step 3:** Implement
-- [ ] **Step 4:** Run → PASS; `look.test.ts` (local) still PASS
-- [ ] **Step 5:** Commit `feat(hosted): screenshots and verification per workspace through signed captures`
-
-### Task 7: MCP over Streamable HTTP at `/mcp`, with uploads
-
-**Files:** Create `packages/server/src/hosted/mcpHttp.ts`, `packages/server/src/hosted/uploads.ts`; Modify `packages/server/src/mcp.ts` (`createAuroraMcpServer` accepts `headers?` and `hosted?: true`: no `compose`, `variants`, `events`; adds `upload` and `upload_url`), `packages/server/src/server.ts` (`POST /mcp` hosted; `GET`/`DELETE /mcp` → 405; `PUT /u/<upload token>` streams to `<ws>/uploads/<name>`), `packages/server/src/skill/data.md` (one paragraph: on a hosted aurora, small files go inline; larger ones `curl -T file <upload_url>` and use the returned path); Test `packages/server/test/hosted-mcp.test.ts`
+**Files:** Create `packages/server/src/hosted/mcpHttp.ts`; Modify `packages/server/src/mcp.ts` (`createAuroraMcpServer` accepts `headers?: Record<string, string>` added to each forwarded call and `hosted?: true`, which drops `compose`, `look`, `variants` and `events` and tells the model data must be inline), `packages/server/src/server.ts` (`POST /mcp` in hosted mode; `GET`/`DELETE /mcp` → 405); Test `packages/server/test/hosted-mcp.test.ts`
 
 **Interfaces:**
-- Consumes: Tasks 1–4.
-- Produces: `handleMcp(req, res, ctx: { key: string; internalBase: string }): Promise<void>` (a fresh transport and server per request; both closed on `res` close; forwards with the bearer key); MCP tools `upload {name, content_base64}` (≤ 1 MB decoded) → `{path}` and `upload_url {name}` → `{url, path, expires_in: 600}`; `saveUpload(wsDir, name, stream, maxBytes): Promise<{ path: string; bytes: number }>`.
+- Consumes: Task 3 `bearer`, `verifyKey`.
+- Produces: `handleMcp(req: IncomingMessage, res: ServerResponse, ctx: { key: string; internalBase: string }): Promise<void>` — a fresh `StreamableHTTPServerTransport({ sessionIdGenerator: undefined })` and MCP server per request, both closed when `res` closes; forwards with `Authorization: Bearer <key>` to `internalBase` (`http://127.0.0.1:<port>`; auth still by the key).
 
 - [ ] **Step 1: Write the failing tests**
 
 ```ts
-test("an MCP client over HTTP renders through a bearer key and gets a share link", async () => {
+test("an MCP client over HTTP renders with a bearer key and gets a share link", async () => {
   const s = await startHosted(); const key = await s.mint();
   const client = new Client({ name: "t", version: "1" });
   await client.connect(new StreamableHTTPClientTransport(new URL(s.base + "/mcp"), { requestInit: { headers: { authorization: `Bearer ${key}` } } }));
   const tools = (await client.listTools()).tools.map((t) => t.name);
-  expect(tools).toEqual(expect.arrayContaining(["render", "patch", "status", "look", "upload", "upload_url"]));
-  for (const off of ["compose", "variants", "events"]) expect(tools).not.toContain(off);
-  expect(JSON.stringify((await client.callTool({ name: "render", arguments: { view: v("m1") } })).content)).toContain("/v/");
+  expect(tools).toEqual(expect.arrayContaining(["render", "patch", "status"]));
+  for (const off of ["compose", "look", "variants", "events"]) expect(tools).not.toContain(off);
+  const r = await client.callTool({ name: "render", arguments: { view: v("m1") } });
+  expect(JSON.stringify(r.content)).toContain("/v/");
 });
-test("/mcp: no key 401, GET and DELETE 405", async () => {
+test("/mcp: no key 401; GET and DELETE 405", async () => {
   const s = await startHosted();
   expect((await s.fetch("/mcp", { method: "POST", body: "{}" })).status).toBe(401);
   expect((await s.fetch("/mcp", { method: "GET" })).status).toBe(405);
   expect((await s.fetch("/mcp", { method: "DELETE" })).status).toBe(405);
 });
-test("an upload URL takes a file once, inside its workspace, within limits", async () => {
-  const s = await startHosted(); const key = await s.mint();
-  const { url, path: p } = await s.mcpCall(key, "upload_url", { name: "sales.csv" });
-  expect((await fetch(url, { method: "PUT", body: "region,amount\nEast,3\n" })).status).toBe(200);
-  expect(p.startsWith(s.wsDirOf(key))).toBe(true);
-  expect((await fetch(url.replace(/t=[^&]+/, "t=forged"), { method: "PUT", body: "x" })).status).toBe(401);
-  expect((await s.mcpCall(key, "upload_url", { name: "../x.csv" })).error).toBeTruthy();
-});
 ```
 
-- [ ] **Step 2:** Run → FAIL
-- [ ] **Step 3:** Implement
-- [ ] **Step 4:** Run → PASS
-- [ ] **Step 5:** Commit `feat(hosted): MCP over Streamable HTTP with bearer keys, and uploads`
-
-### Task 8: Filter state per viewer
-
-**Files:** Modify `packages/server/src/intake.ts` (param-parameterized `vars(params)`, `resolveOptions(params)`, option checks; `evaluateFor`), `packages/server/src/server.ts` (each share socket keeps `{params, results}`; a socket that has diverged gets no shared `params`/`result` events; on a new view version its queries re-run with its own params); Test `packages/server/test/hosted-params.test.ts`
-
-**Interfaces:**
-- Produces: `Intake.evaluateFor(viewId: string, params: Record<string, unknown>, changed?: string[]): Promise<ViewEvent[]>` (validates like `setParam`; runs only dependent queries, or all when `changed` is omitted; returns `result` events and a `params` event; shared state untouched).
-
-- [ ] **Step 1: Write the failing tests**
-
-```ts
-test("viewers move the same filter independently; the author's value stays the default", async () => {
-  const s = await startHosted(); const a = await s.mint();
-  const tok = tokenOf((await (await s.post("/api/views", { view: paramView("p1") }, a)).json()).url);
-  const v1 = await s.viewer(tok), v2 = await s.viewer(tok);
-  v1.send({ t: "param", viewId: "p1", name: "cut", value: 8 });
-  await v1.until((e) => e.t === "result" && e.result.rows[0].n === 2);
-  expect(lastResult(v2, "above").rows[0].n).toBe(6);
-  expect((await (await s.get("/api/views/p1/status", a)).json()).params.cut).toBe(4);
-});
-test("an author patch keeps each viewer's filter and shows the new version", async () => {
-  const s = await startHosted(); const a = await s.mint();
-  const tok = tokenOf((await (await s.post("/api/views", { view: paramView("p2") }, a)).json()).url);
-  const v1 = await s.viewer(tok);
-  v1.send({ t: "param", viewId: "p2", name: "cut", value: 8 });
-  await v1.until((e) => e.t === "result" && e.result.rows[0].n === 2);
-  await s.post("/api/views/p2/patch", { ops: [{ op: "set", title: "New" }], baseVersion: 1 }, a);
-  await v1.until((e) => e.t === "view" && e.view.title === "New");
-  await sleep(200);
-  expect(lastResult(v1, "above").rows[0].n).toBe(2);
-});
-```
-
-- [ ] **Step 2:** Run → FAIL
-- [ ] **Step 3:** Implement
-- [ ] **Step 4:** Run → PASS; local `params.test.ts` PASS
-- [ ] **Step 5:** Commit `feat(hosted): each viewer's filters are their own`
-
-### Task 9: Screenshot gate
-
-**Files:** Create `packages/server/src/lookGate.ts`; Modify `packages/server/src/server.ts` (look route through the gate in both modes; 503 + `Retry-After`; hosted 429; `hold()` during a look); Test `packages/server/test/lookGate.test.ts`
-
-**Interfaces:**
-- Produces: `class LookGate { constructor(opts?: { concurrency?: number; maxQueue?: number; perHour?: number; cacheSize?: number /*200*/ }); run<T>(ws: string, key: string, fn: () => Promise<T>): Promise<T> }`; `BusyError { retryAfter: number }`; `LimitError`. Key: `${ws}:${viewId}@${version}:${JSON.stringify({ sizes, section })}`; cache hits don't count.
-
-- [ ] **Step 1: Write the failing tests** — `at most 2 run at once, 8 wait, the rest get BusyError` (12 jobs, peak 2, 2 BusyErrors); `the same key comes from the cache` (one call for two runs); `the 31st distinct look in an hour is LimitError`; `workspaces don't share cache entries` (same view key under two ws → two calls).
 - [ ] **Step 2:** Run → FAIL
 - [ ] **Step 3:** Implement
 - [ ] **Step 4:** `npx vitest run` → all PASS
-- [ ] **Step 5:** Commit `feat: a screenshot gate (2 at a time, short queue, cache, hourly limit when hosted)`
+- [ ] **Step 5:** Commit `feat(hosted): MCP over Streamable HTTP with bearer keys`
 
-### Task 10: Container, TLS and the guide
+### Task 6: Container, TLS, guide, and the end-to-end check
 
-**Files:** Create `Dockerfile`, `deploy/Caddyfile`, `deploy/docker-compose.yml`, `deploy/.env.example`, `deploy/README.md`, `scripts/hosted-smoke.sh`; Modify `README.md` ("Use a hosted aurora")
+**Files:** Create `Dockerfile`, `deploy/Caddyfile`, `deploy/docker-compose.yml`, `deploy/.env.example`, `deploy/README.md`, `scripts/hosted-smoke.sh`; Modify `README.md` (a short "Use a hosted aurora" section), `packages/renderer/e2e/hosted.spec.ts` (the end-to-end test)
 
 **Interfaces:**
-- Produces: `docker compose -f deploy/docker-compose.yml up -d` → `https://aurora.<DOMAIN>`; `scripts/hosted-smoke.sh <base> <invite>` exits 0 when a key mints, `/mcp` lists tools, a render returns a `/v/` link answering 200, a look returns an image, and a request without the key is 401.
+- Produces: `docker compose -f deploy/docker-compose.yml up -d` → `https://aurora.<DOMAIN>`; `scripts/hosted-smoke.sh <base> <invite>` exits 0 when a key mints, `/mcp` lists tools, a render through `/mcp` returns a `/v/` link that answers 200, and a request without a key gets 401.
 
-- [ ] **Step 1:** Dockerfile: Node 22 slim; `npm ci`; renderer build; Chromium via `npx playwright install --with-deps chromium`; a non-root `aurora` user owning `/data`; Chromium keeps its sandbox (no `--no-sandbox`; add the seccomp profile or `cap_add: SYS_ADMIN` only if the sandbox can't start, and say which in the README); `ENV AURORA_MODE=hosted`; `CMD ["npx","tsx","packages/server/src/cli.ts","serve"]`; healthcheck `GET /api/health`. Caddyfile: `aurora.{$DOMAIN} { reverse_proxy aurora:4317 }`. Compose: both services, named volume `/data`, env from `.env`, memory limit 2 GB on aurora.
-- [ ] **Step 2:** `docker compose -f deploy/docker-compose.yml up -d --build` with `DOMAIN=localhost`; `scripts/hosted-smoke.sh https://localhost <invite>` → exit 0
-- [ ] **Step 3:** `deploy/README.md`: DNS A record, `.env` values, deploy, rotate the secret, deny one workspace, back up `/data`, and the client line `claude mcp add --transport http aurora https://aurora.<domain>/mcp --header "Authorization: Bearer <key>"`
-- [ ] **Step 4:** Commit `feat(hosted): container, TLS and deploy guide`
-
-### Task 11: End to end on the hosted build
-
-**Files:** Modify `packages/renderer/e2e/hosted.spec.ts`, `packages/renderer/playwright.config.ts` (a second web server started hosted on another port with a temp data dir and test secret/invite)
-
-- [ ] **Step 1: Write the failing test** `hosted: a harness renders through /mcp with an uploaded csv; the share link draws it; another key can't touch it; a rotated link stops; look returns an image`.
-- [ ] **Step 2:** `npx playwright test e2e/hosted.spec.ts` → FAIL, then PASS once wired
-- [ ] **Step 3:** Whole suite: `npx vitest run` and `cd packages/renderer && npx playwright test` → all PASS
-- [ ] **Step 4:** Commit `test(hosted): end to end through /mcp and a share link`
+- [ ] **Step 1: Write the failing end-to-end test** `hosted: a harness renders through /mcp; the share link draws it in a browser; another key can't read it` (SDK client over `/mcp` renders a view with an inline dataset and a chart; the page opens the returned link and shows the title and a drawn chart; `GET /api/views/<id>/status` with a second key → 404).
+- [ ] **Step 2:** `cd packages/renderer && npx playwright test e2e/hosted.spec.ts` → PASS once Tasks 1–5 are wired
+- [ ] **Step 3:** Write the deploy files: Dockerfile (Node 22 slim; `npm ci`; renderer build; non-root `aurora` user owning `/data`; `ENV AURORA_MODE=hosted`; `CMD ["npx","tsx","packages/server/src/cli.ts","serve"]`; healthcheck on `/api/health`; no Chromium — `look` is off); Caddyfile `aurora.{$DOMAIN} { reverse_proxy aurora:4317 }`; compose with both services, a named volume on `/data`, env from `.env`; `.env.example` listing `DOMAIN`, `AURORA_SECRET`, `AURORA_PUBLIC_URL`, `AURORA_INVITE`.
+- [ ] **Step 4:** If Docker is available: `docker compose -f deploy/docker-compose.yml up -d --build` with `DOMAIN=localhost`, then `scripts/hosted-smoke.sh https://localhost <invite>` → exit 0. Otherwise run the smoke script against a hosted server started with `AURORA_MODE=hosted npx tsx packages/server/src/cli.ts serve` → exit 0.
+- [ ] **Step 5:** `deploy/README.md`: the DNS A record, `.env` values, deploy, rotating the secret (logs everyone out), backing up `/data`, getting a key (`curl -X POST https://aurora.<domain>/api/keys -d '{"invite":"…"}'`), and the client line `claude mcp add --transport http aurora https://aurora.<domain>/mcp --header "Authorization: Bearer <key>"`.
+- [ ] **Step 6:** Whole suite: `npx vitest run` and `cd packages/renderer && npx playwright test` → all PASS
+- [ ] **Step 7:** Commit `feat(hosted): container, TLS, deploy guide and end-to-end check`

@@ -32,3 +32,11 @@ From a clean machine with only a key: `claude mcp add --transport http aurora ht
 "Authorization: Bearer <key>"`, then a request in Claude Code produces a view; its share link opens in any browser;
 another key can't read or change it; a revoked link stops working; `look` returns pictures; local mode still passes
 every existing test.
+
+## MVP scope (Kush, 2026-11-10)
+
+Only two goals: others connect their Claude (any MCP harness) to the hosted aurora, and share a view by link. Kept
+because a public box is unsafe without them: workspace isolation, inline-only data (no server files, no fetching),
+invite-required keys, a body cap. Out of the MVP: uploads, per-viewer filters, `look` on hosted, the screenshot queue,
+DuckDB limits, quotas, mint rate limits, a deny-list, OAuth. The plan's Global Constraints are binding where they differ
+from the table above.
