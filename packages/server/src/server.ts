@@ -19,6 +19,7 @@ import { BodyTooLarge, MAX_BODY, bearer, readBody, sameSecret } from "./hosted/a
 import type { HostedConfig } from "./hosted/config.ts";
 import { isWorkspaceId, mintKey, newWorkspaceId, verifyKey } from "./hosted/keys.ts";
 import { shareOutgoing, wsOfToken } from "./hosted/shares.ts";
+import { handleMcp } from "./hosted/mcpHttp.ts";
 import { Tenants } from "./hosted/tenants.ts";
 import { IntakeError } from "./intake.ts";
 import { MediaRegistry } from "./media.ts";
@@ -417,6 +418,23 @@ export async function startServer(opts: ServerOpts) {
     if (raw.startsWith("/lib/fonts/family/") || raw.startsWith("/lib/fonts/g/")) return serveFont(raw, res);
     if (raw.startsWith("/lib/")) return serveLib(raw, res);
     const url = new URL(raw, base);
+    if (hosted && url.pathname === "/mcp") {
+      // Stateless Streamable HTTP: POST only, so no standalone SSE stream (GET) or session (DELETE) ever exists.
+      if (req.method !== "POST") {
+        res.writeHead(405, { "content-type": "application/json", allow: "POST" });
+        return void res.end(JSON.stringify({ error: "method not allowed" }));
+      }
+      const key = bearer(req);
+      const claim = key ? verifyKey(hosted.secret, key) : null;
+      if (!key || !claim || !isWorkspaceId(claim.ws)) return json(res, 401, { error: "a workspace key is required: Authorization: Bearer <key>" });
+      try {
+        await handleMcp(req, res, { key, internalBase: `http://127.0.0.1:${(server.address() as AddressInfo).port}` });
+      } catch (e) {
+        if (!res.headersSent) answerError(req, res, e);
+        else res.destroy();
+      }
+      return;
+    }
     if (!url.pathname.startsWith("/api/")) return serveStatic(req, res);
     try {
       const [status, out] = hosted && tenants ? await hostedApi(hosted, tenants, req, url) : await api(core!, req, url);
