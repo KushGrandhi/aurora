@@ -1,0 +1,29 @@
+services:
+  aurora:
+    build: ..
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      AURORA_MODE: hosted
+      AURORA_DATA_DIR: /data
+    volumes:
+      - aurora-data:/data
+    expose:
+      - "4317"
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - aurora
+    env_file: .env
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+volumes:
+  aurora-data:
+  caddy-data:
+  caddy-config:

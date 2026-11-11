@@ -34,6 +34,14 @@ On the screen, the version chip lists every version; choosing one previews it an
 
 Views persist as JSON under `~/.aurora/views/<id>/v<N>.json` (last 200 views or 30 days, whichever keeps more; `AURORA_VIEWS_DIR` overrides the folder).
 
+## Use a hosted aurora
+
+A hosted aurora serves many people from one server: each gets a bearer key (their own workspace), the MCP endpoint is `/mcp` over HTTP, and every render returns a view-only `/v/<token>` link to share. Data must be inline. Deploy with Docker and Caddy (automatic TLS) by following `deploy/README.md`, then connect:
+
+```bash
+claude mcp add --transport http aurora https://aurora.<your-domain>/mcp --header "Authorization: Bearer <key>"
+```
+
 ## Plan 1 entry: aurora composes from data + intent
 
 Requires Node 24 and the `claude` CLI logged in (the default provider composes views on your Claude Code subscription: Sonnet at low effort, ~2 s to the first panel). For offline use, set `provider` to `ollama` and pull a model (default `qwen3:8b`).
