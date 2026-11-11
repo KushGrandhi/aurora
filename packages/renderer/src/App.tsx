@@ -52,6 +52,12 @@ function useMode(): [Mode, () => void] {
 const CAPTURE = new URLSearchParams(location.search).has("capture");
 if (CAPTURE) document.documentElement.dataset.capture = "";
 
+/**
+ * Share mode (hosted `/v/<token>`): one view, read-only, on a socket pinned to it. No list of views, version picker,
+ * variants or edit affordances; the screen never reports back. An unknown or rotated link says so.
+ */
+const SHARE = location.pathname.startsWith("/v/") ? decodeURIComponent(location.pathname.slice(3)).replace(/\/$/, "") : undefined;
+
 /** Collects per-item render reports and design warnings, and sends one `rendered` message per view version (debounced). */
 function useReports(send: (m: ScreenMessage) => void) {
   const pending = useRef(new Map<string, Pending & { timer?: number }>());
@@ -82,9 +88,10 @@ export function App() {
   const stateRef = useRef(state);
   const conn = useRef<Conn>();
   const [up, setUp] = useState(false);
-  const [picked, setPicked] = useState<string | undefined>(() => location.hash.slice(1) || undefined);
+  const [picked, setPicked] = useState<string | undefined>(() => (SHARE ? undefined : location.hash.slice(1) || undefined));
   // A bare address (or #/views) is the list of every view; #<id> is that view, on the whole screen.
-  const onViews = !picked || picked === "/views";
+  const onViews = !SHARE && (!picked || picked === "/views");
+  const [dead, setDead] = useState(false); // share mode: the link is unknown or was rotated
   const [listed, setListed] = useState(false); // the server has sent the list of views
   const [preview, setPreview] = useState<{ viewId: string; version: number; view: View }>();
   const [opened, setOpened] = useState<string>(); // design item opened as the whole screen
@@ -93,7 +100,8 @@ export function App() {
   const [chosenMode, toggleMode] = useMode();
   const reduced = useReducedMotion() ?? false;
 
-  const send = useCallback((m: ScreenMessage) => conn.current?.send(m), []);
+  // A shared page only reads: it may ask for its view again and move filters, nothing else.
+  const send = useCallback((m: ScreenMessage) => { if (!SHARE || m.t === "sync" || m.t === "param") conn.current?.send(m); }, []);
   const { report, warn } = useReports(send);
   const onEvent = useCallback((e: ViewEvent) => {
     const r = reduce(stateRef.current, e);
@@ -102,6 +110,7 @@ export function App() {
     if (r.reload) return location.reload(); // the server now serves a newer screen
     if (r.need) send(r.need);
     if (e.t === "list") setListed(true);
+    if (SHARE) { if (e.t === "view") setPicked(e.viewId); return; } // the one view the link shows
     if (r.follow && !CAPTURE) {
       location.hash = r.follow;
       setPicked(r.follow);
@@ -110,10 +119,11 @@ export function App() {
   }, [send]);
 
   useEffect(() => {
-    conn.current = connect(onEvent, setUp, CAPTURE ? "capture" : undefined);
+    conn.current = connect(onEvent, setUp, CAPTURE ? "capture" : undefined, SHARE !== undefined ? { token: SHARE, onDead: () => setDead(true) } : undefined);
     return () => conn.current?.close();
   }, [onEvent]);
   useEffect(() => {
+    if (SHARE) return;
     const onHash = () => { setPicked(location.hash.slice(1) || undefined); setPreview(undefined); };
     addEventListener("hashchange", onHash);
     return () => removeEventListener("hashchange", onHash);
@@ -202,7 +212,7 @@ export function App() {
   // Variants: caller-sent alternatives (pick one) or versions to compare (use one). Items inside never report.
   const pending = currentId ? state.variants[currentId] : undefined;
   const pendingKey = pending ? `${currentId}:${pending.baseVersion}:${pending.items.map((i) => i.label).join("|")}` : undefined;
-  const showVariants = !!pending && variantsClosed !== pendingKey;
+  const showVariants = !SHARE && !!pending && variantsClosed !== pendingKey;
   const quietCtx = (item: ViewItem, hero: boolean): RenderCtx => ({ ...ctxFor(item, hero), report: () => {}, warn: () => {}, send: () => {}, openPage: undefined });
   // Each option is drawn on its own stage, so options that differ in colours look different.
   const renderVariant = (v: View, i: number) => {
@@ -222,7 +232,7 @@ export function App() {
       .then((items) => setCompare({ viewId: id, items }))
       .catch(() => {});
   };
-  const reopen = pending && !showVariants ? <button className="variants-open" onClick={() => setVariantsClosed(undefined)}>{pending.items.length} options</button> : null;
+  const reopen = pending && !showVariants && !SHARE ? <button className="variants-open" onClick={() => setVariantsClosed(undefined)}>{pending.items.length} options</button> : null;
   // A first section that held only the hero has nothing left to show once the hero leads the page.
   const heroOnly = (i: number) => i === 0 && !!heroItem && view!.sections[0].items.length <= 1;
   // Titled sections are numbered in reading order (01, 02, …).
@@ -267,12 +277,19 @@ export function App() {
     return () => clearInterval(t);
   }, [view]);
 
+  const home = SHARE ? null : <HomeLink up={up} />;
+  const strip = (id: string) => (SHARE ? null : <VersionStrip viewId={id} version={live?.version ?? version} previewing={showing?.version} onPreview={choosePreview} onCompare={openCompare} />);
   const themeToggle = <button className="theme-toggle" onClick={toggleMode} disabled={ownStage} title={ownStage ? "This view sets its own colours" : undefined}>{mode === "dark" ? "☀︎ Light" : "☾ Dark"}</button>;
 
   return (
     <MotionRoot>
     <FocusProvider resetKey={currentId}>
-    {onViews ? (
+    {SHARE && dead ? (
+      <div className="app"><main><div className="page"><div className="empty" data-dead-link>
+        <div className="big">This link doesn't work</div>
+        <p>It may have been replaced with a new one. Ask whoever shared it for the current link.</p>
+      </div></div></main></div>
+    ) : onViews ? (
       <ViewsPage list={list} activity={state.activity} currentId={currentId} up={up} ago={ago}
         themeToggle={themeToggle} />
     ) : (
@@ -287,15 +304,15 @@ export function App() {
             ctx={ctxFor(pageItem, false)}
             problem={itemProblem(problems, pageItem.id)}
             title={view.title}
-            versions={<>{reopen}<VersionStrip viewId={currentId} version={live?.version ?? version} previewing={showing?.version} onPreview={choosePreview} onCompare={openCompare} /></>}
+            versions={<>{reopen}{strip(currentId)}</>}
             onExit={opened ? () => setOpened(undefined) : undefined}
-            home={<HomeLink up={up} />}
+            home={home}
           />
         ) : (
         <div className="page">
           {!view || !currentId ? (
             <div className="empty">
-              <HomeLink up={up} />
+              {home}
               {missing ? (
                 <div data-missing={picked}><div className="big">There's no view called “{picked}”</div>
                 <p>It may have been removed, or the address has a typo. <a href="#/views">See every view</a>.</p></div>
@@ -309,13 +326,13 @@ export function App() {
               {heroItem && (
                 <Hero key={`hero:${currentId}`} item={heroItem} version={version} ctx={ctxFor(heroItem, false)} problems={problems} changed={showing ? {} : live?.changed ?? {}}
                   title={view.title} summary={view.summary ? fillPlaceholders(view.summary, results) : undefined}
-                  status={<div className="status-row"><HomeLink up={up} /><div className="status">{activity ? <span className="spin" /> : <span className="ok" />}{status}</div></div>}
-                  versions={<div className="topbar-right">{reopen}{themeToggle}<VersionStrip viewId={currentId} version={live?.version ?? version} previewing={showing?.version} onPreview={choosePreview} onCompare={openCompare} /></div>}
+                  status={<div className="status-row">{home}<div className="status">{activity ? <span className="spin" /> : <span className="ok" />}{status}</div></div>}
+                  versions={<div className="topbar-right">{reopen}{themeToggle}{strip(currentId)}</div>}
                   filters={filters("pill")} />
               )}
               {!heroItem && <div className="topbar">
-                <div className="status-row"><HomeLink up={up} /><div className="status">{activity ? <span className="spin" /> : <span className="ok" />}{status}</div></div>
-                <div className="topbar-right">{reopen}{themeToggle}<VersionStrip viewId={currentId} version={live?.version ?? version} previewing={showing?.version} onPreview={choosePreview} onCompare={openCompare} /></div>
+                <div className="status-row">{home}<div className="status">{activity ? <span className="spin" /> : <span className="ok" />}{status}</div></div>
+                <div className="topbar-right">{reopen}{themeToggle}{strip(currentId)}</div>
               </div>}
               {showing && (
                 <div className="preview-banner">
@@ -348,7 +365,7 @@ export function App() {
         <Variants key={pendingKey} title="Choose an option" items={pending.items} chooseLabel="Choose" render={renderVariant}
           onChoose={(index) => send({ t: "pickVariant", viewId: currentId, index })} onClose={() => setVariantsClosed(pendingKey)} />
       )}
-      {compare && compare.viewId === currentId && !showVariants && (
+      {compare && compare.viewId === currentId && !showVariants && !SHARE && (
         <Variants key="compare" title="Compare versions" items={compare.items} chooseLabel="Use this version" render={renderVariant}
           onChoose={(i) => { send({ t: "pick", viewId: compare.viewId, version: compare.items[i].version }); setCompare(undefined); }} onClose={() => setCompare(undefined)} />
       )}

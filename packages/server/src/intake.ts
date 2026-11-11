@@ -51,6 +51,7 @@ export type IntakeDeps = {
   waitMs?: number;
   media?: MediaRegistry;
   fonts?: FontStore;
+  hosted?: boolean; // hosted workspace: never waits for a screen (share viewers don't report), so nothing is "unverified"
 };
 
 const OPTIONS_CAP = 200;
@@ -478,7 +479,7 @@ export class Intake {
     const url = this.url(viewId);
     this.ensureScreen(viewId);
     const r = this.runtime(viewId);
-    if (wait && (!r.report || r.report.version < version)) {
+    if (wait && !this.deps.hosted && (!r.report || r.report.version < version)) {
       await new Promise<void>((resolve) => {
         const w = { version, resolve };
         r.waiters.push(w);
@@ -505,6 +506,7 @@ export class Intake {
   }
 
   private unverified(viewId: string): string[] {
+    if (this.deps.hosted) return [];
     const cur = this.deps.store.current(viewId);
     if (!cur) return [];
     const r = this.runtime(viewId);

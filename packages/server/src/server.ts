@@ -18,6 +18,7 @@ import { createCore, send, type Core } from "./core.ts";
 import { BodyTooLarge, MAX_BODY, bearer, readBody, sameSecret } from "./hosted/auth.ts";
 import type { HostedConfig } from "./hosted/config.ts";
 import { isWorkspaceId, mintKey, newWorkspaceId, verifyKey } from "./hosted/keys.ts";
+import { shareOutgoing, wsOfToken } from "./hosted/shares.ts";
 import { Tenants } from "./hosted/tenants.ts";
 import { IntakeError } from "./intake.ts";
 import { MediaRegistry } from "./media.ts";
@@ -102,6 +103,7 @@ const PatchBody = z.object({ ops: z.array(PatchOpSchema), baseVersion: z.number(
 const PickBody = z.object({ version: z.number().int().min(1) });
 const LookBody = z.object({ sizes: z.array(z.enum(["desktop", "phone"])).max(2).optional(), section: z.string().max(64).optional(), maxShots: z.number().int().min(1).max(12).optional() });
 const RevertBody = z.object({ itemId: z.string(), version: z.number().int().min(1) });
+const ShareBody = z.object({ rotate: z.boolean().optional() });
 const ParamBody = z.object({ name: z.string(), value: z.unknown() });
 const VariantsBody = z.object({ variants: z.array(z.object({ label: z.string(), ops: z.array(PatchOpSchema) })), baseVersion: z.number().int().optional() });
 const ScreenMessageSchema = z.discriminatedUnion("t", [
@@ -251,6 +253,15 @@ export async function startServer(opts: ServerOpts) {
     }
   }
 
+  /** Hosted: the view's share link, `<AURORA_PUBLIC_URL>/v/<token>` (minted on first ask). */
+  async function shareUrl(core: Core, viewId: string): Promise<string> {
+    return `${hosted!.publicUrl.replace(/\/+$/, "")}/v/${await core.shares!.linkFor(viewId)}`;
+  }
+  /** A render/patch/pick/revert result; hosted, its url is the view's share link. */
+  async function linked<T extends { viewId: string; url: string }>(core: Core, r: T): Promise<T> {
+    return core.shares ? { ...r, url: await shareUrl(core, r.viewId) } : r;
+  }
+
   async function api(core: Core, req: IncomingMessage, url: URL): Promise<[number, unknown]> {
     const { store, data, intake, clients } = core;
     const method = req.method ?? "GET";
@@ -265,9 +276,9 @@ export async function startServer(opts: ServerOpts) {
     if (p === "/api/views" && method === "POST") {
       const view = (body as { view?: unknown })?.view;
       if (!view || typeof view !== "object") throw new HttpError(400, "body.view must be a view document");
-      return [200, await intake.render(view as never, "caller")];
+      return [200, await linked(core, await intake.render(view as never, "caller"))];
     }
-    if (p === "/api/gallery" && method === "POST") return [200, await intake.render(galleryView(), "caller")];
+    if (p === "/api/gallery" && method === "POST") return [200, await linked(core, await intake.render(galleryView(), "caller"))];
     if (p === "/api/profile" && method === "POST") {
       const d = (body as { data?: unknown })?.data;
       if (!validData(d)) throw new HttpError(400, "body.data must be a path, {path}, {inline:[...]}, or a map of those");
@@ -293,7 +304,7 @@ export async function startServer(opts: ServerOpts) {
       if (!e) throw new HttpError(404, `view "${vm[1]}" has no version ${vm[2]}`);
       return [200, e];
     }
-    const m = p.match(/^\/api\/views\/([A-Za-z_]\w*)(?:\/(patch|status|history|pick|revert|params|events|variants|look))?$/);
+    const m = p.match(/^\/api\/views\/([A-Za-z_]\w*)(?:\/(patch|status|history|pick|revert|params|events|variants|look|share))?$/);
     if (m) {
       const [, id, action] = m;
       if (!action && method === "GET") {
@@ -303,7 +314,8 @@ export async function startServer(opts: ServerOpts) {
       }
       if (action === "status" && method === "GET") {
         if (store.current(id)) await intake.refresh(id);
-        return [200, intake.status(id)];
+        const st = intake.status(id);
+        return [200, core.shares ? { ...st, url: await shareUrl(core, id) } : st];
       }
       if (action === "history" && method === "GET") {
         if (!store.current(id)) throw new HttpError(404, `no view "${id}"`);
@@ -311,7 +323,7 @@ export async function startServer(opts: ServerOpts) {
       }
       if (action === "patch" && method === "POST") {
         const b = parse(PatchBody, body);
-        return [200, await intake.patch(id, b.ops, "caller", b.baseVersion)];
+        return [200, await linked(core, await intake.patch(id, b.ops, "caller", b.baseVersion))];
       }
       if (action === "events" && method === "GET") {
         const after = Number(url.searchParams.get("after") ?? 0) || 0;
@@ -337,10 +349,19 @@ export async function startServer(opts: ServerOpts) {
           throw new HttpError(503, (e as Error).message);
         }
       }
-      if (action === "pick" && method === "POST") return [200, await intake.pick(id, parse(PickBody, body).version)];
+      if (action === "pick" && method === "POST") return [200, await linked(core, await intake.pick(id, parse(PickBody, body).version))];
       if (action === "revert" && method === "POST") {
         const b = parse(RevertBody, body);
-        return [200, await intake.revertItem(id, b.itemId, b.version)];
+        return [200, await linked(core, await intake.revertItem(id, b.itemId, b.version))];
+      }
+      if (action === "share" && method === "POST" && core.shares) {
+        if (!store.current(id)) throw new HttpError(404, `no view "${id}"`);
+        if (parse(ShareBody, body ?? {}).rotate) {
+          await core.shares.rotate(id);
+          // Sockets opened on the old link close; their viewers see "This link doesn't work".
+          for (const [ws, viewId] of core.viewers) if (viewId === id) ws.close(4401, "link rotated");
+        }
+        return [200, { viewId: id, url: await shareUrl(core, id) }];
       }
     }
     throw new HttpError(404, "not found");
@@ -384,7 +405,7 @@ export async function startServer(opts: ServerOpts) {
   }
 
   const server = createServer(async (req, res) => {
-    // Local mode: only local pages may drive the server. Hosted: identity is the bearer key (or, later, a share token).
+    // Local mode: only local pages may drive the server. Hosted: identity is the bearer key (API) or a share token (sockets).
     if (!hosted && !allowed(req) && !sandboxRead(req)) return json(res, 403, { error: "forbidden origin" });
     const raw = req.url ?? "/";
     if (raw.startsWith("/media/")) {
@@ -405,13 +426,72 @@ export async function startServer(opts: ServerOpts) {
     }
   });
 
+  // Hosted: a socket's only identity is a share token, resolved (tenant and view) before the upgrade completes, so
+  // the connection handler can attach synchronously. An unknown link still opens, then closes with 4401, so the
+  // page can tell "this link doesn't work" from a network drop. Pins are keyed by the upgrade request.
+  const pins = new WeakMap<IncomingMessage, { core: Core; viewId: string; token: string } | null>();
+  async function resolveShare(token: string): Promise<{ core: Core; viewId: string; token: string } | null> {
+    const ws = wsOfToken(token);
+    if (!ws || !tenants) return null;
+    // Only workspaces that exist: a guessed id must not create one.
+    if (!(await stat(tenants.dir(ws)).then((st) => st.isDirectory(), () => false))) return null;
+    const c = await tenants.get(ws);
+    const viewId = await c.shares!.resolve(token);
+    return viewId ? { core: c, viewId, token } : null;
+  }
+  /** The token of `/ws?share=<token>`, and only that form (no other query parameters). */
+  function shareToken(req: IncomingMessage): string | null {
+    const q = new URL(req.url ?? "/", "http://x").searchParams;
+    const keys = [...q.keys()];
+    return keys.length === 1 && keys[0] === "share" ? q.get("share") : null;
+  }
+
   // Screens send small reports and events; a 1 MB cap keeps one bad message from tying the server up.
-  // Hosted: a socket has no workspace without a share token (added with share links), so none are accepted yet.
-  const wss = new WebSocketServer({ server, path: "/ws", maxPayload: 1024 * 1024, verifyClient: ({ req }: { req: IncomingMessage }) => !hosted && allowed(req) });
-  wss.on("connection", (ws, req: IncomingMessage) => {
-    if (core) screen(core, ws, req);
-    else ws.close(1008);
+  const wss = new WebSocketServer({
+    server, path: "/ws", maxPayload: 1024 * 1024,
+    verifyClient: ({ req }: { req: IncomingMessage }, cb: (ok: boolean, code?: number) => void) => {
+      if (!hosted) return cb(allowed(req), 403);
+      const token = shareToken(req);
+      if (token === null) return cb(false, 401);
+      resolveShare(token).then((pin) => { pins.set(req, pin); cb(true); }, () => cb(false, 500));
+    },
   });
+  wss.on("connection", (ws, req: IncomingMessage) => {
+    if (core) return screen(core, ws, req);
+    const pin = pins.get(req);
+    pins.delete(req);
+    if (pin) viewer(pin.core, pin.viewId, pin.token, ws);
+    else ws.close(4401, "this link doesn't work");
+  });
+
+  /**
+   * A share socket, pinned to one view: it hears only that view's events (never the list of views), may `sync` that
+   * view and set its params (shared with every viewer, as in local mode); reports, picks, reverts, variants and
+   * design events are ignored. It never counts as the screen.
+   */
+  function viewer({ intake, viewers, shares }: Core, viewId: string, token: string, ws: WebSocket) {
+    viewers.set(ws, viewId);
+    ws.on("close", () => viewers.delete(ws));
+    ws.on("error", () => {});
+    const snapshot = () => void intake.refresh(viewId).catch(() => {}).then(() => { for (const e of intake.snapshot(viewId)) if (shareOutgoing(viewId, e)) send(ws, e); });
+    ws.on("message", (raw) => {
+      let msg: ScreenMessage;
+      try {
+        const r = ScreenMessageSchema.safeParse(JSON.parse(String(raw)));
+        if (!r.success) return;
+        msg = r.data;
+      } catch {
+        return;
+      }
+      if (msg.viewId !== viewId) return;
+      if (msg.t === "sync") snapshot();
+      else if (msg.t === "param") intake.screenMessage(msg).catch(() => {});
+    });
+    send(ws, { t: "hello", build: screenBuild() });
+    snapshot();
+    // A rotation between resolving the link and now: the link no longer works.
+    void shares!.resolve(token).then((id) => { if (id !== viewId) ws.close(4401, "link rotated"); }, () => {});
+  }
 
   function screen({ store, intake, clients, captures }: Core, ws: WebSocket, req: IncomingMessage) {
     const capture = new URL(req.url ?? "/", "http://x").searchParams.get("role") === "capture";

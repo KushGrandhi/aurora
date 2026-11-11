@@ -2,6 +2,7 @@ import type { WebSocket } from "ws";
 import type { ViewEvent } from "@aurora/spec";
 import { DataRuntime } from "./dataRuntime.ts";
 import type { FontStore } from "./fonts.ts";
+import { shareOutgoing, Shares } from "./hosted/shares.ts";
 import { Intake } from "./intake.ts";
 import type { MediaRegistry } from "./media.ts";
 import { ViewStore } from "./viewStore.ts";
@@ -16,6 +17,8 @@ export type Core = {
   intake: Intake;
   clients: Set<WebSocket>;
   captures: Set<WebSocket>; // headless capture pages (look): they get every event but are never "the screen"
+  viewers: Map<WebSocket, string>; // hosted share sockets → the one view each is pinned to; never "the screen"
+  shares?: Shares; // hosted: the workspace's share links
   broadcast(e: ViewEvent): void;
   close(): Promise<void>;
 };
@@ -38,6 +41,7 @@ export function send(ws: WebSocket, e: ViewEvent): void {
 export async function createCore(opts: CoreOpts): Promise<Core> {
   const clients = new Set<WebSocket>();
   const captures = new Set<WebSocket>();
+  const viewers = new Map<WebSocket, string>();
   const store = new ViewStore(opts.dir);
   await store.load();
   await store.prune();
@@ -45,9 +49,10 @@ export async function createCore(opts: CoreOpts): Promise<Core> {
   const broadcast = (e: ViewEvent) => {
     for (const c of clients) send(c, e);
     for (const c of captures) send(c, e);
+    for (const [c, viewId] of viewers) if (shareOutgoing(viewId, e)) send(c, e);
   };
   const intake = new Intake({
-    store, data, emit: broadcast, baseUrl: opts.baseUrl, screens: () => clients.size, openScreen: opts.open, waitMs: opts.waitMs, media: opts.media, fonts: opts.fonts,
+    store, data, emit: broadcast, baseUrl: opts.baseUrl, screens: () => clients.size, openScreen: opts.open, waitMs: opts.waitMs, media: opts.media, fonts: opts.fonts, hosted: opts.hosted,
   });
   return {
     ws: opts.ws,
@@ -58,10 +63,13 @@ export async function createCore(opts: CoreOpts): Promise<Core> {
     intake,
     clients,
     captures,
+    viewers,
+    ...(opts.hosted ? { shares: new Shares(opts.dir) } : {}),
     broadcast,
     async close() {
       for (const c of clients) c.terminate();
       for (const c of captures) c.terminate();
+      for (const c of viewers.keys()) c.terminate();
       await data.closeAll();
     },
   };
