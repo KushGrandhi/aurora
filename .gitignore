@@ -3,3 +3,5 @@ dist
 test-results
 .aurora
 playwright-report
+.env
+deploy/.env
