@@ -28,7 +28,7 @@ export type CoreOpts = {
   open: (url: string) => void;
   baseUrl: () => string;
   waitMs?: number;
-  hosted?: boolean; // accepted and stored; no effect yet
+  hosted?: boolean; // hosted workspace: inline data only
 };
 
 export function send(ws: WebSocket, e: ViewEvent): void {
@@ -41,7 +41,7 @@ export async function createCore(opts: CoreOpts): Promise<Core> {
   const store = new ViewStore(opts.dir);
   await store.load();
   await store.prune();
-  const data = new DataRuntime({ inlineDir: opts.dir });
+  const data = new DataRuntime({ inlineDir: opts.dir, inlineOnly: opts.hosted ?? false });
   const broadcast = (e: ViewEvent) => {
     for (const c of clients) send(c, e);
     for (const c of captures) send(c, e);

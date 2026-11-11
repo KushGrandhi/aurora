@@ -3,6 +3,11 @@ import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 const b64 = (v: string | Buffer) => Buffer.from(v).toString("base64url");
 const sign = (secret: string, input: string) => createHmac("sha256", secret).update(input).digest();
 
+/** A workspace id is exactly 16 chars of [a-z0-9]: safe as a folder name and in share tokens. */
+export function isWorkspaceId(ws: unknown): ws is string {
+  return typeof ws === "string" && /^[a-z0-9]{16}$/.test(ws);
+}
+
 /** A fresh 16-char [a-z0-9] workspace id. */
 export function newWorkspaceId(): string {
   const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";

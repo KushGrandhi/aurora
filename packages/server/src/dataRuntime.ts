@@ -5,6 +5,8 @@ import { explainQuery, ingest, lockDb, openDb, profileDatasets, referencesData, 
 import type { DataInput } from "@aurora/engine";
 import type { DataInputJson, Problem, QueryResult, View } from "@aurora/spec";
 
+export const INLINE_ONLY = "hosted aurora takes inline data only ({ inline: [rows] }); file paths and URLs are not read";
+
 type Open = { db: Db; key: string; tables: string[]; failed: number; timer?: NodeJS.Timeout; queue: Promise<unknown> };
 
 /** One DuckDB per view, opened on demand from the view's datasets and closed after `idleMs` without use. */
@@ -13,10 +15,13 @@ export class DataRuntime {
   private known = new Map<string, Record<string, DataInputJson>>(); // last datasets seen per view, to reopen after idle close
   private idleMs: number;
   private inlineDir: string;
+  private inlineOnly: boolean;
 
-  constructor(opts: { idleMs?: number; inlineDir: string }) {
+  /** inlineOnly (hosted): only inline rows load; a path or URL dataset is a problem and is never read or fetched. */
+  constructor(opts: { idleMs?: number; inlineDir: string; inlineOnly?: boolean }) {
     this.idleMs = opts.idleMs ?? 600_000;
     this.inlineDir = opts.inlineDir;
+    this.inlineOnly = opts.inlineOnly ?? false;
   }
 
   isOpen(viewId: string): boolean {
@@ -66,6 +71,7 @@ export class DataRuntime {
 
   /** Profiles inputs in a throwaway database (the `profile` tool). */
   async profile(input: DataInput | Record<string, DataInput>): Promise<Profile> {
+    if (this.inlineOnly) throw new Error(INLINE_ONLY);
     const db = await openDb();
     try {
       const names = await ingest(db, input);
@@ -93,6 +99,10 @@ export class DataRuntime {
     const db = await openDb();
     const tables: string[] = [];
     for (const [name, input] of Object.entries(datasets)) {
+      if (this.inlineOnly && !this.savedInline(input)) {
+        problems.push({ severity: "error", message: `dataset "${name}": ${INLINE_ONLY}`, hint: 'pass the rows themselves: { "inline": [ {...}, ... ] }' });
+        continue;
+      }
       try {
         await ingest(db, { [name]: input as DataInput }, { lock: false });
         tables.push(name);
@@ -115,6 +125,15 @@ export class DataRuntime {
     const file = path.join(folder, `${name}-${createHash("sha256").update(body).digest("hex").slice(0, 10)}.ndjson`);
     await writeFile(file, body);
     return { path: file, format: "ndjson" };
+  }
+
+  /** True only for a file `resolve` wrote: <inlineDir>/<viewId>/<name>-<hash>.ndjson, given exactly as written. */
+  private savedInline(input: DataInputJson): boolean {
+    if (typeof input === "string" || !("path" in input) || input.format !== "ndjson") return false;
+    const p = input.path;
+    if (!path.isAbsolute(p) || path.resolve(p) !== p) return false;
+    const rel = path.relative(this.inlineDir, p).split(path.sep);
+    return rel.length === 2 && /^[A-Za-z_]\w*$/.test(rel[0]!) && /^[A-Za-z_]\w*-[0-9a-f]{10}\.ndjson$/.test(rel[1]!);
   }
 
   private touch(viewId: string): void {

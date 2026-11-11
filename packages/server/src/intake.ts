@@ -459,6 +459,7 @@ export class Intake {
         for (const src of def?.media?.(item.c) ?? []) {
           const url = /^https?:\/\//i.test(src) ? src : this.deps.media?.register(src) ?? null;
           if (url) media[src] = url;
+          else if (this.deps.media?.remoteOnly) problems.push({ itemId: item.id, severity: "warning", message: `hosted aurora shows media from http(s) URLs only, not local files: ${src}`, hint: "use an https:// URL to the image or video" });
           else problems.push({ itemId: item.id, severity: "warning", message: `media file not found or not a supported image/video: ${src}`, hint: "use an absolute path to an existing png, jpg, gif, webp, avif, svg, mp4, webm, mov, m4v or ogg file, or an http(s) URL" });
         }
       }

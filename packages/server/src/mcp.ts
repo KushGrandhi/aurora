@@ -16,7 +16,7 @@ const DataSchema = z.union([
 type ToolResult = { content: ({ type: "text"; text: string } | { type: "image"; data: string; mimeType: string })[]; isError?: boolean };
 
 /** aurora's tools for any MCP harness. Each call forwards to the shared local server's HTTP API. */
-export function createAuroraMcpServer(opts: { baseUrl: string; fetch?: typeof fetch; cwd: string }): McpServer {
+export function createAuroraMcpServer(opts: { baseUrl: string; fetch?: typeof fetch; cwd: string; hosted?: boolean }): McpServer {
   const f = opts.fetch ?? fetch;
   const call = async (method: "GET" | "POST", path: string, body?: unknown): Promise<ToolResult> => {
     try {
@@ -91,7 +91,7 @@ export function createAuroraMcpServer(opts: { baseUrl: string; fetch?: typeof fe
     inputSchema: { data: DataSchema, intent: z.string().optional() },
   }, ({ data, intent }) => call("POST", "/api/render", { data, ...(intent ? { intent } : {}) }));
 
-  void call("POST", "/api/watch", { dir: opts.cwd }); // file streaming in this harness's working folder
+  if (!opts.hosted) void call("POST", "/api/watch", { dir: opts.cwd }); // file streaming in this harness's working folder
   return server;
 }
 

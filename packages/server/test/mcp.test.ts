@@ -16,9 +16,9 @@ function fakeFetch(reply: (c: Call) => { status?: number; body: unknown }) {
   return { f, calls };
 }
 
-async function connect(reply: Parameters<typeof fakeFetch>[0]) {
+async function connect(reply: Parameters<typeof fakeFetch>[0], extra: { hosted?: boolean } = {}) {
   const { f, calls } = fakeFetch(reply);
-  const server = createAuroraMcpServer({ baseUrl: "http://localhost:9", fetch: f, cwd: "/work/proj" });
+  const server = createAuroraMcpServer({ baseUrl: "http://localhost:9", fetch: f, cwd: "/work/proj", ...extra });
   const [a, b] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "t", version: "1" });
   await Promise.all([server.connect(a), client.connect(b)]);
@@ -68,6 +68,12 @@ test("registers cwd for watching on start", async () => {
   await new Promise((r) => setTimeout(r, 10));
   const w = calls.find((c) => c.url.endsWith("/api/watch"));
   expect(w).toMatchObject({ method: "POST", body: { dir: "/work/proj" } });
+});
+
+test("hosted: no watch call (the server's disk is not the caller's)", async () => {
+  const { calls } = await connect(() => ({ body: {} }), { hosted: true });
+  await new Promise((r) => setTimeout(r, 10));
+  expect(calls.find((c) => c.url.endsWith("/api/watch"))).toBeUndefined();
 });
 
 test("look returns each picture as an image the model sees, with its caption", async () => {

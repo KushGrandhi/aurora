@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createFakeProvider, type DataInput } from "@aurora/engine";
 import { loadConfig, providerFromConfig } from "./config.ts";
+import { loadHostedConfig } from "./hosted/config.ts";
 import { fakeSalesDoc } from "./fakeDoc.ts";
 import { mkdir, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
@@ -24,9 +25,10 @@ async function serve() {
   const provider = process.env.AURORA_FAKE_PROVIDER === "1"
     ? createFakeProvider(fakeSalesDoc, { chunkSize: 24, delayMs: 5 })
     : providerFromConfig(cfg);
-  const openBrowser = process.env.AURORA_NO_OPEN === "1" ? () => {} : undefined;
-  const srv = await startServer({ port: cfg.port, provider, staticDir: STATIC_DIR, openBrowser, viewsDir: process.env.AURORA_VIEWS_DIR || undefined, fontsDir: process.env.AURORA_FONTS_DIR || undefined, shotsDir: process.env.AURORA_SHOTS_DIR || undefined, fontsOffline: cfg.fonts === "offline" || process.env.AURORA_FONTS_OFFLINE === "1" });
-  console.log(`aurora screen: ${srv.url}  (provider ${provider.name})`);
+  const hosted = loadHostedConfig(process.env); // AURORA_MODE=hosted; throws when a required variable is missing
+  const openBrowser = hosted || process.env.AURORA_NO_OPEN === "1" ? () => {} : undefined;
+  const srv = await startServer({ port: cfg.port, provider, staticDir: STATIC_DIR, openBrowser, hosted, viewsDir: process.env.AURORA_VIEWS_DIR || undefined, fontsDir: process.env.AURORA_FONTS_DIR || undefined, shotsDir: process.env.AURORA_SHOTS_DIR || undefined, fontsOffline: cfg.fonts === "offline" || process.env.AURORA_FONTS_OFFLINE === "1" });
+  console.log(hosted ? `aurora hosted: listening on port ${new URL(srv.url).port}, public at ${hosted.publicUrl}` : `aurora screen: ${srv.url}  (provider ${provider.name})`);
   return srv;
 }
 

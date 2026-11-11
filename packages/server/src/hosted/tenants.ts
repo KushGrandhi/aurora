@@ -1,5 +1,6 @@
 import path from "node:path";
 import type { Core } from "../core.ts";
+import { isWorkspaceId } from "./keys.ts";
 
 /** Hosted mode: one core per workspace under <dataDir>/ws/<id>/, made on first use and kept for the process. */
 export class Tenants {
@@ -11,11 +12,13 @@ export class Tenants {
   }
 
   dir(ws: string): string {
+    if (!isWorkspaceId(ws)) throw new Error(`not a workspace id: ${JSON.stringify(ws).slice(0, 40)}`);
     return path.join(this.opts.dataDir, "ws", ws);
   }
 
   /** Concurrent gets of one workspace share a single creation; a failed creation is forgotten so the next get retries. */
   get(ws: string): Promise<Core> {
+    if (!isWorkspaceId(ws)) return Promise.reject(new Error("not a workspace id"));
     let p = this.cores.get(ws);
     if (!p) {
       p = this.opts.make(ws, this.dir(ws));

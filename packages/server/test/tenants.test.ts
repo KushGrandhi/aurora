@@ -53,3 +53,11 @@ test("each workspace gets its own core in its own folder", async () => {
 
   await tenants.closeAll();
 });
+
+test("tenants refuse anything that isn't a workspace id", async () => {
+  const tenants = new Tenants({ dataDir: "/nowhere", make: () => Promise.reject(new Error("never made")) });
+  for (const bad of ["../../etc", "ABCDEFGHIJKLMNOP", "short", "aaaaaaaaaaaaaaaa/.."]) {
+    expect(() => tenants.dir(bad)).toThrow(/workspace id/);
+    await expect(tenants.get(bad)).rejects.toThrow(/workspace id/);
+  }
+});

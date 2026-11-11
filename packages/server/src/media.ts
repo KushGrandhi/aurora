@@ -18,8 +18,15 @@ type Entry = { given: string; real: string };
 export class MediaRegistry {
   private secret: string;
   private entries = new Map<string, Entry>();
+  /** Hosted: no local file is ever served; views show media from http(s) URLs only. */
+  readonly remoteOnly: boolean;
 
-  constructor(opts: { secretFile: string }) {
+  constructor(opts: { secretFile: string; remoteOnly?: boolean }) {
+    this.remoteOnly = opts.remoteOnly ?? false;
+    if (this.remoteOnly) {
+      this.secret = "";
+      return;
+    }
     if (!existsSync(opts.secretFile)) {
       mkdirSync(path.dirname(opts.secretFile), { recursive: true });
       try {
@@ -33,6 +40,7 @@ export class MediaRegistry {
 
   /** `/media/<token>` for an absolute path to a supported image or video, or null. */
   register(absPath: string): string | null {
+    if (this.remoteOnly) return null;
     if (!path.isAbsolute(absPath)) return null;
     let real: string;
     try {

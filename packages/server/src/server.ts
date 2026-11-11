@@ -15,6 +15,10 @@ import { PatchOpSchema, type ScreenMessage } from "@aurora/spec";
 import { createComposeAdapter } from "./composeAdapter.ts";
 import { galleryView } from "./gallery.ts";
 import { createCore, send, type Core } from "./core.ts";
+import { BodyTooLarge, MAX_BODY, bearer, readBody, sameSecret } from "./hosted/auth.ts";
+import type { HostedConfig } from "./hosted/config.ts";
+import { isWorkspaceId, mintKey, newWorkspaceId, verifyKey } from "./hosted/keys.ts";
+import { Tenants } from "./hosted/tenants.ts";
 import { IntakeError } from "./intake.ts";
 import { MediaRegistry } from "./media.ts";
 import { defaultViewsDir } from "./viewStore.ts";
@@ -31,6 +35,7 @@ export type ServerOpts = {
   fontsDir?: string; // cached Google Fonts, default ~/.aurora/fonts
   fontsOffline?: boolean; // never fetch fonts from Google
   shotsDir?: string; // pictures from look, default ~/.aurora/shots
+  hosted?: HostedConfig; // hosted mode: bearer workspace keys, one core per workspace under dataDir
 };
 
 const REPLAY_VIEWS = 20;
@@ -76,10 +81,16 @@ const allowed = (req: IncomingMessage) => isLocalHost(req.headers.host) && isLoc
 // Sandboxed design frames have an opaque origin and send `Origin: null`: they may load libraries and media, nothing else.
 const sandboxRead = (req: IncomingMessage) => req.method === "GET" && req.headers.origin === "null" && isLocalHost(req.headers.host) && /^\/(lib|media)\//.test(req.url ?? "");
 
-async function readBody(req: IncomingMessage): Promise<unknown> {
-  let s = "";
-  for await (const c of req) s += c;
-  return JSON.parse(s);
+/** A JSON request body; hosted mode caps it (413 before or while reading). */
+async function jsonBody(req: IncomingMessage, maxBytes: number): Promise<unknown> {
+  if (Number(req.headers["content-length"]) > maxBytes) throw new BodyTooLarge(maxBytes);
+  if (!String(req.headers["content-type"] ?? "").startsWith("application/json")) throw new HttpError(415, "content-type must be application/json");
+  const buf = await readBody(req, maxBytes);
+  try {
+    return JSON.parse(buf.toString("utf8"));
+  } catch {
+    throw new HttpError(400, "invalid JSON body");
+  }
 }
 
 function json(res: ServerResponse, status: number, body: unknown) {
@@ -122,19 +133,26 @@ export async function startServer(opts: ServerOpts) {
   const cache = new SpecCache();
   const open = opts.openBrowser ?? defaultOpen;
   let base = "";
-  // Shared across cores: fonts, media tokens and the headless browser for look.
-  const media = new MediaRegistry({ secretFile: opts.secretFile ?? path.join(homedir(), ".aurora", "secret") });
-  const fonts = new FontStore({ dir: opts.fontsDir ?? path.join(homedir(), ".aurora", "fonts"), libDir: opts.staticDir ? path.join(opts.staticDir, "lib") : undefined, offline: opts.fontsOffline });
-  const looker = new Looker({ base: () => base, dir: opts.shotsDir ?? path.join(homedir(), ".aurora", "shots") });
-  // Local mode: exactly one core, in today's views folder.
-  const core = await createCore({ ws: "local", dir: opts.viewsDir ?? defaultViewsDir(), media, fonts, open, baseUrl: () => base, waitMs: opts.waitMs });
+  const hosted = opts.hosted ? { ...opts.hosted, dataDir: path.resolve(opts.hosted.dataDir) } : undefined;
+  const home = hosted ? hosted.dataDir : path.join(homedir(), ".aurora");
+  const maxBody = hosted ? MAX_BODY : Infinity;
+  // Shared across cores: fonts, media tokens and the headless browser for look. Hosted media is http(s) URLs only.
+  const media = new MediaRegistry({ secretFile: opts.secretFile ?? path.join(home, "secret"), remoteOnly: !!hosted });
+  const fonts = new FontStore({ dir: opts.fontsDir ?? path.join(home, "fonts"), libDir: opts.staticDir ? path.join(opts.staticDir, "lib") : undefined, offline: opts.fontsOffline });
+  const looker = new Looker({ base: () => base, dir: opts.shotsDir ?? path.join(home, "shots") });
+  // Local mode: exactly one core, in today's views folder. Hosted: one per workspace, made on first use.
+  const core = hosted ? undefined : await createCore({ ws: "local", dir: opts.viewsDir ?? defaultViewsDir(), media, fonts, open, baseUrl: () => base, waitMs: opts.waitMs });
+  const tenants = hosted
+    ? new Tenants({ dataDir: hosted.dataDir, make: (ws, dir) => createCore({ ws, dir, media, fonts, open: () => {}, baseUrl: () => base, waitMs: opts.waitMs, hosted: true }) })
+    : undefined;
 
-  const watcher = new ViewFileWatcher(core.intake);
+  // File streaming reads the local disk: local mode only.
+  const watcher = core ? new ViewFileWatcher(core.intake) : undefined;
   // A rebuilt screen (vite build) replaces the dist folder: tell open screens, so ones on the old build reload.
   let lastBuild = screenBuild();
   const buildCheck = setInterval(() => {
     const b = screenBuild();
-    if (b !== lastBuild) core.broadcast({ t: "hello", build: b });
+    if (b !== lastBuild) core?.broadcast({ t: "hello", build: b });
     lastBuild = b;
   }, 1000);
   buildCheck.unref();
@@ -236,16 +254,12 @@ export async function startServer(opts: ServerOpts) {
   async function api(core: Core, req: IncomingMessage, url: URL): Promise<[number, unknown]> {
     const { store, data, intake, clients } = core;
     const method = req.method ?? "GET";
-    let body: unknown;
-    if (method === "POST") {
-      if (!String(req.headers["content-type"] ?? "").startsWith("application/json")) throw new HttpError(415, "content-type must be application/json");
-      try {
-        body = await readBody(req);
-      } catch {
-        throw new HttpError(400, "invalid JSON body");
-      }
-    }
+    const body: unknown = method === "POST" ? await jsonBody(req, maxBody) : undefined;
     const p = url.pathname;
+    // Hosted workspaces never touch the server's disk or browser: no file streaming, composer, screenshots,
+    // variants or event waits (the MCP drops those tools too). A 404 says the route doesn't exist here.
+    if (core.hosted && (p === "/api/watch" || p === "/api/render" || /^\/api\/views\/[^/]+\/(look|variants|events)$/.test(p))) throw new HttpError(404, "not found");
+    if (core.hosted && p === "/api/profile") throw new HttpError(400, "hosted aurora takes inline data only, so there is nothing to profile: put the rows in the view's datasets as { inline: [rows] }");
     if (p === "/api/health") return [200, { ok: true, provider: opts.provider.name, screens: clients.size }];
     if (p === "/api/views" && method === "GET") return [200, store.list()];
     if (p === "/api/views" && method === "POST") {
@@ -262,6 +276,7 @@ export async function startServer(opts: ServerOpts) {
     if (p === "/api/watch" && method === "POST") {
       const d = (body as { dir?: unknown })?.dir;
       if (typeof d !== "string" || !path.isAbsolute(d)) throw new HttpError(400, "body.dir must be an absolute path");
+      if (!watcher) throw new HttpError(404, "not found");
       watcher.watch(d);
       return [200, { watching: watcher.dirs() }];
     }
@@ -331,8 +346,46 @@ export async function startServer(opts: ServerOpts) {
     throw new HttpError(404, "not found");
   }
 
+  /**
+   * Hosted API: /api/health and /api/keys are open; everything else needs `Authorization: Bearer <key>`, and the
+   * key alone names the workspace (never the Host, address or a query string).
+   */
+  async function hostedApi(h: HostedConfig, t: Tenants, req: IncomingMessage, url: URL): Promise<[number, unknown]> {
+    const p = url.pathname;
+    if (p === "/api/health") return [200, { ok: true, provider: opts.provider.name, hosted: true }];
+    if (p === "/api/keys") {
+      if (req.method !== "POST") throw new HttpError(404, "not found");
+      const b = await jsonBody(req, maxBody);
+      if (!sameSecret((b as { invite?: unknown })?.invite, h.invite)) throw new HttpError(403, "a valid invite is required");
+      const ws = newWorkspaceId();
+      return [200, { key: mintKey(h.secret, ws), ws }];
+    }
+    const key = bearer(req);
+    const claim = key ? verifyKey(h.secret, key) : null;
+    if (!claim || !isWorkspaceId(claim.ws)) throw new HttpError(401, "a workspace key is required: Authorization: Bearer <key>");
+    return api(await t.get(claim.ws), req, url);
+  }
+
+  function answerError(req: IncomingMessage, res: ServerResponse, e: unknown) {
+    if (e instanceof BodyTooLarge) {
+      // The body is no longer kept. Closing the socket mid-upload would cost the client the answer (EPIPE), so
+      // the rest is drained and dropped, up to one more cap's worth; past that the connection is cut.
+      json(res, 413, { error: e.message });
+      let dropped = 0;
+      req.on("data", (c: Buffer) => {
+        dropped += c.length;
+        if (dropped > MAX_BODY) req.destroy();
+      });
+      req.resume();
+      return;
+    }
+    const status = e instanceof HttpError || e instanceof IntakeError ? e.status : 500;
+    json(res, status, { error: (e as Error).message });
+  }
+
   const server = createServer(async (req, res) => {
-    if (!allowed(req) && !sandboxRead(req)) return json(res, 403, { error: "forbidden origin" });
+    // Local mode: only local pages may drive the server. Hosted: identity is the bearer key (or, later, a share token).
+    if (!hosted && !allowed(req) && !sandboxRead(req)) return json(res, 403, { error: "forbidden origin" });
     const raw = req.url ?? "/";
     if (raw.startsWith("/media/")) {
       // Matched on the raw path: only /media/<32 hex> can ever resolve, and a 404 says nothing about why.
@@ -345,23 +398,27 @@ export async function startServer(opts: ServerOpts) {
     const url = new URL(raw, base);
     if (!url.pathname.startsWith("/api/")) return serveStatic(req, res);
     try {
-      const [status, out] = await api(core, req, url);
+      const [status, out] = hosted && tenants ? await hostedApi(hosted, tenants, req, url) : await api(core!, req, url);
       json(res, status, out);
     } catch (e) {
-      const status = e instanceof HttpError || e instanceof IntakeError ? e.status : 500;
-      json(res, status, { error: (e as Error).message });
+      answerError(req, res, e);
     }
   });
 
   // Screens send small reports and events; a 1 MB cap keeps one bad message from tying the server up.
-  const wss = new WebSocketServer({ server, path: "/ws", maxPayload: 1024 * 1024, verifyClient: ({ req }: { req: IncomingMessage }) => allowed(req) });
-  wss.on("connection", (ws, req: IncomingMessage) => screen(core, ws, req));
+  // Hosted: a socket has no workspace without a share token (added with share links), so none are accepted yet.
+  const wss = new WebSocketServer({ server, path: "/ws", maxPayload: 1024 * 1024, verifyClient: ({ req }: { req: IncomingMessage }) => !hosted && allowed(req) });
+  wss.on("connection", (ws, req: IncomingMessage) => {
+    if (core) screen(core, ws, req);
+    else ws.close(1008);
+  });
 
   function screen({ store, intake, clients, captures }: Core, ws: WebSocket, req: IncomingMessage) {
     const capture = new URL(req.url ?? "/", "http://x").searchParams.get("role") === "capture";
     const set = capture ? captures : clients;
     set.add(ws);
     ws.on("close", () => set.delete(ws));
+    ws.on("error", () => {}); // e.g. an oversized message: ws closes the socket (1009); unheard, the error would crash the process
     ws.on("message", (raw) => {
       let msg: ScreenMessage;
       try {
@@ -390,22 +447,25 @@ export async function startServer(opts: ServerOpts) {
     })();
   }
 
-  await new Promise<void>((r) => server.listen(opts.port, "127.0.0.1", r));
+  await new Promise<void>((r) => server.listen(opts.port, hosted ? "0.0.0.0" : "127.0.0.1", r));
   base = `http://localhost:${(server.address() as AddressInfo).port}`;
 
   return {
     url: base,
-    intake: core.intake,
-    store: core.store,
+    intake: core?.intake,
+    store: core?.store,
     async close() {
-      watcher.close();
+      watcher?.close();
       clearInterval(buildCheck);
-      for (const c of core.clients) c.terminate();
-      for (const c of core.captures) c.terminate();
+      if (core) {
+        for (const c of core.clients) c.terminate();
+        for (const c of core.captures) c.terminate();
+      }
       await looker.close();
       wss.close();
       await new Promise<void>((r) => server.close(() => r()));
-      await core.close();
+      await core?.close();
+      await tenants?.closeAll();
     },
   };
 }
