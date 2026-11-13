@@ -38,5 +38,5 @@ every existing test.
 Only two goals: others connect their Claude (any MCP harness) to the hosted aurora, and share a view by link. Kept
 because a public box is unsafe without them: workspace isolation, inline-only data (no server files, no fetching),
 invite-required keys, a body cap. Out of the MVP: uploads, per-viewer filters, `look` on hosted, the screenshot queue,
-DuckDB limits, quotas, mint rate limits, a deny-list, OAuth. The plan's Global Constraints are binding where they differ
+DuckDB limits, quotas, mint rate limits, a deny-list. Not planned: Claude.ai web login (2026-11-12): the flow is a harness connects over MCP, makes a view, and shares its link. The plan's Global Constraints are binding where they differ
 from the table above.

@@ -26,7 +26,7 @@
 
 ## Known gaps (deliberately out of this MVP)
 
-Uploads; per-viewer filter state; `look` on hosted; a screenshot queue; DuckDB memory/thread/time limits; workspace disk quota; mint rate limits; a deny-list for one key; OAuth for Claude.ai web connectors. Safe enough while invite-only; each is a later task.
+Uploads; per-viewer filter state; `look` on hosted; a screenshot queue; DuckDB memory/thread/time limits; workspace disk quota; mint rate limits; a deny-list for one key. Not planned: Claude.ai web login (Kush, 2026-11-12: the flow is Claude Code → MCP → aurora → a view link). Safe enough while invite-only; each is a later task.
 
 ## Review Focus
 
