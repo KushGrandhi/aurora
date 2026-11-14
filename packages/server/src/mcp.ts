@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import { portableSchema } from "./portableSchema.ts";
 import { PatchOpSchema, ViewSchema } from "@aurora/spec";
 
 const DataSchema = z.union([
@@ -101,6 +102,16 @@ export function createAuroraMcpServer(opts: { baseUrl: string; fetch?: typeof fe
     description: "Fallback for callers that want aurora's built-in composer: give data and an intent; aurora's own model designs the view. Prefer composing the view yourself with render/patch.",
     inputSchema: { data: DataSchema, intent: z.string().optional() },
   }, ({ data, intent }) => call("POST", "/api/render", { data, ...(intent ? { intent } : {}) }));
+
+  // tools/list goes out in the portable subset strict clients accept (ChatGPT rejects tuple schemas); calls are
+  // still validated against the full zod schemas. The SDK keeps one handler per method: wrap the one it set.
+  const handlers = (server.server as unknown as { _requestHandlers: Map<string, (req: unknown, extra: unknown) => Promise<{ tools: { inputSchema: unknown }[] }>> })._requestHandlers;
+  const list = handlers.get("tools/list");
+  if (!list) throw new Error("aurora: the MCP SDK no longer keeps a tools/list handler where expected");
+  handlers.set("tools/list", async (req, extra) => {
+    const r = await list(req, extra);
+    return { ...r, tools: r.tools.map((t) => ({ ...t, inputSchema: portableSchema(t.inputSchema) })) };
+  });
 
   if (!opts.hosted) void call("POST", "/api/watch", { dir: opts.cwd }); // file streaming in this harness's working folder
   return server;
