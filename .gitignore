@@ -5,3 +5,6 @@ test-results
 playwright-report
 .env
 deploy/.env
+
+# local secrets (personal MCP links, keys): never committed
+.secrets/
