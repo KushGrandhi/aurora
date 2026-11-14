@@ -65,6 +65,8 @@ One server, many people. Each person gets a **workspace key**, a signed token se
 claude mcp add --transport http aurora https://<aurora-host>/mcp --header "Authorization: Bearer <key>"
 ```
 
+**Claude.ai and ChatGPT** can't send a header. Whoever runs the server makes a **personal link** with `aurora link new --name <name>`: a secret URL, `https://<aurora-host>/mcp/<secret>`, that acts as one workspace. Paste it as the connector URL with **No authentication**. Keep it private; `aurora link revoke <name>` turns it off.
+
 **Get a key** (the server's invite code is required):
 
 ```bash

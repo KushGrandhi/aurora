@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { createFakeProvider, type DataInput } from "@aurora/engine";
 import { loadConfig, providerFromConfig } from "./config.ts";
 import { loadHostedConfig } from "./hosted/config.ts";
+import { linkCommand } from "./hosted/linkCli.ts";
 import { fakeSalesDoc } from "./fakeDoc.ts";
 import { mkdir, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
@@ -18,7 +19,9 @@ const USAGE = `usage:
   aurora watch <dir>           stream views from <dir>/.aurora/views/*.ndjson
   aurora skill [--out <dir>]   write the skill folder (default ~/.claude/skills/aurora)
   aurora gallery               show every component on the screen
-  aurora render <path | name=path>... [--intent "what you want to see"]`;
+  aurora render <path | name=path>... [--intent "what you want to see"]
+  aurora link new --name <n> [--workspace <id>]   hosted: a secret MCP URL for Claude.ai / ChatGPT (no auth)
+  aurora link list | aurora link revoke <n>       hosted: list or revoke links (uses AURORA_DATA_DIR)`;
 
 async function serve() {
   const cfg = loadConfig();
@@ -116,6 +119,7 @@ try {
   else if (cmd === "watch") await watchDir(rest[0]);
   else if (cmd === "skill") await writeSkill(rest);
   else if (cmd === "gallery") await gallery();
+  else if (cmd === "link") await linkCommand(rest, process.env);
   else console.log(USAGE);
 } catch (e) {
   console.error((e as Error).message);

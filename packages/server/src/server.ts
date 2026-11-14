@@ -21,6 +21,7 @@ import { isWorkspaceId, mintKey, newWorkspaceId, verifyKey } from "./hosted/keys
 import { shareOutgoing, wsOfToken } from "./hosted/shares.ts";
 import { handleMcp } from "./hosted/mcpHttp.ts";
 import { Tenants } from "./hosted/tenants.ts";
+import { LinkTable } from "./hosted/links.ts";
 import { IntakeError } from "./intake.ts";
 import { MediaRegistry } from "./media.ts";
 import { defaultViewsDir } from "./viewStore.ts";
@@ -145,6 +146,7 @@ export async function startServer(opts: ServerOpts) {
   const looker = new Looker({ base: () => base, dir: opts.shotsDir ?? path.join(home, "shots") });
   // Local mode: exactly one core, in today's views folder. Hosted: one per workspace, made on first use.
   const core = hosted ? undefined : await createCore({ ws: "local", dir: opts.viewsDir ?? defaultViewsDir(), media, fonts, open, baseUrl: () => base, waitMs: opts.waitMs });
+  const links = hosted ? new LinkTable(hosted.dataDir) : undefined;
   const tenants = hosted
     ? new Tenants({ dataDir: hosted.dataDir, make: (ws, dir) => createCore({ ws, dir, media, fonts, open: () => {}, baseUrl: () => base, waitMs: opts.waitMs, hosted: true }) })
     : undefined;
@@ -437,6 +439,26 @@ export async function startServer(opts: ServerOpts) {
       url = new URL(raw, base);
     } catch {
       throw new HttpError(400, "bad request target");
+    }
+    // Claude.ai probes OAuth discovery even for servers without auth; anything but a 404 (a 401, or the screen's
+    // index.html) makes it try to register and fail. Hosted aurora has no OAuth: every /.well-known/ path is a 404.
+    if (hosted && url.pathname.startsWith("/.well-known/")) return json(res, 404, { error: "not found" });
+    if (hosted && links && url.pathname.startsWith("/mcp/")) {
+      // A personal link: the secret in the path names a workspace (hosted/links.ts). Unknown, revoked or malformed
+      // is a 404 JSON before the method is even looked at, so the route says nothing about which secrets exist.
+      const ws = await links.resolve(url.pathname.slice("/mcp/".length).replace(/\/$/, ""));
+      if (!ws) return json(res, 404, { error: "not found" });
+      if (req.method !== "POST") {
+        res.writeHead(405, { "content-type": "application/json", allow: "POST" });
+        return void res.end(JSON.stringify({ error: "method not allowed" }));
+      }
+      try {
+        await handleMcp(req, res, { key: mintKey(hosted.secret, ws), internalBase: `http://127.0.0.1:${(server.address() as AddressInfo).port}` });
+      } catch (e) {
+        if (!res.headersSent) answerError(req, res, e);
+        else res.destroy();
+      }
+      return;
     }
     if (hosted && url.pathname === "/mcp") {
       // Stateless Streamable HTTP: POST only, so no standalone SSE stream (GET) or session (DELETE) ever exists.

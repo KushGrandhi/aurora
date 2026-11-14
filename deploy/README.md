@@ -42,6 +42,20 @@ Each key is its own workspace: nobody sees another's views. Keep the key private
 claude mcp add --transport http aurora https://aurora.<your-domain>/mcp --header "Authorization: Bearer <key>"
 ```
 
+### Claude.ai, ChatGPT and other apps that can't send a header
+
+Their connector dialogs offer only OAuth or no authentication. Give them a **personal link** instead: a secret URL that acts as one workspace.
+
+```bash
+alias aurora-link='docker compose -f deploy/docker-compose.yml exec aurora node_modules/.bin/tsx packages/server/src/cli.ts link'
+aurora-link new --name claude                       # a fresh workspace
+aurora-link new --name chatgpt --workspace <id>     # one more link to the same workspace
+aurora-link list
+aurora-link revoke chatgpt
+```
+
+`link new` prints `https://aurora.<your-domain>/mcp/<secret>` once. Paste it as the connector's server URL and choose **No authentication**. Anyone holding the URL can use that workspace, so give each app or person its own link and revoke it if it leaks. The server stores only a hash of each secret (`<data>/links.json`); new and revoked links apply without a restart, and revoking leaves the workspace's pages in place. Run it as the container's own user (no `-u root`): `links.json` is readable only by its owner, and a root-owned file stops every link working. Notes per app: in ChatGPT, pick **No authentication** before creating the connector (the form starts on OAuth); in a Claude Team or Enterprise org, a connector an owner adds is shared by every member, so it should be a link to a shared workspace or each person adds their own. The bundled Caddyfile writes no access logs; if you add a `log` directive or another proxy, keep `/mcp/` paths out of it.
+
 Tools: `render`, `patch`, `status`, `version`. Each result carries a `url` (`/v/<token>`), a view-only link to open or share. Data must be inline (`{"inline": [rows]}`); paths and `http(s)` datasets are refused.
 
 ## Check it
