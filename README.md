@@ -14,20 +14,20 @@ Ask Claude a question and you usually get a wall of text. With aurora, it can *s
 
 Numbers in data panels always come from DuckDB queries over your data, so the model never makes them up.
 
-**Five views, five looks.** Each is interactive, and each one's design and layout were chosen for its subject. All five ship with the skill as worked examples.
+**Five views, five looks.** Each is interactive, and each one's design and layout were chosen for its subject. All five ship with the skill as worked examples. **Click any picture to open the live view** on a hosted aurora: drag, filter and play with it in your browser.
 
 <table>
 <tr>
-<td width="50%"><img src="docs/screenshots/example-ranking.png" alt="Where should you move?"><br><b>Where should you move?</b> Eight cities, ranked live by the weights you set.</td>
-<td width="50%"><img src="docs/screenshots/example-quakes.png" alt="The planet, shaking"><br><b>The planet, shaking.</b> A year of earthquakes: play it, scrub it, raise the floor.</td>
+<td width="50%"><a href="https://anchor.tailcc772d.ts.net:10000/v/2gwotucik8qoakzc_b9766f0ce58593dee75629bc0fedd609"><img src="docs/screenshots/example-ranking.png" alt="Where should you move?"></a><br><b>Where should you move?</b> Eight cities, ranked live by the weights you set.</td>
+<td width="50%"><a href="https://anchor.tailcc772d.ts.net:10000/v/2gwotucik8qoakzc_2058ce3139ad8791126ac6affa95459e"><img src="docs/screenshots/example-quakes.png" alt="The planet, shaking"></a><br><b>The planet, shaking.</b> A year of earthquakes: play it, scrub it, raise the floor.</td>
 </tr>
 <tr>
-<td><img src="docs/screenshots/example-fieldguide.png" alt="A field guide to tea"><br><b>A field guide to tea.</b> Sixteen teas as specimens, with flavour and brewing for each.</td>
-<td><img src="docs/screenshots/example-dial.png" alt="A day of power"><br><b>A day of power.</b> A city's electricity hour by hour: drag the hand around the day.</td>
+<td><a href="https://anchor.tailcc772d.ts.net:10000/v/2gwotucik8qoakzc_4a9a8875b2d570d7d4dda5d52656da4a"><img src="docs/screenshots/example-fieldguide.png" alt="A field guide to tea"></a><br><b>A field guide to tea.</b> Sixteen teas as specimens, with flavour and brewing for each.</td>
+<td><a href="https://anchor.tailcc772d.ts.net:10000/v/2gwotucik8qoakzc_9485a41c86735f437d0595a529463906"><img src="docs/screenshots/example-dial.png" alt="A day of power"></a><br><b>A day of power.</b> A city's electricity hour by hour: drag the hand around the day.</td>
 </tr>
 <tr>
-<td><img src="docs/screenshots/example-water.png" alt="How much water is your day?"><br><b>How much water is your day?</b> Tap in your habits; the tank fills with every litre.</td>
-<td><img src="docs/screenshots/deck-title.png" alt="Kush on aurora"><br><b>Kush on aurora.</b> A nine-slide deck an agent built from the repo's own history (<a href="#what-it-can-draw">all slides</a>).</td>
+<td><a href="https://anchor.tailcc772d.ts.net:10000/v/2gwotucik8qoakzc_7ed94e4712a8d5b97d760c48b33687df"><img src="docs/screenshots/example-water.png" alt="How much water is your day?"></a><br><b>How much water is your day?</b> Tap in your habits; the tank fills with every litre.</td>
+<td><a href="https://anchor.tailcc772d.ts.net:10000/v/2gwotucik8qoakzc_a31c1f6e566823db717f10511df452bd"><img src="docs/screenshots/deck-title.png" alt="Kush on aurora"></a><br><b>Kush on aurora.</b> A nine-slide deck an agent built from the repo's own history (<a href="#what-it-can-draw">all slides</a>).</td>
 </tr>
 </table>
 
