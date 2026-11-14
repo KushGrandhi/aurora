@@ -84,6 +84,12 @@ Everything uses aurora's tokens, so it follows the view's palette and light/dark
 
 **Versions.** The version chip lists every version. Picking one previews it, and **Use this version** makes it current as a new version, so nothing is lost. The model's next patch builds on it and its result says `rebased: true`. Views persist under `~/.aurora/views/<id>/v<N>.json`, keeping the last 200 views or 30 days, whichever keeps more. `AURORA_VIEWS_DIR` overrides the folder.
 
+**A deck, built by an agent.** Asked to make the case for how aurora was built, an agent produced a nine-slide deck as a single `design`. It has Back/Next controls, a commit-activity chart you can click, before/after screenshots, eval scores and a list of fix commits. Every number comes from queries over the repo's git log and eval write-ups.
+
+![Kush on aurora: the title slide](docs/screenshots/deck-title.png)
+
+![All nine slides](docs/screenshots/deck-slides.png)
+
 Examples: [explaining this repo](docs/screenshots/2b-explain.png) · [a CSV analysis with filters](docs/screenshots/2b-analysis.png) · [three hero variants](docs/screenshots/2c-variants.png) → [the picked one, polished](docs/screenshots/2c-landing.png).
 
 ## Data, filters and media
