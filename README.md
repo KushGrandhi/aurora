@@ -1,10 +1,18 @@
 # aurora
 
-**A screen for LLMs.** The model you're working with (Claude Code, or any MCP harness) sends aurora a *view* as JSON. aurora checks it, draws it with motion, keeps every version and reports what broke, so the model can fix it. A view can be a data dashboard, a system diagram, a guided 3D explainer, a landing page or a small game. Views are built up piece by piece and refined in place with patches. Numbers in data panels always come from DuckDB queries, so the model never types data.
+**Give your AI a screen.**
 
-aurora runs **locally** on your machine (`localhost:4317`), or **hosted** for many people, where each person connects their harness with a key and shares views by link.
+Ask Claude a question and you usually get a wall of text. With aurora, it can *show* you instead: a dashboard over your CSV, a diagram of your system, a 3D engine you can turn by hand, a landing page, a slide deck. The model writes the view, and aurora draws it, checks it and tells the model what broke so it can fix it before you look.
 
-![Component gallery](docs/screenshots/gallery-light.png)
+![A slide deck an agent built on aurora](docs/screenshots/deck-title.png)
+
+**How it works**
+
+1. **Your model sends a view.** A view is JSON: charts, tables, maps, diagrams, or a whole React page. It comes from Claude Code or any MCP harness, built up piece by piece and refined with small patches.
+2. **aurora draws it and reports back.** It renders with motion, keeps every version, and returns problems (a broken chart, text that overflows, a 3D scene stuck in a card) so the model can fix them.
+3. **You look, explore and share.** Point at a value and it lights up everywhere. Filter, scrub, click through. Run it on your laptop, or host it and send a link.
+
+Numbers in data panels always come from DuckDB queries over your data, so the model never makes them up.
 
 - [Quick start (local)](#quick-start-local)
 - [Hosted aurora](#hosted-aurora)
@@ -85,8 +93,6 @@ Everything uses aurora's tokens, so it follows the view's palette and light/dark
 **Versions.** The version chip lists every version. Picking one previews it, and **Use this version** makes it current as a new version, so nothing is lost. The model's next patch builds on it and its result says `rebased: true`. Views persist under `~/.aurora/views/<id>/v<N>.json`, keeping the last 200 views or 30 days, whichever keeps more. `AURORA_VIEWS_DIR` overrides the folder.
 
 **A deck, built by an agent.** Asked to make the case for how aurora was built, an agent produced a nine-slide deck as a single `design`. It has Back/Next controls, a commit-activity chart you can click, before/after screenshots, eval scores and a list of fix commits. Every number comes from queries over the repo's git log and eval write-ups.
-
-![Kush on aurora: the title slide](docs/screenshots/deck-title.png)
 
 ![All nine slides](docs/screenshots/deck-slides.png)
 
