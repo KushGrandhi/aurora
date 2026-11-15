@@ -27,10 +27,10 @@ async function connect(reply: Parameters<typeof fakeFetch>[0], extra: { hosted?:
 
 const view = { v: 2, id: "demo", title: "Demo", sections: [{ id: "main", layout: "grid", items: [{ id: "a", c: { type: "text", md: "hi" } }] }] };
 
-test("lists the nine tools", async () => {
+test("lists the ten tools", async () => {
   const { client } = await connect(() => ({ body: {} }));
   const { tools } = await client.listTools();
-  expect(tools.map((t) => t.name).sort()).toEqual(["compose", "events", "look", "patch", "profile", "render", "status", "variants", "version"]);
+  expect(tools.map((t) => t.name).sort()).toEqual(["aurora_guide", "compose", "events", "look", "patch", "profile", "render", "status", "variants", "version"]);
   for (const t of tools) expect(t.description!.length).toBeGreaterThan(20);
 });
 
@@ -88,4 +88,53 @@ test("look returns each picture as an image the model sees, with its caption", a
   expect(content.map((c) => c.type)).toEqual(["text", "text", "image"]);
   expect(content[1].text).toContain("0–19%");
   expect(content[2]).toMatchObject({ mimeType: "image/jpeg", data: Buffer.from([0xff, 0xd8, 0xff, 0xd9]).toString("base64") });
+});
+
+const text = (r: unknown) => ((r as { content: unknown }).content as { text: string }[]).map((c) => c.text).join("\n");
+
+test("server instructions tell the agent to read the guide first", async () => {
+  const { client } = await connect(() => ({ body: {} }));
+  expect(client.getInstructions()).toContain("call aurora_guide with no arguments");
+  const render = (await client.listTools()).tools.find((t) => t.name === "render")!;
+  expect(render.description).toMatch(/^Read aurora_guide first/);
+});
+
+test("aurora_guide with no file gives the method and lists every other file", async () => {
+  const { client, calls } = await connect(() => ({ body: {} }));
+  const r = await client.callTool({ name: "aurora_guide", arguments: {} });
+  const t = text(r);
+  expect(t).toContain("## The loop");
+  expect(t).not.toMatch(/^---/);
+  for (const p of ["references/kit.md", "references/design-canvas.md", "examples/landing.md", "examples/quakes.md"]) expect(t).toContain(`\`${p}\``);
+  expect(calls.filter((c) => !c.url.endsWith("/api/watch"))).toEqual([]);
+});
+
+test("aurora_guide opens a named file, trimmed to fit a tool result", async () => {
+  const { client } = await connect(() => ({ body: {} }));
+  const r = await client.callTool({ name: "aurora_guide", arguments: { file: "examples/quakes.md" } });
+  expect(r.isError).toBeFalsy();
+  expect(text(r)).toContain("more rows like these");
+  expect(text(r).length).toBeLessThan(40_000);
+});
+
+test("aurora_guide refuses a file it doesn't have", async () => {
+  const { client } = await connect(() => ({ body: {} }));
+  const r = await client.callTool({ name: "aurora_guide", arguments: { file: "../../etc/passwd" } }).catch((e: Error) => ({ isError: true, content: [{ text: e.message }] }));
+  expect(r.isError).toBe(true);
+  expect(text(r)).toContain("references/kit.md");
+});
+
+test("hosted aurora_guide serves the hosted text", async () => {
+  const { client } = await connect(() => ({ body: {} }), { hosted: true });
+  const t = text(await client.callTool({ name: "aurora_guide", arguments: {} }));
+  expect(t).not.toContain("localhost");
+  expect(t).not.toContain("`look`");
+});
+
+test("a render with problems points at the guide; a clean one doesn't", async () => {
+  let problems: unknown[] = [{ itemId: "a", severity: "error", message: "boom" }];
+  const { client } = await connect(() => ({ body: { viewId: "demo", version: 1, problems } }));
+  expect(text(await client.callTool({ name: "render", arguments: { view } }))).toContain("read aurora_guide");
+  problems = [];
+  expect(text(await client.callTool({ name: "render", arguments: { view } }))).not.toContain("aurora_guide");
 });

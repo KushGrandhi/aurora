@@ -1,6 +1,6 @@
 # aurora: show it on a screen
 
-aurora is a local screen (http://localhost:4317). You send it a **view** (JSON). It draws the view, animates it, keeps every version and tells you what broke. Use it whenever seeing beats reading: data, how something works, how a system is built, a page or product idea.
+aurora is a <!--local-->local screen (http://localhost:4317)<!--/local--><!--hosted-->screen on the web: each view gets a share link<!--/hosted-->. You send it a **view** (JSON). It draws the view, animates it, keeps every version and tells you what broke. Use it whenever seeing beats reading: data, how something works, how a system is built, a page or product idea.
 
 This file is the whole method. The files under `references/` and `examples/` hold detail; each section below says when to open one.
 
@@ -10,14 +10,14 @@ Follow these steps in order, every time.
 
 1. **Choose the form, then its look.** Ask what the reader will do with this (`references/forms.md`): get an answer, understand a finding, watch, explore, compare, try what-ifs, look things up, be persuaded. For a story or an explainer, outline it with `references/story.md`. Then decide its look with `references/design-language.md`. Never default to the look of the last view or the example.
 2. **Build it as a page.** Beyond a one-number answer, the view is one whole-page `design` that reads your queries and owns its layout, type, surface and interactions (**Build a page** below). Catalog components are for a quick answer or a quick look.
-3. **Render** the frame with `mcp__aurora__render`: title, one-line summary and sections (with the first item, or with `"items": []`).
-4. **Add** the remaining items with `mcp__aurora__patch`, **one call at a time**. Each call passes `baseVersion` = the `version` the previous call returned. Two patches sent together collide.
-5. **Check** with `mcp__aurora__status`. Fix every `error` with a patch, then check again.
-6. **Look** at it with `mcp__aurora__look`: pictures of the view as a person sees it. Is what the reader needs on the first screen? Anything overlapping, cut off, too small, hard to read or empty? Fix and look again (two or three rounds). Add `"sizes": ["desktop", "phone"]` once, before you finish, to check the phone layout; pass `"section"` to look at just one part.
+3. **Render** the frame with `render`: title, one-line summary and sections (with the first item, or with `"items": []`).
+4. **Add** the remaining items with `patch`, **one call at a time**. Each call passes `baseVersion` = the `version` the previous call returned. Two patches sent together collide.
+5. **Check** with `status`. Fix every `error` with a patch, then check again.
+<!--local-->6. **Look** at it with `look`: pictures of the view as a person sees it. Is what the reader needs on the first screen? Anything overlapping, cut off, too small, hard to read or empty? Fix and look again (two or three rounds). Add `"sizes": ["desktop", "phone"]` once, before you finish, to check the phone layout; pass `"section"` to look at just one part.<!--/local--><!--hosted-->6. **Re-read** every file of your design against the checklist at the end: what the reader needs on the first screen, nothing overlapping or cut off, a phone layout (`md:` grids, `flex-wrap`, no fixed widths). This server has no screenshot tool, so `status` and this check are how you catch problems.<!--/hosted-->
 7. **Review** your work against **Before you finish** at the end of this file.
 8. **Tell** the user the URL in one line. Don't repeat the content in the terminal.
 
-`unverified` in a result means no screen has drawn and checked the item yet. A `design` stays `unverified` for a few seconds after it draws, while aurora runs its design checks: call `status` again after about 3 seconds and fix any `design:` warning. If it is still `unverified` after that, no screen is open: `look` still works (it draws the view itself), so use it to check your work, and give the URL to the user.
+`unverified` in a result means no screen has drawn and checked the item yet. A `design` stays `unverified` for a few seconds after it draws, while aurora runs its design checks: call `status` again after about 3 seconds and fix any `design:` warning.<!--local--> If it is still `unverified` after that, no screen is open: `look` still works (it draws the view itself), so use it to check your work, and give the URL to the user.<!--/local--><!--hosted--> If it is still `unverified` after that, no screen has opened the link yet; that is normal here. Give the URL to the user.<!--/hosted-->
 
 ## Build a page (the default)
 
@@ -130,16 +130,16 @@ Every result carries `problems`: `{itemId?, severity, message, hint?}`.
 - `warning`: it rendered, but something needs attention: a missing media file, or a design check (`design: text overflows…`, `design: the drawing is flat…`, `design: a 3D scene is shown in a card…`). Fix design warnings the way the message says.
 - `unverified`: no screen has drawn and checked it yet. Not a failure; for a `design`, check `status` again in a few seconds.
 
-## Without the MCP tools
+<!--local-->## Without the MCP tools
 
-The same operations work over HTTP: `POST localhost:4317/api/views {view}`, `POST /api/views/<id>/patch {ops, baseVersion}`, `GET /api/views/<id>/status`, and `POST /api/views/<id>/look {sizes?, section?}`, which saves the pictures and returns their file paths with a caption each: open them to look. Or append JSON lines to `<project>/.aurora/views/<name>.ndjson`: the first line is a view, each later line is `{"ops": [...], "baseVersion": N}`. aurora writes problems to `<name>.problems.json` next to it after every line. The folder is watched only when aurora's MCP server runs in that project, or after `aurora watch <project>`.
+The same operations work over HTTP: `POST localhost:4317/api/views {view}`, `POST /api/views/<id>/patch {ops, baseVersion}`, `GET /api/views/<id>/status`, and `POST /api/views/<id>/look {sizes?, section?}`, which saves the pictures and returns their file paths with a caption each: open them to look. Or append JSON lines to `<project>/.aurora/views/<name>.ndjson`: the first line is a view, each later line is `{"ops": [...], "baseVersion": N}`. aurora writes problems to `<name>.problems.json` next to it after every line. The folder is watched only when aurora's MCP server runs in that project, or after `aurora watch <project>`.<!--/local-->
 
 ## Before you finish
 
 Go through every line. Fix what fails, then check `status` once more.
 
 - [ ] `status` shows no `error` and no `design:` warning.
-- [ ] You looked at the latest version with `look` (desktop and phone) and fixed what you saw: nothing cut off, overlapping, too small or spilling sideways on a phone.
+<!--local-->- [ ] You looked at the latest version with `look` (desktop and phone) and fixed what you saw:<!--/local--><!--hosted-->- [ ] You re-read every design file for the desktop and phone layouts and fixed what you found:<!--/hosted--> nothing cut off, overlapping, too small or spilling sideways on a phone.
 - [ ] The form fits the reader's job (`references/forms.md`); a story has a hook, one idea per beat, a signature moment and an ending.
 - [ ] The look was chosen for this subject: a `palette` (stage, accent, series), type and motion that fit it, and it doesn't copy the example's or the last view's look.
 - [ ] A physical mechanism is a 3D `aurora/kit` scene pinned in a `story` section with steps that drive it (or a `hero`), not a flat drawing in a card, and the view has a `palette` from its subject.

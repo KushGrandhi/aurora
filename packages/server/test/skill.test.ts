@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { expect, test } from "vitest";
 import { fontEntry } from "@aurora/spec";
 import { allComponents } from "@aurora/spec";
-import { generateSkill, generateSkillFiles } from "../src/skill.ts";
+import { forServer, generateSkill, generateSkillFiles } from "../src/skill.ts";
 
 const files = generateSkillFiles();
 const skill = files["SKILL.md"];
@@ -36,20 +36,20 @@ test("components reference documents every component with a valid example", () =
 
 test("both ways to deliver and every patch op are documented", () => {
   expect(skill).toContain(".aurora/views/");
-  expect(skill).toContain("mcp__aurora__patch");
+  expect(skill).toContain("`patch`");
   expect(skill).toContain('"ops"');
   for (const op of ["set", "addSection", "removeSection", "moveSection", "add", "update", "replace", "remove", "move", "editFile", "deleteFile", "addQuery", "addDataset", "addParam", "removeParam"]) expect(all).toContain(`\`${op}\``);
 });
 
 test("data reference covers datasets, query rules and filters", () => {
   const md = files["references/data.md"];
-  for (const s of ["mcp__aurora__profile", "addParam", "removeParam", "$name_min", "$name_max", "$name_from", "$name_to", "($region IS NULL OR region = $region)"]) expect(md).toContain(s);
+  for (const s of ["`profile`", "addParam", "removeParam", "$name_min", "$name_max", "$name_from", "$name_to", "($region IS NULL OR region = $region)"]) expect(md).toContain(s);
   expect(md).toMatch(/displayed, never generated/i);
 });
 
 test("design canvas reference covers files, bridge, iteration and known mistakes", () => {
   const md = files["references/design-canvas.md"];
-  for (const s of ['display: "page"', "editFile", "mcp__aurora__variants", "aurora.send", "mcp__aurora__events", "waitMs", "Math.max(0, Math.min(0.05"]) expect(md).toContain(s);
+  for (const s of ['display: "page"', "editFile", "`variants`", "aurora.send", "`events`", "waitMs", "Math.max(0, Math.min(0.05"]) expect(md).toContain(s);
   for (const lib of ["react", "motion", "lucide-react", "three", "d3", "gsap"]) expect(md).toContain(lib);
 });
 
@@ -159,4 +159,39 @@ test("the form comes from the reader's job: many forms, blended, not one default
   // no rule that sends every bigger request to a story
   expect(skill).not.toContain("Anything bigger than a one-number answer is a story");
   expect(files["references/story.md"]).not.toMatch(/"visualize".*gets a story/);
+});
+
+test("tool names are bare: the mcp__ prefix differs on every client", () => {
+  expect(all).not.toContain("mcp__");
+});
+
+test("no local/hosted markers survive in either text", () => {
+  for (const hosted of [false, true]) expect(Object.values(generateSkillFiles({ hosted })).join("\n")).not.toMatch(/<!--\/?(local|hosted)-->/);
+});
+
+test("hosted text never sends the agent to a tool or route hosted aurora lacks", () => {
+  const hosted = generateSkillFiles({ hosted: true });
+  for (const [p, text] of Object.entries(hosted)) {
+    for (const bad of [/`(look|profile|variants|events|compose)`/, /localhost/, /\.ndjson/, /\/abs\//, /\.aurora\/views/, /absolute (local )?path/]) expect(text, `${p} matches ${bad}`).not.toMatch(bad);
+  }
+  expect(hosted["SKILL.md"]).toContain("share link");
+  expect(hosted["references/data.md"]).toContain('{"inline": [rows]}');
+});
+
+test("local text keeps what hosted drops", () => {
+  expect(skill).toContain("`look`");
+  expect(skill).toContain("localhost:4317");
+  expect(files["references/data.md"]).toContain("/abs/path/orders.csv");
+});
+
+test("forServer keeps one side and closes the gap it leaves", () => {
+  const t = "a\n\n<!--local-->L\n<!--/local-->\n\nb <!--hosted-->H<!--/hosted-->";
+  expect(forServer(t, false)).toBe("a\n\nL\n\n\nb ".replace("\n\n\n", "\n\n"));
+  expect(forServer(t, true)).toBe("a\n\nb H");
+});
+
+test("maxRows cuts big inline datasets and says how many are left", () => {
+  const cut = generateSkillFiles({ maxRows: 12 });
+  expect(cut["examples/quakes.md"]).toContain("349 more rows like these");
+  for (const [p, text] of Object.entries(cut)) expect(text.length, p).toBeLessThan(40_000);
 });

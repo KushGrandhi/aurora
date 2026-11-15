@@ -17,13 +17,42 @@ function example(dir: string, title: string, intro: string, item: Record<string,
 
 function components(): string {
   const sections = allComponents()
-    .map((d) => `## \`${d.type}\`\n\n${d.doc.summary}\n\n${d.doc.guidance}\n\n\`\`\`json\n${JSON.stringify(d.doc.example)}\n\`\`\``)
+    .map((d) => `## \`${d.type}\`\n\n${d.doc.summary}\n\n${d.doc.guidance}\n\n\`\`\`json\n${JSON.stringify(d.doc.example).replace(/"(\/abs\/path\/[^"]+)"/g, (_, p: string) => `"<!--local-->${p}<!--/local--><!--hosted-->https://example.com/${p.split("/").pop()}<!--/hosted-->"`)}\n\`\`\``)
     .join("\n\n");
   return `# Components\n\nEach item's \`c\` is one of these; its \`type\` field picks it. Every example below is valid as written.\n\n${sections}\n`;
 }
 
+export type SkillOptions = {
+  /** Text for hosted aurora: no look/profile/variants/events/compose, inline data, http(s) media only. */
+  hosted?: boolean;
+  /** Cut each example's inline dataset to this many rows (big ones blow past tool-result limits). */
+  maxRows?: number;
+};
+
+/** Keep `<!--local-->…<!--/local-->` or `<!--hosted-->…<!--/hosted-->` spans for the server the text is for. */
+export function forServer(text: string, hosted: boolean): string {
+  let cut = false;
+  const out = text.replace(/<!--(local|hosted)-->([\s\S]*?)<!--\/\1-->/g, (_, k: string, body: string) => {
+    if ((k === "hosted") === hosted) return body;
+    cut = true;
+    return "";
+  });
+  return cut ? out.replace(/\n{3,}/g, "\n\n") : out;
+}
+
+let maxRows = Infinity; // set for the duration of one generateSkillFiles call (it is synchronous)
+
 /** The skill as files, by path inside the skill folder: a short SKILL.md that holds the method, and detail it points to. */
-export function generateSkillFiles(): Record<string, string> {
+export function generateSkillFiles(opts: SkillOptions = {}): Record<string, string> {
+  maxRows = opts.maxRows ?? Infinity;
+  try {
+    return Object.fromEntries(Object.entries(skillFiles()).map(([p, t]) => [p, forServer(t, !!opts.hosted)]));
+  } finally {
+    maxRows = Infinity;
+  }
+}
+
+function skillFiles(): Record<string, string> {
   return {
     "SKILL.md": `---\nname: aurora\ndescription: ${JSON.stringify(DESCRIPTION)}\n---\n\n${src("guide.md")}\n`,
     "references/components.md": components(),
@@ -144,6 +173,11 @@ export function generateSkillFiles(): Record<string, string> {
 function storyExample(dir: string, title: string, intro: string, files: string[]): string {
   const view = JSON.parse(src(`examples/${dir}/view.json`)) as { sections: { items: { c: { type: string; files?: Record<string, string> } }[] }[] };
   for (const s of view.sections) for (const it of s.items) if (it.c.files) it.c.files = Object.fromEntries(Object.keys(it.c.files).map((k) => [k, "…"]));
+  const sets = (view as { datasets?: Record<string, unknown> }).datasets ?? {};
+  for (const d of Object.values(sets)) {
+    const rows = (d as { inline?: unknown[] }).inline;
+    if (Array.isArray(rows) && rows.length > maxRows) (d as { inline: unknown[] }).inline = [...rows.slice(0, maxRows), `… ${rows.length - maxRows} more rows like these`];
+  }
   return example(dir, title, intro, view as unknown as Record<string, unknown>, files, "view");
 }
 

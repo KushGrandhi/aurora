@@ -23,7 +23,7 @@ test("an MCP client over HTTP renders with a bearer key and gets a share link", 
   clients.push(client);
   await client.connect(new StreamableHTTPClientTransport(new URL(s.base + "/mcp"), { requestInit: { headers: { authorization: `Bearer ${key}` } } }));
   const tools = (await client.listTools()).tools.map((t) => t.name);
-  expect(tools).toEqual(expect.arrayContaining(["render", "patch", "status"]));
+  expect(tools).toEqual(expect.arrayContaining(["aurora_guide", "render", "patch", "status"]));
   for (const off of ["compose", "look", "variants", "events"]) expect(tools).not.toContain(off);
   const r = await client.callTool({ name: "render", arguments: { view: v("m1") } });
   expect(JSON.stringify(r.content)).toContain("/v/");

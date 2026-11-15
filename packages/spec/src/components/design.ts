@@ -41,7 +41,7 @@ function checkDesign(c: Design): string | null {
 }
 
 const LIBS = DESIGN_LIBRARIES.join(", ");
-const BRIDGE = "`window.aurora`: `data` (rows of the queries named in `data`), `onData(cb)`, `theme` (\"light\" | \"dark\", also the `dark` class on <html> for Tailwind `dark:`), `onTheme(cb)`, `asset(name)` (URL of an entry in `assets`), `send(name, payload)` (tell the caller what the person did; read with the `events` tool)";
+const BRIDGE = "`window.aurora`: `data` (rows of the queries named in `data`), `onData(cb)`, `theme` (\"light\" | \"dark\", also the `dark` class on <html> for Tailwind `dark:`), `onTheme(cb)`, `asset(name)` (URL of an entry in `assets`), `send(name, payload)` (tell the caller what the person did<!--local-->; read with the `events` tool<!--/local-->)";
 
 export const design: ComponentDef<Design> = {
   type: "design",
@@ -64,7 +64,7 @@ export const design: ComponentDef<Design> = {
       `Tailwind classes work everywhere. Importable libraries (bundled, offline): ${LIBS}; also \`motion/react\` and the Inter font. \`aurora/kit\` holds aurora's building blocks (Scene, Metal, Glass, Glow, Label, Stage, Panel, ControlBar, useClock…): build physical things as 3D scenes with it, not as flat drawings. Nothing else can be imported and there is no network: fetch, external images and CDNs are blocked and reported as problems.`,
       `Bridge: ${BRIDGE}.`,
       "`display: \"hero\"` on the first item of the first section shows it full width with no card frame, with the rest of the view below it: use it for a 3D scene or a striking visual that leads an explainer. `display: \"page\"` on a view's only item shows it full screen like a real site; cards get a desktop/tablet/phone switcher (`viewport`). A card fits its content and follows it as it grows and shrinks; leave out `height` unless the design needs a fixed stage (a full-bleed canvas or 3D scene).",
-      "Iterate with `editFile` ops (`edits: [{find, replace}]` for small changes, `content` to replace a file, `deleteFile`), never by resending everything. Offer options with the `variants` tool and wait for the pick with `events`.",
+      "Iterate with `editFile` ops (`edits: [{find, replace}]` for small changes, `content` to replace a file, `deleteFile`), never by resending everything.<!--local--> Offer options with the `variants` tool and wait for the pick with `events`.<!--/local-->",
       "Compile errors (file:line), runtime errors and blocked requests come back as problems on the item: fix them with `editFile`.",
     ].join(" "),
   },

@@ -6,6 +6,35 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { portableSchema } from "./portableSchema.ts";
 import { PatchOpSchema, ViewSchema } from "@aurora/spec";
+import { generateSkillFiles } from "./skill.ts";
+
+/** The guide tool's name: prefixed, because "guide" alone collides with other servers' tools (Claude Docs has one). */
+export const GUIDE = "aurora_guide";
+
+const guideCache = new Map<boolean, Record<string, string>>();
+/** The skill as the guide tool serves it: text for this server, big inline datasets cut so every file fits a tool result. */
+function guideFiles(hosted: boolean): Record<string, string> {
+  let files = guideCache.get(hosted);
+  if (!files) {
+    files = generateSkillFiles({ hosted, maxRows: 12 });
+    files["SKILL.md"] = files["SKILL.md"].replace(/^---\n[\s\S]*?\n---\n+/, "");
+    guideCache.set(hosted, files);
+  }
+  return files;
+}
+export const GUIDE_PATHS = Object.keys(generateSkillFiles()).filter((p) => p !== "SKILL.md") as [string, ...string[]];
+
+function guideIndex(files: Record<string, string>): string {
+  const lines = GUIDE_PATHS.map((p) => `- \`${p}\`: ${(files[p].match(/^# (.+)$/m)?.[1] ?? "").replace(/^Example: /, "")}`);
+  return `## Files in this guide\n\nOpen one with ${GUIDE}({"file": "<path>"}) whenever the text above names it.\n\n${lines.join("\n")}\n`;
+}
+
+const INSTRUCTIONS = `aurora draws views (JSON) as designed, animated pages and gives each one a link.
+Before your first render in a conversation, call ${GUIDE} with no arguments and follow its method: choose the form and look first, build one whole-page \`design\` (React + Tailwind) that reads your queries, render then patch one call at a time with baseVersion, and fix everything status reports.
+Before a design or a story, open the closest example with ${GUIDE}({"file": "examples/…"}), and references/design-canvas.md and references/kit.md.
+Generic tiles, default charts and boxes in rows look machine-made: don't ship them.`;
+
+const DIGEST = `Read ${GUIDE} first if you haven't in this conversation: it holds the method and worked examples. In short: beyond a one-number answer, the view is one section holding one \`design\` item (display "page", React files, data: [queries]) with its own palette, fonts and controls; render the frame, add the rest with patch one call at a time passing baseVersion, then fix every problem status reports. `;
 
 const DataSchema = z.union([
   z.string(),
@@ -48,17 +77,36 @@ export function createAuroraMcpServer(opts: { baseUrl: string; fetch?: typeof fe
   const hosted = !!opts.hosted;
   const HOSTED_DATA = " Hosted aurora: datasets are inline only, {inline: [rows]} with the rows in the view; file paths and URLs are not read. Media must be http(s) URLs.";
 
-  const server = new McpServer({ name: "aurora", version: "0.2.0" });
+  const server = new McpServer({ name: "aurora", version: "0.2.0" }, { instructions: INSTRUCTIONS });
+  server.registerTool(GUIDE, {
+    description: `How to make good aurora views: the method, design language, component and kit reference, and worked examples. Call it with no arguments before your first render; it lists the other files, which you open with {"file": "<path>"}. Read-only.`,
+    inputSchema: { file: z.enum(GUIDE_PATHS).optional().describe("A file the guide names, e.g. references/kit.md or examples/landing.md; leave out for the main guide") },
+  }, async ({ file }) => {
+    const files = guideFiles(hosted);
+    if (!file) return { content: [{ type: "text", text: `${files["SKILL.md"]}\n\n${guideIndex(files)}` }] };
+    return { content: [{ type: "text", text: files[file] }] };
+  });
+  // A model that skipped the guide hears about it where it hurts: on a result that reports problems.
+  const withHint = async (r: Promise<ToolResult>): Promise<ToolResult> => {
+    const out = await r;
+    if (out.isError) return { ...out, content: [...out.content, { type: "text", text: `If this is about the view's shape, ${GUIDE} (and its references/components.md and references/design-canvas.md) documents every field.` }] };
+    try {
+      const body = JSON.parse((out.content[0] as { text: string }).text) as { problems?: { severity?: string }[] };
+      if (body.problems?.some((p) => p.severity === "error" || p.severity === "warning"))
+        return { ...out, content: [...out.content, { type: "text", text: `To fix these, read ${GUIDE} and the reference it names for that part (e.g. ${GUIDE}({"file": "references/design-canvas.md"})).` }] };
+    } catch {}
+    return out;
+  };
   server.registerTool("render", {
-    description: hosted
+    description: DIGEST + (hosted
       ? "Create a view (or replace it entirely when the id exists). Returns {viewId, version, url, problems}; url is the view's view-only share link, so give it to the person." + HOSTED_DATA
-      : "Show a view on the aurora screen (creates it, or replaces it entirely when the id exists). Returns {viewId, version, url, problems}. For a live build-up, render the frame (title + sections) first, then add components one patch at a time.",
+      : "Show a view on the aurora screen (creates it, or replaces it entirely when the id exists). Returns {viewId, version, url, problems}. For a live build-up, render the frame (title + sections) first, then add components one patch at a time."),
     inputSchema: { view: ViewSchema },
-  }, ({ view }) => call("POST", "/api/views", { view }));
+  }, ({ view }) => withHint(call("POST", "/api/views", { view })));
   server.registerTool("patch", {
     description: "Change a view in place by id: an ordered list of ops (set, addSection, removeSection, moveSection, add, update, replace, remove, move, addQuery, addDataset, addParam, removeParam, editFile, deleteFile), applied all-or-nothing. For designs, editFile with edits [{find, replace}] changes a few lines without resending files. Pass baseVersion (the version you last saw); if the person picked another version on screen the result says rebased: true." + (hosted ? HOSTED_DATA : ""),
     inputSchema: { viewId: z.string(), ops: z.array(PatchOpSchema), baseVersion: z.number().int().optional() },
-  }, ({ viewId, ops, baseVersion }) => call("POST", `/api/views/${id(viewId)}/patch`, { ops, ...(baseVersion !== undefined ? { baseVersion } : {}) }));
+  }, ({ viewId, ops, baseVersion }) => withHint(call("POST", `/api/views/${id(viewId)}/patch`, { ops, ...(baseVersion !== undefined ? { baseVersion } : {}) })));
   server.registerTool("status", {
     description: "Current version of a view, its problems (validation, data and screen render errors) and items no screen has confirmed yet (unverified). Check after render/patch when problems were reported.",
     inputSchema: { viewId: z.string() },

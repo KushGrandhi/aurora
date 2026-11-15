@@ -14,7 +14,7 @@ export const media: ComponentDef<Media> = {
   doc: {
     summary: "Images and videos that already exist — one large, or a gallery with a lightbox.",
     example: { type: "media", layout: "gallery", items: [{ src: "/abs/path/screenshot.png", caption: "Home screen", alt: "The home screen" }, { src: "https://example.com/demo.mp4", caption: "Demo" }] },
-    guidance: "Media is displayed, never generated. `src` is an absolute local path or an http(s) URL; local files are served only because this view references them. Supported: png, jpg, gif, webp, avif, svg, mp4, webm, mov, m4v, ogg. A missing file comes back as a warning.",
+    guidance: "Media is displayed, never generated. `src` is <!--local-->an absolute local path or an http(s) URL; local files are served only because this view references them<!--/local--><!--hosted-->an http(s) URL<!--/hosted-->. Supported: png, jpg, gif, webp, avif, svg, mp4, webm, mov, m4v, ogg. A missing file comes back as a warning.",
   },
   media: (c) => c.items.map((i) => i.src),
 };

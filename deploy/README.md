@@ -56,7 +56,7 @@ aurora-link revoke chatgpt
 
 `link new` prints `https://aurora.<your-domain>/mcp/<secret>` once. Paste it as the connector's server URL and choose **No authentication**. Anyone holding the URL can use that workspace, so give each app or person its own link and revoke it if it leaks. The server stores only a hash of each secret (`<data>/links.json`); new and revoked links apply without a restart, and revoking leaves the workspace's pages in place. Run it as the container's own user (no `-u root`): `links.json` is readable only by its owner, and a root-owned file stops every link working. Notes per app: in ChatGPT, pick **No authentication** before creating the connector (the form starts on OAuth); in a Claude Team or Enterprise org, a connector an owner adds is shared by every member, so it should be a link to a shared workspace or each person adds their own. The bundled Caddyfile writes no access logs; if you add a `log` directive or another proxy, keep `/mcp/` paths out of it.
 
-Tools: `render`, `patch`, `status`, `version`. Each result carries a `url` (`/v/<token>`), a view-only link to open or share. Data must be inline (`{"inline": [rows]}`); paths and `http(s)` datasets are refused.
+Tools: `aurora_guide` (how to make good views; agents are told to read it first), `render`, `patch`, `status`, `version`. Each result carries a `url` (`/v/<token>`), a view-only link to open or share. Data must be inline (`{"inline": [rows]}`); paths and `http(s)` datasets are refused.
 
 ## Check it
 

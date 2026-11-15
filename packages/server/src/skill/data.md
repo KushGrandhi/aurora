@@ -1,18 +1,19 @@
 # Data: datasets, queries and filters
 
-Read this before showing anything computed from a data file. aurora runs SQL (DuckDB) over the user's files in place, so data never passes through your context.
+Read this before showing anything computed from a data file. aurora runs SQL (DuckDB) over <!--local-->the user's files in place, so data never passes through your context.<!--/local--><!--hosted-->rows you put in the view (`{"inline": [rows]}`); this server reads no files or URLs, so aggregate big data before sending it and keep each request under 4 MB.<!--/hosted-->
 
 ## Steps
 
-1. **Profile** the file with `mcp__aurora__profile`: you get columns, types, stats and sample rows.
-2. **Attach** it as a dataset and **write queries** in the view.
+<!--local-->1. **Profile** the file with `profile`: you get columns, types, stats and sample rows.
+<!--/local--><!--hosted-->1. **Know** the columns and types of the rows you hold.
+<!--/hosted-->2. **Attach** it as a dataset and **write queries** in the view.
 3. **Bind** components to queries: `kpi`, `chart`, `table`, and `text`/`json` that read a query.
 4. **Add filters** (`params`) when the reader will want to slice it.
 
 ```json
 {
   "v": 2, "id": "sales", "title": "Sales this year",
-  "datasets": { "orders": "/abs/path/orders.csv" },
+  <!--local-->"datasets": { "orders": "/abs/path/orders.csv" },<!--/local--><!--hosted-->"datasets": { "orders": { "inline": [ { "date": "2026-01-04", "region": "West", "amount": 120 } ] } },<!--/hosted-->
   "queries": {
     "total": { "sql": "SELECT sum(amount) AS total_revenue FROM orders WHERE ($region IS NULL OR region = $region)" },
     "by_month": { "sql": "SELECT date_trunc('month', date) AS month, sum(amount) AS revenue FROM orders WHERE ($region IS NULL OR region = $region) GROUP BY 1 ORDER BY 1" },
@@ -28,7 +29,7 @@ Read this before showing anything computed from a data file. aurora runs SQL (Du
 
 ## Datasets
 
-A `datasets` value is an absolute path (csv, tsv, json, ndjson, parquet, a folder of .md), `{"path", "format"}`, or `{"inline": [rows]}` for small data you already hold. Add one later with `{"op":"addDataset","name","input"}`.
+<!--local-->A `datasets` value is an absolute path (csv, tsv, json, ndjson, parquet, a folder of .md), `{"path", "format"}`, or `{"inline": [rows]}` for small data you already hold.<!--/local--><!--hosted-->A `datasets` value is `{"inline": [rows]}`: an array of flat objects with the same keys.<!--/hosted--> Add one later with `{"op":"addDataset","name","input"}`.
 
 ## Query rules
 
@@ -72,4 +73,4 @@ A `design` can draw rows itself: `"data": ["by_month"]` puts them in `window.aur
 
 ## Media
 
-Media is displayed, never generated: `media` and `cards` show images and videos that already exist. Use absolute local paths (png, jpg, gif, webp, avif, svg, mp4, webm, mov, m4v, ogg) or http(s) URLs. aurora serves a local file only because an accepted view references it, at a private token URL. A missing or unsupported file comes back as a warning on the item.
+Media is displayed, never generated: `media` and `cards` show images and videos that already exist. <!--local-->Use absolute local paths (png, jpg, gif, webp, avif, svg, mp4, webm, mov, m4v, ogg) or http(s) URLs. aurora serves a local file only because an accepted view references it, at a private token URL.<!--/local--><!--hosted-->Use http(s) URLs (png, jpg, gif, webp, avif, svg, mp4, webm, mov, m4v, ogg).<!--/hosted--> A missing or unsupported file comes back as a warning on the item.
